@@ -7,16 +7,16 @@ import (
 	"strings"
 	"testing"
 
-	"flamingodb/internal/executor"
-	"flamingodb/internal/index/btree"
-	"flamingodb/internal/parser/lexer"
-	"flamingodb/internal/parser/parser"
-	"flamingodb/internal/planner"
-	"flamingodb/internal/storage/catalog"
-	"flamingodb/internal/storage/disk"
-	"flamingodb/internal/storage/page"
-	"flamingodb/internal/storage/pager"
-	"flamingodb/internal/storage/record"
+	"github.com/TaqsBlaze/FlamingoDB/internal/executor"
+	"github.com/TaqsBlaze/FlamingoDB/internal/index/btree"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/lexer"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/parser"
+	"github.com/TaqsBlaze/FlamingoDB/internal/planner"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/catalog"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/disk"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/page"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/pager"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/record"
 )
 
 // setupExecutor creates a clean in-memory-backed executor for each test.

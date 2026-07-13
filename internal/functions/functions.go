@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"flamingodb/internal/datatypes"
-	"flamingodb/internal/storage/record"
+	"github.com/TaqsBlaze/FlamingoDB/internal/datatypes"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/record"
 )
 
 // Function represents a native function that can be executed.

@@ -4,9 +4,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"flamingodb/internal/index/btree"
-	"flamingodb/internal/storage/disk"
-	"flamingodb/internal/storage/pager"
+	"github.com/TaqsBlaze/FlamingoDB/internal/index/btree"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/disk"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/pager"
 )
 
 const pageSize = uint32(4096)

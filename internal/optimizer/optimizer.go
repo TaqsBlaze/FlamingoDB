@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"flamingodb/internal/parser/ast"
-	"flamingodb/internal/planner"
-	"flamingodb/internal/storage/catalog"
-	"flamingodb/internal/storage/record"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/ast"
+	"github.com/TaqsBlaze/FlamingoDB/internal/planner"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/catalog"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/record"
 )
 
 // Optimize performs logical optimizations (such as index scan selection, filter pushdown,

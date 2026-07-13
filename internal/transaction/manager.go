@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
-	"flamingodb/internal/storage/page"
-	"flamingodb/internal/storage/pager"
-	"flamingodb/internal/wal"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/page"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/pager"
+	"github.com/TaqsBlaze/FlamingoDB/internal/wal"
 )
 
 // TransactionManager coordinates starting, committing, rolling back, and recovering transactions.

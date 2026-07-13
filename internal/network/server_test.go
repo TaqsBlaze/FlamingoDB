@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"flamingodb/internal/storage/catalog"
-	"flamingodb/internal/storage/disk"
-	"flamingodb/internal/storage/pager"
-	"flamingodb/pkg/logger"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/catalog"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/disk"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/pager"
+	"github.com/TaqsBlaze/FlamingoDB/pkg/logger"
 )
 
 func setupTestServer(t *testing.T, username, password string, maxConn int) (*Server, string) {

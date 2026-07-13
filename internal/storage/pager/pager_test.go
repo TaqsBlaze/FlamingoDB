@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"flamingodb/internal/storage/disk"
-	"flamingodb/internal/storage/pager"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/disk"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/pager"
 )
 
 func TestPager(t *testing.T) {

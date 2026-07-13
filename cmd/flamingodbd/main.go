@@ -7,12 +7,12 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"flamingodb/internal/network"
-	"flamingodb/internal/storage/catalog"
-	"flamingodb/internal/storage/disk"
-	"flamingodb/internal/storage/pager"
-	"flamingodb/pkg/config"
-	"flamingodb/pkg/logger"
+	"github.com/TaqsBlaze/FlamingoDB/internal/network"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/catalog"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/disk"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/pager"
+	"github.com/TaqsBlaze/FlamingoDB/pkg/config"
+	"github.com/TaqsBlaze/FlamingoDB/pkg/logger"
 )
 
 func main() {
