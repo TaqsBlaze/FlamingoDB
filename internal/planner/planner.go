@@ -65,7 +65,7 @@ func (n *FilterNode) String() string {
 // ProjectNode projects a list of fields/columns.
 type ProjectNode struct {
 	Child  PlanNode
-	Fields []string
+	Fields []ast.Expression
 }
 
 // Type returns PlanProject.
@@ -76,7 +76,11 @@ func (n *ProjectNode) Children() []PlanNode { return []PlanNode{n.Child} }
 
 // String returns a string representation of ProjectNode.
 func (n *ProjectNode) String() string {
-	return fmt.Sprintf("Project(%s)", strings.Join(n.Fields, ", "))
+	var fields []string
+	for _, f := range n.Fields {
+		fields = append(fields, f.String())
+	}
+	return fmt.Sprintf("Project(%s)", strings.Join(fields, ", "))
 }
 
 // InsertNode inserts values into a table.

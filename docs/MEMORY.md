@@ -17,19 +17,13 @@
 - `Catalog` and `TableMetadata` (in `internal/storage/catalog`) persists table schemas to Page 0 of the database.
 - `TableManager` (in `internal/storage/catalog`) acts as the schema-aware entrypoint for DDL and DML operations.
 - `Lexer` (in `internal/parser/lexer`) tokenizes raw SQL statements.
-- `Parser` (in `internal/parser/parser`) processes SQL tokens into AST nodes (supporting SELECT, INSERT, UPDATE, DELETE, CREATE TABLE).
+- `Parser` (in `internal/parser/parser`) processes SQL tokens into AST nodes (supporting SELECT, INSERT, UPDATE, DELETE, CREATE TABLE, and function call expressions).
 - `Planner` (in `internal/planner`) converts AST statement nodes into logical plan nodes (Scan, Filter, Project, Insert, Update, Delete, CreateTable).
-- `Executor` (in `internal/executor`) physically executes logical plan nodes against the `TableManager`. Supports CREATE TABLE, INSERT, full Scan, Filter (WHERE), and column Projection (SELECT fields).
+- `Executor` (in `internal/executor`) physically executes logical plan nodes against the `TableManager`. Supports CREATE TABLE, INSERT, full Scan, Filter (WHERE), column Projection (SELECT fields), and function call evaluations.
+- `Functions` (in `internal/functions`) contains native implementations of scalar math and vector operations (SIN, COS, TAN, ASIN, ACOS, ATAN, EXP, LOG, SQRT, ABS, POW, DOT, CROSS, NORM).
 - `BTree` (in `internal/index/btree`) is a page-backed B+ Tree index supporting INT, FLOAT, and VARCHAR keys with point search, range scan, and automatic node splitting. Persisted via the Pager.
 - `WAL` (in `internal/wal`) manages binary log records with CRC32 checksum protection for recovery durability.
 - `TransactionManager` (in `internal/transaction`) manages transaction lifecycle (Begin, Commit, Rollback), thread-safe global locks, private dirty page caches (NO-STEAL/FORCE), and WAL crash recovery.
-
-## Invariants
-- `PageSize` is fixed at 8192 bytes by default.
-- Page 0 of the database file is reserved for Catalog metadata.
-- BTree node key sizes: INT=4B, FLOAT=8B, VARCHAR=256B (fixed-width for page layout).
-- Every DDL/DML statement executed outside an explicit transaction runs in auto-commit mode.
-- Database instantiation automatically executes WAL crash recovery (Redo phase).
 
 ## Invariants
 - `PageSize` is fixed at 8192 bytes by default.
@@ -41,4 +35,4 @@
 - Scientific datatypes are serialized as length-prefixed structures.
 
 ## Active Work
-- None. Phase 9 (Scientific Types) is complete. Next phase is Phase 10 (Scientific Functions).
+- None. Phases 1–10 are complete. Next phase is Phase 11 (Geospatial).

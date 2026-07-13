@@ -110,6 +110,23 @@ func (pe *PrefixExpression) String() string {
 	return "(" + pe.Operator + pe.Right.String() + ")"
 }
 
+// CallExpression represents a function call (e.g. SIN(x)).
+type CallExpression struct {
+	Token    lexer.Token // The IDENT token (the function name)
+	Function string      // e.g. "SIN"
+	Args     []Expression
+}
+
+func (ce *CallExpression) expressionNode()      {}
+func (ce *CallExpression) TokenLiteral() string { return ce.Token.Literal }
+func (ce *CallExpression) String() string {
+	var args []string
+	for _, a := range ce.Args {
+		args = append(args, a.String())
+	}
+	return ce.Function + "(" + strings.Join(args, ", ") + ")"
+}
+
 // ColumnDef represents a column definition in a CREATE TABLE statement.
 type ColumnDef struct {
 	Name string
@@ -119,7 +136,7 @@ type ColumnDef struct {
 // SelectStatement represents a SELECT query.
 type SelectStatement struct {
 	Token lexer.Token // the 'SELECT' token
-	Fields []string
+	Fields []Expression
 	Table  string
 	Where  Expression
 }
@@ -127,7 +144,11 @@ type SelectStatement struct {
 func (s *SelectStatement) statementNode()       {}
 func (s *SelectStatement) TokenLiteral() string { return s.Token.Literal }
 func (s *SelectStatement) String() string {
-	out := "SELECT " + strings.Join(s.Fields, ", ") + " FROM " + s.Table
+	var fields []string
+	for _, f := range s.Fields {
+		fields = append(fields, f.String())
+	}
+	out := "SELECT " + strings.Join(fields, ", ") + " FROM " + s.Table
 	if s.Where != nil {
 		out += " WHERE " + s.Where.String()
 	}

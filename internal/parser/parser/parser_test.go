@@ -29,7 +29,7 @@ func TestParseSelectStatement(t *testing.T) {
 	if len(stmt.Fields) != 2 {
 		t.Fatalf("len(stmt.Fields) not 2. got=%d", len(stmt.Fields))
 	}
-	if stmt.Fields[0] != "id" || stmt.Fields[1] != "name" {
+	if stmt.Fields[0].String() != "id" || stmt.Fields[1].String() != "name" {
 		t.Errorf("fields wrong. got=%v", stmt.Fields)
 	}
 
@@ -151,6 +151,54 @@ func TestParseCreateTableStatement(t *testing.T) {
 	}
 	if stmt.Columns[1].Name != "price" || stmt.Columns[1].Type != "FLOAT" {
 		t.Errorf("col 1 wrong: %v", stmt.Columns[1])
+	}
+}
+
+
+
+func TestParseFunctionCalls(t *testing.T) {
+	input := "SELECT SIN(val), POW(x, 2) FROM dataset WHERE COS(y) > 0.5;"
+	l := lexer.New(input)
+	p := New(l)
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program.Statements does not contain 1 statement. got=%d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.SelectStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.SelectStatement. got=%T", program.Statements[0])
+	}
+
+	if len(stmt.Fields) != 2 {
+		t.Fatalf("expected 2 fields, got %d", len(stmt.Fields))
+	}
+
+	field0, ok := stmt.Fields[0].(*ast.CallExpression)
+	if !ok {
+		t.Fatalf("expected Field[0] to be *ast.CallExpression, got %T", stmt.Fields[0])
+	}
+	if field0.Function != "SIN" || len(field0.Args) != 1 || field0.Args[0].String() != "val" {
+		t.Errorf("field0 structure wrong, got %v", field0)
+	}
+
+	field1, ok := stmt.Fields[1].(*ast.CallExpression)
+	if !ok {
+		t.Fatalf("expected Field[1] to be *ast.CallExpression, got %T", stmt.Fields[1])
+	}
+	if field1.Function != "POW" || len(field1.Args) != 2 || field1.Args[0].String() != "x" || field1.Args[1].String() != "2" {
+		t.Errorf("field1 structure wrong, got %v", field1)
+	}
+
+	whereCall, ok := stmt.Where.(*ast.InfixExpression).Left.(*ast.CallExpression)
+	if !ok {
+		t.Fatalf("expected Where condition Left to be *ast.CallExpression, got %T", stmt.Where.(*ast.InfixExpression).Left)
+	}
+	if whereCall.Function != "COS" || len(whereCall.Args) != 1 || whereCall.Args[0].String() != "y" {
+		t.Errorf("where call structure wrong, got %v", whereCall)
 	}
 }
 

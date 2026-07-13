@@ -31,7 +31,7 @@ func TestPlanSelect(t *testing.T) {
 	if !ok {
 		t.Fatalf("could not cast plan to *ProjectNode")
 	}
-	if len(projNode.Fields) != 2 || projNode.Fields[0] != "id" || projNode.Fields[1] != "name" {
+	if len(projNode.Fields) != 2 || projNode.Fields[0].String() != "id" || projNode.Fields[1].String() != "name" {
 		t.Errorf("fields mismatch: got %v", projNode.Fields)
 	}
 
