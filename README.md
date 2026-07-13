@@ -7,25 +7,56 @@
   <img src="https://img.shields.io/badge/Tests-All%20Passing-4CAF50?style=for-the-badge&logo=go&logoColor=white" alt="Tests" />
   <img src="https://img.shields.io/badge/Phase-6%20%2F%2014-FF6B35?style=for-the-badge" alt="Phase" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
+  <img src="https://img.shields.io/badge/Domain-Scientific%20Database-8A2BE2?style=for-the-badge" alt="Domain" />
 </p>
 
 <p align="center">
-  <strong>A modern scientific database engine built for numerical computing, multidimensional arrays, vectors, geospatial data, and large scale analytical workloads.</strong>
+  <strong>An open source scientific database system engineered for high-performance data storage, computational research, and large-scale scientific datasets.</strong>
+</p>
+
+<p align="center">
+  <a href="#why-flamingodb">Why FlamingoDB</a> ·
+  <a href="#-development-progress">Progress</a> ·
+  <a href="#-architecture">Architecture</a> ·
+  <a href="#-quick-start">Quick Start</a> ·
+  <a href="#-use-cases">Use Cases</a> ·
+  <a href="#-tests">Tests</a> ·
+  <a href="#-contributing">Contributing</a>
 </p>
 
 ---
 
-## 💡 Why FlamingoDB?
+## Why FlamingoDB?
 
-Traditional databases treat scientific data as afterthoughts heavy BLOBs, generic arrays, and expensive serialization cycles that kill performance.
+Modern **scientific data management** demands more than what traditional relational databases were built to deliver. Systems designed for business records were never meant to handle:
 
-**FlamingoDB is different.** It treats scientific datatypes as **first class citizens**:
+- **Tensors and matrices** from deep learning training runs
+- **Geospatial coordinates** from satellite or climate datasets
+- **High-frequency time-series** from bioinformatics workflows
+- **Multidimensional arrays** from physics simulations and numerical methods
 
-- 🧮 Native `VECTOR`, `MATRIX`, `TENSOR` types *(Phase 9)*
-- 🌍 Native `POINT`, `POLYGON`, `MULTIPOLYGON` geospatial types *(Phase 11)*
-- ⚡ SIMD accelerated numerical operations *(Phase 12)*
-- 🧬 Built for climate modelling, astronomy, physics simulations, and ML datasets
+Traditional databases treat these as afterthoughts — heavy BLOBs, generic binary fields, and expensive serialization cycles that destroy performance at scale.
 
+**FlamingoDB is different.** It is purpose-built as a **scientific database system** where numerical and multidimensional types are **first-class citizens** in the storage engine itself.
+
+> *"Every line of code should make FlamingoDB easier to understand, not harder."*
+
+---
+
+## 🎯 Built For
+
+FlamingoDB is **open source scientific software** designed specifically for **data-intensive science** and **reproducible research** workflows:
+
+| Domain | Example Workloads |
+|--------|-------------------|
+| 🧬 **Bioinformatics** | Sequence alignment datasets, variant call files, genomic arrays |
+| 🌍 **Climate Science** | Gridded temperature models, precipitation tensors, geospatial polygons |
+| 🔭 **Astronomy** | Star catalogues, spectroscopy arrays, photometric survey data |
+| ⚛️ **Physics** | Particle collision datasets, finite element matrices, simulation outputs |
+| 🤖 **Machine Learning** | Embedding vectors, feature matrices, model parameter storage |
+| 🧫 **Life Sciences** | Multi-omics data pipelines, proteomics arrays, biomarker research data infrastructure |
+
+FlamingoDB is designed from the ground up to power **research data infrastructure** for organisations that need **high performance data storage** for **large-scale scientific datasets** — without the overhead of repurposing a general-purpose RDBMS.
 
 ---
 
@@ -49,9 +80,9 @@ Traditional databases treat scientific data as afterthoughts heavy BLOBs, generi
 | 6 | **Executor** — Physical Execution against Storage Engine | ✅ Done | `100%` |
 | 7 | **Indexes** — B+ Tree Lookup & Range Scans | ⏳ Next | `0%` |
 | 8 | **Transactions** — WAL, Commit, Rollback, Crash Recovery | ⏳ Planned | `0%` |
-| 9 | **Scientific Types** — VECTOR, MATRIX, TENSOR, COMPLEX | ⏳ Planned | `0%` |
-| 10 | **Scientific Functions** — SIN, COS, DOT, CROSS, SQRT… | ⏳ Planned | `0%` |
-| 11 | **Geospatial** — POINT, POLYGON, DISTANCE, INTERSECTS… | ⏳ Planned | `0%` |
+| 9 | **Scientific Types** — `VECTOR`, `MATRIX`, `TENSOR`, `COMPLEX` | ⏳ Planned | `0%` |
+| 10 | **Scientific Functions** — `SIN`, `COS`, `DOT`, `CROSS`, `NORM`… | ⏳ Planned | `0%` |
+| 11 | **Geospatial** — `POINT`, `POLYGON`, `DISTANCE`, `INTERSECTS`… | ⏳ Planned | `0%` |
 | 12 | **Optimization** — Query Planner, SIMD, Parallel Execution | ⏳ Planned | `0%` |
 | 13 | **Networking** — TCP Server, Connection Pool, Auth | ⏳ Planned | `0%` |
 | 14 | **Python SDK** — Native `import flamingodb` | ⏳ Planned | `0%` |
@@ -60,7 +91,7 @@ Traditional databases treat scientific data as afterthoughts heavy BLOBs, generi
 
 ## 🏗️ Architecture
 
-FlamingoDB follows a strict **Clean Architecture** each layer communicates only with adjacent layers. No shortcuts.
+FlamingoDB follows a strict **Clean Architecture** — each layer communicates only with adjacent layers. Engineered for **computational research** workloads where correctness and predictability are non-negotiable.
 
 ```
           SQL Query
@@ -82,7 +113,7 @@ FlamingoDB follows a strict **Clean Architecture** each layer communicates only 
          └────┬────┘
               │
      ┌────────▼────────┐
-     │  Table Manager  │   Schema aware DML/DDL coordination
+     │  Table Manager  │   Schema-aware DML/DDL coordination
      └────────┬────────┘
               │
      ┌────────▼────────┐
@@ -100,6 +131,8 @@ FlamingoDB follows a strict **Clean Architecture** each layer communicates only 
 
 ## 🚀 Quick Start
 
+The following demonstrates a full SQL pipeline across the **scientific data management** stack — from raw SQL string to persisted records and filtered results.
+
 ```go
 package main
 
@@ -114,7 +147,7 @@ import (
     "flamingodb/internal/storage/pager"
 )
 
-func run(sql string, exec *executor.Executor) {
+func run(sql string, exec *executor.Executor) *executor.Result {
     l := lexer.New(sql)
     p := parser.New(l)
     prog := p.ParseProgram()
@@ -123,19 +156,27 @@ func run(sql string, exec *executor.Executor) {
     node, _ := pl.Plan(prog.Statements[0])
 
     result, _ := exec.Execute(node)
-    fmt.Printf("%d row(s) returned\n", len(result.Rows))
+    return result
 }
 
 func main() {
+    // Bootstrap the research data infrastructure
     dm, _ := disk.NewDiskManager("science.db", 4096)
     p, _  := pager.New(dm, 4096)
     tm, _ := catalog.NewTableManager(p)
     exec  := executor.New(tm)
 
+    // Define a schema for a large-scale scientific dataset
     run("CREATE TABLE stars (id INT, name VARCHAR, magnitude FLOAT);", exec)
-    run("INSERT INTO stars VALUES (1, 'Sirius', -1.46);",              exec)
-    run("INSERT INTO stars VALUES (2, 'Canopus', -0.74);",             exec)
-    run("SELECT * FROM stars WHERE magnitude < 0;",                     exec) // → 2 rows
+
+    // Insert records — supports negative literals for scientific values
+    run("INSERT INTO stars VALUES (1, 'Sirius',   -1.46);", exec)
+    run("INSERT INTO stars VALUES (2, 'Canopus',  -0.74);", exec)
+    run("INSERT INTO stars VALUES (3, 'Rigel',     0.13);", exec)
+
+    // Query with filter — SQL-native WHERE clause execution
+    result := run("SELECT * FROM stars WHERE magnitude < 0;", exec)
+    fmt.Printf("%d bright stars found\n", len(result.Rows)) // → 2 bright stars found
 }
 ```
 
@@ -156,7 +197,7 @@ flamingodb/
 │   ├── planner/              # AST → Logical plan
 │   ├── executor/             # Physical plan execution
 │   ├── storage/
-│   │   ├── page/             # Fixed-size page abstraction
+│   │   ├── page/             # Fixed-size page abstraction (8KB)
 │   │   ├── disk/             # Thread-safe disk IO
 │   │   ├── pager/            # Buffer pool manager
 │   │   ├── encoding/         # Little-endian binary encoding
@@ -177,13 +218,13 @@ flamingodb/
 
 ## 🧪 Tests
 
-Every package requires unit tests. Every bug fix requires a regression test.
+**Reproducible research** demands reproducible software. Every package requires unit tests; every bug fix requires a regression test. FlamingoDB enforces this as a hard rule.
 
 ```bash
 go test ./...
 ```
 
-**Current Results:**
+**Current Results — All Passing:**
 ```
 ok   flamingodb/internal/executor          0.015s
 ok   flamingodb/internal/parser/lexer      0.009s
@@ -197,6 +238,25 @@ ok   flamingodb/internal/storage/record    0.002s
 ok   flamingodb/internal/storage/table     0.009s
 ok   flamingodb/tests                      0.011s
 ```
+
+---
+
+## 🤝 Contributing
+
+FlamingoDB is **open source scientific software** — contributions from the database and science communities are warmly welcomed. Whether you work in bioinformatics, climate science, physics, or database engineering, there is a place for you here.
+
+FlamingoDB uses a dual-agent development model defined in [`AGENTS.md`](./AGENTS.md):
+
+- **Agent Alpha** owns: Storage Engine, Pager, WAL, Transactions, Indexes
+- **Agent Beta** owns: SQL, Lexer, Parser, Planner, Executor, Scientific Types, SDK
+- Shared decisions are logged in [`docs/DECISIONS.md`](./docs/DECISIONS.md)
+- Progress is tracked in [`docs/PROGRESS.md`](./docs/PROGRESS.md)
+
+---
+
+## 🔖 Keywords
+
+`scientific database system` · `scientific data management` · `research data infrastructure` · `high performance data storage` · `computational research` · `large-scale scientific datasets` · `bioinformatics workflows` · `data-intensive science` · `reproducible research` · `open source scientific software` · `database engine` · `vector database` · `matrix storage` · `geospatial database` · `Go database`
 
 ---
 
