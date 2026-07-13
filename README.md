@@ -137,7 +137,7 @@ package main
 
 import (
     "fmt"
-    "flamingodb"
+    "github.com/TaqsBlaze/FlamingoDB"
 )
 
 func main() {
@@ -238,7 +238,7 @@ package main
 
 import (
     "fmt"
-    "flamingodb"
+    "github.com/TaqsBlaze/FlamingoDB"
 )
 
 func main() {
@@ -457,20 +457,20 @@ go test ./...
 
 **Current Results — All Passing:**
 ```
-ok   flamingodb/internal/datatypes         0.005s
-ok   flamingodb/internal/executor          0.025s
-ok   flamingodb/internal/functions         0.002s
-ok   flamingodb/internal/index/btree       0.232s
-ok   flamingodb/internal/parser/lexer      0.029s
-ok   flamingodb/internal/parser/parser     0.038s
-ok   flamingodb/internal/planner           0.022s
-ok   flamingodb/internal/storage/catalog   0.027s
-ok   flamingodb/internal/storage/disk      0.038s
-ok   flamingodb/internal/storage/encoding  0.040s
-ok   flamingodb/internal/storage/pager     0.013s
-ok   flamingodb/internal/storage/record    0.011s
-ok   flamingodb/internal/storage/table     0.010s
-ok   flamingodb/tests                      0.103s
+ok   github.com/TaqsBlaze/FlamingoDB/internal/datatypes         0.005s
+ok   github.com/TaqsBlaze/FlamingoDB/internal/executor          0.025s
+ok   github.com/TaqsBlaze/FlamingoDB/internal/functions         0.002s
+ok   github.com/TaqsBlaze/FlamingoDB/internal/index/btree       0.232s
+ok   github.com/TaqsBlaze/FlamingoDB/internal/parser/lexer      0.029s
+ok   github.com/TaqsBlaze/FlamingoDB/internal/parser/parser     0.038s
+ok   github.com/TaqsBlaze/FlamingoDB/internal/planner           0.022s
+ok   github.com/TaqsBlaze/FlamingoDB/internal/storage/catalog   0.027s
+ok   github.com/TaqsBlaze/FlamingoDB/internal/storage/disk      0.038s
+ok   github.com/TaqsBlaze/FlamingoDB/internal/storage/encoding  0.040s
+ok   github.com/TaqsBlaze/FlamingoDB/internal/storage/pager     0.013s
+ok   github.com/TaqsBlaze/FlamingoDB/internal/storage/record    0.011s
+ok   github.com/TaqsBlaze/FlamingoDB/internal/storage/table     0.010s
+ok   github.com/TaqsBlaze/FlamingoDB/tests                      0.103s
 ```
 
 ---
