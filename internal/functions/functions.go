@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"flamingodb/internal/datatypes"
 	"flamingodb/internal/storage/record"
 )
 
@@ -29,6 +30,12 @@ var Registry = map[string]Function{
 	"DOT":   evalDot,
 	"CROSS": evalCross,
 	"NORM":  evalNorm,
+	"POINT":           evalPoint,
+	"POLYGON":         evalPolygon,
+	"ST_GEOMFROMTEXT": evalGeomFromText,
+	"DISTANCE":        evalDistance,
+	"INTERSECTS":      evalIntersects,
+	"AREA":            evalArea,
 }
 
 // Helper to convert an integer/float value to float64
@@ -292,3 +299,125 @@ func evalNorm(args []record.Value) (record.Value, error) {
 	}
 	return record.Value{Type: record.Float, Flt: math.Sqrt(sum)}, nil
 }
+
+// evalPoint evaluates the POINT constructor.
+func evalPoint(args []record.Value) (record.Value, error) {
+	if len(args) != 2 {
+		return record.Value{}, fmt.Errorf("POINT expects exactly 2 arguments, got %d", len(args))
+	}
+	x, err := toFloat(args[0])
+	if err != nil {
+		return record.Value{}, fmt.Errorf("POINT x arg: %w", err)
+	}
+	y, err := toFloat(args[1])
+	if err != nil {
+		return record.Value{}, fmt.Errorf("POINT y arg: %w", err)
+	}
+	return record.Value{
+		Type: record.Point,
+		Pt:   datatypes.Point{X: x, Y: y},
+	}, nil
+}
+
+// evalPolygon evaluates the POLYGON constructor.
+func evalPolygon(args []record.Value) (record.Value, error) {
+	if len(args) < 3 {
+		return record.Value{}, fmt.Errorf("POLYGON expects at least 3 arguments, got %d", len(args))
+	}
+	poly := make(datatypes.Polygon, len(args))
+	for i, arg := range args {
+		if arg.Type != record.Point {
+			return record.Value{}, fmt.Errorf("POLYGON argument %d is not a POINT, got type %v", i, arg.Type)
+		}
+		poly[i] = arg.Pt
+	}
+	return record.Value{
+		Type: record.Polygon,
+		Poly: poly,
+	}, nil
+}
+
+// evalGeomFromText evaluates the ST_GEOMFROMTEXT function.
+func evalGeomFromText(args []record.Value) (record.Value, error) {
+	if len(args) != 1 {
+		return record.Value{}, fmt.Errorf("ST_GEOMFROMTEXT expects exactly 1 argument, got %d", len(args))
+	}
+	if args[0].Type != record.Varchar {
+		return record.Value{}, fmt.Errorf("ST_GEOMFROMTEXT expects VARCHAR argument, got type %v", args[0].Type)
+	}
+	parsed, err := datatypes.ParseWKT(args[0].Str)
+	if err != nil {
+		return record.Value{}, err
+	}
+	switch v := parsed.(type) {
+	case datatypes.Point:
+		return record.Value{Type: record.Point, Pt: v}, nil
+	case datatypes.Polygon:
+		return record.Value{Type: record.Polygon, Poly: v}, nil
+	default:
+		return record.Value{}, fmt.Errorf("unsupported geometry type parsed from WKT")
+	}
+}
+
+// evalDistance evaluates the DISTANCE function.
+func evalDistance(args []record.Value) (record.Value, error) {
+	if len(args) != 2 {
+		return record.Value{}, fmt.Errorf("DISTANCE expects exactly 2 arguments, got %d", len(args))
+	}
+	if args[0].Type != record.Point || args[1].Type != record.Point {
+		return record.Value{}, fmt.Errorf("DISTANCE expects POINT arguments, got %v and %v", args[0].Type, args[1].Type)
+	}
+	dist := args[0].Pt.Distance(args[1].Pt)
+	return record.Value{Type: record.Float, Flt: dist}, nil
+}
+
+// evalIntersects evaluates the INTERSECTS function.
+func evalIntersects(args []record.Value) (record.Value, error) {
+	if len(args) != 2 {
+		return record.Value{}, fmt.Errorf("INTERSECTS expects exactly 2 arguments, got %d", len(args))
+	}
+	g1 := args[0]
+	g2 := args[1]
+
+	var intersects bool
+	switch g1.Type {
+	case record.Point:
+		switch g2.Type {
+		case record.Point:
+			intersects = g1.Pt.Equals(g2.Pt)
+		case record.Polygon:
+			intersects = g2.Poly.IntersectsPoint(g1.Pt)
+		default:
+			return record.Value{}, fmt.Errorf("unsupported types for INTERSECTS: %v and %v", g1.Type, g2.Type)
+		}
+	case record.Polygon:
+		switch g2.Type {
+		case record.Point:
+			intersects = g1.Poly.IntersectsPoint(g2.Pt)
+		case record.Polygon:
+			intersects = g1.Poly.IntersectsPolygon(g2.Poly)
+		default:
+			return record.Value{}, fmt.Errorf("unsupported types for INTERSECTS: %v and %v", g1.Type, g2.Type)
+		}
+	default:
+		return record.Value{}, fmt.Errorf("unsupported types for INTERSECTS: %v and %v", g1.Type, g2.Type)
+	}
+
+	if intersects {
+		return record.Value{Type: record.Integer, Int: 1}, nil
+	}
+	return record.Value{Type: record.Integer, Int: 0}, nil
+}
+
+// evalArea evaluates the AREA function.
+func evalArea(args []record.Value) (record.Value, error) {
+	if len(args) != 1 {
+		return record.Value{}, fmt.Errorf("AREA expects exactly 1 argument, got %d", len(args))
+	}
+	if args[0].Type != record.Polygon {
+		return record.Value{}, fmt.Errorf("AREA expects POLYGON argument, got type %v", args[0].Type)
+	}
+	area := args[0].Poly.Area()
+	return record.Value{Type: record.Float, Flt: area}, nil
+}
+

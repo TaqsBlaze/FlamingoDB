@@ -137,6 +137,89 @@ func TestFunctionsIntegration(t *testing.T) {
 	}
 }
 
+
+func TestGeospatialFunctionsIntegration(t *testing.T) {
+	tempDir := t.TempDir()
+	dbPath := filepath.Join(tempDir, "geo_test.db")
+	pageSize := uint32(4096)
+
+	dm, err := disk.NewDiskManager(dbPath, pageSize)
+	if err != nil {
+		t.Fatalf("failed to create disk manager: %v", err)
+	}
+	defer dm.Close()
+
+	p, err := pager.New(dm, pageSize)
+	if err != nil {
+		t.Fatalf("failed to create pager: %v", err)
+	}
+
+	tm, err := catalog.NewTableManager(p)
+	if err != nil {
+		t.Fatalf("failed to create table manager: %v", err)
+	}
+
+	exec := executor.New(tm)
+
+	runSQL := func(sql string) *executor.Result {
+		l := lexer.New(sql)
+		prs := parser.New(l)
+		prog := prs.ParseProgram()
+		if len(prs.Errors()) > 0 {
+			t.Fatalf("parser errors for %q: %v", sql, prs.Errors())
+		}
+		if len(prog.Statements) != 1 {
+			t.Fatalf("expected 1 statement for %q, got %d", sql, len(prog.Statements))
+		}
+		stmt := prog.Statements[0]
+
+		pln := planner.New()
+		plan, err := pln.Plan(stmt)
+		if err != nil {
+			t.Fatalf("planner error for %q: %v", sql, err)
+		}
+
+		res, err := exec.Execute(plan)
+		if err != nil {
+			t.Fatalf("execution error for %q: %v", sql, err)
+		}
+		return res
+	}
+
+	// 1. Create table with POINT and POLYGON columns
+	runSQL("CREATE TABLE test_geo (id INT, pt POINT, poly POLYGON);")
+
+	// 2. Insert rows using constructors and WKT literals
+	runSQL("INSERT INTO test_geo VALUES (1, POINT(0.0, 0.0), POLYGON(POINT(0,0), POINT(10,0), POINT(10,10), POINT(0,10)));")
+	runSQL("INSERT INTO test_geo VALUES (2, 'POINT(5.0 5.0)', 'POLYGON((0 0, 5 0, 5 5, 0 5, 0 0))');")
+
+	// 3. Test DISTANCE, AREA, and INTERSECTS in projection
+	res := runSQL("SELECT DISTANCE(pt, POINT(3, 4)), AREA(poly), INTERSECTS(pt, poly) FROM test_geo WHERE id = 1;")
+	if len(res.Rows) != 1 {
+		t.Fatalf("expected 1 row, got %d", len(res.Rows))
+	}
+	row := res.Rows[0]
+	// DISTANCE(POINT(0,0), POINT(3,4)) = 5
+	if row.Values[0].Flt != 5.0 {
+		t.Errorf("expected distance 5.0, got %f", row.Values[0].Flt)
+	}
+	// AREA(POLYGON((0 0, 10 0, 10 10, 0 10, 0 0))) = 100.0
+	if row.Values[1].Flt != 100.0 {
+		t.Errorf("expected area 100.0, got %f", row.Values[1].Flt)
+	}
+	// INTERSECTS(POINT(0,0), POLYGON(0 0, ...)) = 1 (true)
+	if row.Values[2].Int != 1 {
+		t.Errorf("expected intersects 1, got %d", row.Values[2].Int)
+	}
+
+	// 4. Test INTERSECTS inside WHERE condition
+	// Point of row 2 (5,5) lies inside polygon of row 1 (10x10) but not vice versa (0,0 is inside row 1, but on boundary of row 2)
+	res = runSQL("SELECT id FROM test_geo WHERE INTERSECTS(POINT(5, 5), poly) == 1;")
+	if len(res.Rows) != 2 {
+		t.Errorf("expected 2 rows intersecting POINT(5,5), got %d", len(res.Rows))
+	}
+}
+
 func TestMain(m *testing.M) {
 	code := m.Run()
 	os.Exit(code)

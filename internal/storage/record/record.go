@@ -17,6 +17,8 @@ const (
 	Vector                // length-prefixed float64 slice
 	Matrix                // matrix (row major)
 	Tensor                // tensor
+	Point                 // 2D Point
+	Polygon               // 2D Polygon
 )
 
 // Column defines a single column in a schema.
@@ -45,6 +47,8 @@ type Value struct {
 	Vec  datatypes.Vector
 	Mat  datatypes.Matrix
 	Ten  datatypes.Tensor
+	Pt   datatypes.Point
+	Poly datatypes.Polygon
 }
 
 // Record represents a single row in a table.
@@ -77,6 +81,10 @@ func (r *Record) Serialize(schema *Schema) []byte {
 			size += 8 + rows*cols*8
 		case Tensor:
 			size += 4 + len(val.Ten.Shape)*4 + 4 + len(val.Ten.Data)*8
+		case Point:
+			size += 16
+		case Polygon:
+			size += 4 + len(val.Poly)*16
 		}
 	}
 
@@ -133,6 +141,18 @@ func (r *Record) Serialize(schema *Schema) []byte {
 			for _, d := range val.Ten.Data {
 				encoding.PutFloat64(buf[offset:], d)
 				offset += 8
+			}
+		case Point:
+			encoding.PutFloat64(buf[offset:], val.Pt.X)
+			encoding.PutFloat64(buf[offset+8:], val.Pt.Y)
+			offset += 16
+		case Polygon:
+			encoding.PutUint32(buf[offset:], uint32(len(val.Poly)))
+			offset += 4
+			for _, pt := range val.Poly {
+				encoding.PutFloat64(buf[offset:], pt.X)
+				encoding.PutFloat64(buf[offset+8:], pt.Y)
+				offset += 16
 			}
 		}
 	}
@@ -199,6 +219,22 @@ func Deserialize(data []byte, schema *Schema) *Record {
 				offset += 8
 			}
 			vals[i] = Value{Type: Tensor, Ten: datatypes.Tensor{Shape: shape, Data: tdata}}
+		case Point:
+			x := encoding.Float64(data[offset:])
+			y := encoding.Float64(data[offset+8:])
+			vals[i] = Value{Type: Point, Pt: datatypes.Point{X: x, Y: y}}
+			offset += 16
+		case Polygon:
+			length := int(encoding.Uint32(data[offset:]))
+			offset += 4
+			poly := make(datatypes.Polygon, length)
+			for idx := 0; idx < length; idx++ {
+				x := encoding.Float64(data[offset:])
+				y := encoding.Float64(data[offset+8:])
+				poly[idx] = datatypes.Point{X: x, Y: y}
+				offset += 16
+			}
+			vals[i] = Value{Type: Polygon, Poly: poly}
 		}
 	}
 

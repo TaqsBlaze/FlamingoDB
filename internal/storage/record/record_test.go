@@ -85,3 +85,37 @@ func TestScientificRecordSerialization(t *testing.T) {
 		t.Errorf("expected tensor %v, got %v", rec.Values[3].Ten, decoded.Values[3].Ten)
 	}
 }
+
+func TestGeospatialRecordSerialization(t *testing.T) {
+	schema := record.NewSchema([]record.Column{
+		{Name: "pt", Type: record.Point},
+		{Name: "poly", Type: record.Polygon},
+	})
+
+	rec := &record.Record{
+		Values: []record.Value{
+			{Type: record.Point, Pt: datatypes.Point{X: 12.34, Y: 56.78}},
+			{Type: record.Polygon, Poly: datatypes.Polygon{
+				{X: 0, Y: 0},
+				{X: 1, Y: 0},
+				{X: 1, Y: 1},
+				{X: 0, Y: 1},
+			}},
+		},
+	}
+
+	data := rec.Serialize(schema)
+	decoded := record.Deserialize(data, schema)
+
+	if len(decoded.Values) != 2 {
+		t.Fatalf("expected 2 values, got %d", len(decoded.Values))
+	}
+
+	if !decoded.Values[0].Pt.Equals(rec.Values[0].Pt) {
+		t.Errorf("expected point %v, got %v", rec.Values[0].Pt, decoded.Values[0].Pt)
+	}
+
+	if !decoded.Values[1].Poly.Equals(rec.Values[1].Poly) {
+		t.Errorf("expected polygon %v, got %v", rec.Values[1].Poly, decoded.Values[1].Poly)
+	}
+}

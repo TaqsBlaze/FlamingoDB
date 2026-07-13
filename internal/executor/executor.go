@@ -330,6 +330,106 @@ func typeOfExpression(expr ast.Expression, schema *record.Schema) (record.TypeID
 			}
 			return record.Varchar, nil
 
+		case "POINT":
+			if len(e.Args) != 2 {
+				return 0, fmt.Errorf("POINT expects 2 arguments, got %d", len(e.Args))
+			}
+			arg0, err := typeOfExpression(e.Args[0], schema)
+			if err != nil {
+				return 0, err
+			}
+			arg1, err := typeOfExpression(e.Args[1], schema)
+			if err != nil {
+				return 0, err
+			}
+			if (arg0 != record.Integer && arg0 != record.Float) ||
+				(arg1 != record.Integer && arg1 != record.Float) {
+				return 0, fmt.Errorf("POINT expects numeric arguments, got %v and %v", arg0, arg1)
+			}
+			return record.Point, nil
+
+		case "POLYGON":
+			if len(e.Args) < 3 {
+				return 0, fmt.Errorf("POLYGON expects at least 3 arguments, got %d", len(e.Args))
+			}
+			for i, argExpr := range e.Args {
+				argType, err := typeOfExpression(argExpr, schema)
+				if err != nil {
+					return 0, err
+				}
+				if argType != record.Point {
+					return 0, fmt.Errorf("POLYGON expects POINT arguments, got %v at position %d", argType, i)
+				}
+			}
+			return record.Polygon, nil
+
+		case "ST_GEOMFROMTEXT":
+			if len(e.Args) != 1 {
+				return 0, fmt.Errorf("ST_GEOMFROMTEXT expects 1 argument, got %d", len(e.Args))
+			}
+			arg0, err := typeOfExpression(e.Args[0], schema)
+			if err != nil {
+				return 0, err
+			}
+			if arg0 != record.Varchar {
+				return 0, fmt.Errorf("ST_GEOMFROMTEXT expects VARCHAR argument, got %v", arg0)
+			}
+			if strLit, ok := e.Args[0].(*ast.StringLiteral); ok {
+				trimmed := strings.TrimSpace(strings.ToUpper(strLit.Value))
+				if strings.HasPrefix(trimmed, "POLYGON") {
+					return record.Polygon, nil
+				}
+			}
+			return record.Point, nil
+
+		case "DISTANCE":
+			if len(e.Args) != 2 {
+				return 0, fmt.Errorf("DISTANCE expects 2 arguments, got %d", len(e.Args))
+			}
+			arg0, err := typeOfExpression(e.Args[0], schema)
+			if err != nil {
+				return 0, err
+			}
+			arg1, err := typeOfExpression(e.Args[1], schema)
+			if err != nil {
+				return 0, err
+			}
+			if arg0 != record.Point || arg1 != record.Point {
+				return 0, fmt.Errorf("DISTANCE expects POINT arguments, got %v and %v", arg0, arg1)
+			}
+			return record.Float, nil
+
+		case "INTERSECTS":
+			if len(e.Args) != 2 {
+				return 0, fmt.Errorf("INTERSECTS expects 2 arguments, got %d", len(e.Args))
+			}
+			arg0, err := typeOfExpression(e.Args[0], schema)
+			if err != nil {
+				return 0, err
+			}
+			arg1, err := typeOfExpression(e.Args[1], schema)
+			if err != nil {
+				return 0, err
+			}
+			if (arg0 != record.Point && arg0 != record.Polygon) ||
+				(arg1 != record.Point && arg1 != record.Polygon) {
+				return 0, fmt.Errorf("INTERSECTS expects POINT or POLYGON arguments, got %v and %v", arg0, arg1)
+			}
+			return record.Integer, nil
+
+		case "AREA":
+			if len(e.Args) != 1 {
+				return 0, fmt.Errorf("AREA expects 1 argument, got %d", len(e.Args))
+			}
+			arg0, err := typeOfExpression(e.Args[0], schema)
+			if err != nil {
+				return 0, err
+			}
+			if arg0 != record.Polygon {
+				return 0, fmt.Errorf("AREA expects POLYGON argument, got %v", arg0)
+			}
+			return record.Float, nil
+
 		default:
 			return 0, fmt.Errorf("unknown function: %s", fnName)
 		}
@@ -624,6 +724,46 @@ func evalExpression(expr ast.Expression, colType record.TypeID) (record.Value, e
 			return record.Value{}, err
 		}
 		return record.Value{Type: record.Tensor, Ten: ten}, nil
+	case record.Point:
+		val, err := evalRowExpression(expr, Row{}, nil)
+		if err != nil {
+			return record.Value{}, err
+		}
+		if val.Type == record.Point {
+			return val, nil
+		}
+		if val.Type == record.Varchar {
+			parsed, err := datatypes.ParseWKT(val.Str)
+			if err != nil {
+				return record.Value{}, err
+			}
+			pt, ok := parsed.(datatypes.Point)
+			if !ok {
+				return record.Value{}, fmt.Errorf("WKT string did not represent a POINT")
+			}
+			return record.Value{Type: record.Point, Pt: pt}, nil
+		}
+		return record.Value{}, fmt.Errorf("type mismatch: expected Point, got %v", val.Type)
+	case record.Polygon:
+		val, err := evalRowExpression(expr, Row{}, nil)
+		if err != nil {
+			return record.Value{}, err
+		}
+		if val.Type == record.Polygon {
+			return val, nil
+		}
+		if val.Type == record.Varchar {
+			parsed, err := datatypes.ParseWKT(val.Str)
+			if err != nil {
+				return record.Value{}, err
+			}
+			poly, ok := parsed.(datatypes.Polygon)
+			if !ok {
+				return record.Value{}, fmt.Errorf("WKT string did not represent a POLYGON")
+			}
+			return record.Value{Type: record.Polygon, Poly: poly}, nil
+		}
+		return record.Value{}, fmt.Errorf("type mismatch: expected Polygon, got %v", val.Type)
 	}
 
 	// Fallback to general expression evaluation for scalar and other types
@@ -900,6 +1040,22 @@ func compareValues(left record.Value, op string, right record.Value) (bool, erro
 		}
 	case record.Tensor:
 		l, r := left.Ten, right.Ten
+		switch op {
+		case "=", "==":
+			return l.Equals(r), nil
+		case "!=":
+			return !l.Equals(r), nil
+		}
+	case record.Point:
+		l, r := left.Pt, right.Pt
+		switch op {
+		case "=", "==":
+			return l.Equals(r), nil
+		case "!=":
+			return !l.Equals(r), nil
+		}
+	case record.Polygon:
+		l, r := left.Poly, right.Poly
 		switch op {
 		case "=", "==":
 			return l.Equals(r), nil

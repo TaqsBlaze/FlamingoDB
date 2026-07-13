@@ -13,6 +13,8 @@
 - [x] **Agent Alpha**: Implement B+ Tree Indexes (Phase 7) — INT, FLOAT, VARCHAR keys; insert, search, range scan.
 - [x] **Agent Alpha**: Implement WAL, Transactions (Phase 8).
 - [x] **Agent Beta**: Implement Scientific Types — `VECTOR`, `MATRIX`, `TENSOR`, `COMPLEX` (Phase 9).
+- [x] **Agent Gamma**: Implement Scientific Functions (Phase 10).
+- [x] **Geospatial Developer**: Implement Phase 11 (Geospatial).
 
 ## Pending Tasks
 

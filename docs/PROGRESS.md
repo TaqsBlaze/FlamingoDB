@@ -55,5 +55,13 @@ Completed:
   - Updated query executor to validate and evaluate functions statically and dynamically on row variables.
   - Created unit tests (`internal/functions/functions_test.go`) and integration tests (`tests/functions_integration_test.go`).
 
+- Phase 11: Geospatial (POINT, POLYGON, distance, intersects, area, WKT parsing) - Geospatial Developer.
+  - Implemented Point and Polygon datatypes in `internal/datatypes/geospatial.go` along with a WKT parser.
+  - Extended record serialization and deserialization in `internal/storage/record/record.go` with Point and Polygon binary representation.
+  - Extended logical planner, type checker (`typeOfExpression`), and physical executor to support Point and Polygon types and implicit conversion from VARCHAR/WKT string literals.
+  - Implemented geospatial functions (POINT, POLYGON, ST_GEOMFROMTEXT, DISTANCE, INTERSECTS, AREA) in `internal/functions/`.
+  - Added unit tests in `internal/datatypes/geospatial_test.go` and `internal/functions/functions_test.go`.
+  - Added integration tests in `tests/functions_integration_test.go` and verified correct parsing and query execution.
+
 Next:
-- Phase 10: Scientific Functions (Native mathematical, vector, matrix functions).
+- None. Phases 1-11 are fully completed.

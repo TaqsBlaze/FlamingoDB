@@ -181,6 +181,10 @@ func MapStringToTypeID(t string) (record.TypeID, error) {
 		return record.Matrix, nil
 	case "TENSOR":
 		return record.Tensor, nil
+	case "POINT":
+		return record.Point, nil
+	case "POLYGON":
+		return record.Polygon, nil
 	default:
 		return 0, fmt.Errorf("unknown type: %s", t)
 	}

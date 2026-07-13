@@ -109,3 +109,72 @@ func TestVectorFunctions(t *testing.T) {
 		t.Errorf("NORM failed: got %v", val)
 	}
 }
+
+func TestGeospatialFunctions(t *testing.T) {
+	// Test POINT(x, y)
+	val, err := Registry["POINT"]([]record.Value{
+		{Type: record.Float, Flt: 3.5},
+		{Type: record.Integer, Int: -4},
+	})
+	if err != nil {
+		t.Fatalf("POINT error: %v", err)
+	}
+	if val.Type != record.Point || val.Pt.X != 3.5 || val.Pt.Y != -4.0 {
+		t.Errorf("POINT failed: got %v", val)
+	}
+
+	// Test POLYGON
+	p1, _ := Registry["POINT"]([]record.Value{{Type: record.Float, Flt: 0}, {Type: record.Float, Flt: 0}})
+	p2, _ := Registry["POINT"]([]record.Value{{Type: record.Float, Flt: 10}, {Type: record.Float, Flt: 0}})
+	p3, _ := Registry["POINT"]([]record.Value{{Type: record.Float, Flt: 10}, {Type: record.Float, Flt: 10}})
+	p4, _ := Registry["POINT"]([]record.Value{{Type: record.Float, Flt: 0}, {Type: record.Float, Flt: 10}})
+
+	polyVal, err := Registry["POLYGON"]([]record.Value{p1, p2, p3, p4})
+	if err != nil {
+		t.Fatalf("POLYGON error: %v", err)
+	}
+	if polyVal.Type != record.Polygon || len(polyVal.Poly) != 4 {
+		t.Errorf("POLYGON failed: got %v", polyVal)
+	}
+
+	// Test AREA
+	areaVal, err := Registry["AREA"]([]record.Value{polyVal})
+	if err != nil {
+		t.Fatalf("AREA error: %v", err)
+	}
+	if areaVal.Type != record.Float || areaVal.Flt != 100.0 {
+		t.Errorf("AREA failed: got %v", areaVal)
+	}
+
+	// Test DISTANCE
+	ptA, _ := Registry["POINT"]([]record.Value{{Type: record.Float, Flt: 0}, {Type: record.Float, Flt: 0}})
+	ptB, _ := Registry["POINT"]([]record.Value{{Type: record.Float, Flt: 3}, {Type: record.Float, Flt: 4}})
+	distVal, err := Registry["DISTANCE"]([]record.Value{ptA, ptB})
+	if err != nil {
+		t.Fatalf("DISTANCE error: %v", err)
+	}
+	if distVal.Type != record.Float || distVal.Flt != 5.0 {
+		t.Errorf("DISTANCE failed: got %v", distVal)
+	}
+
+	// Test INTERSECTS
+	ptInside, _ := Registry["POINT"]([]record.Value{{Type: record.Float, Flt: 5}, {Type: record.Float, Flt: 5}})
+	intersectsVal, err := Registry["INTERSECTS"]([]record.Value{ptInside, polyVal})
+	if err != nil {
+		t.Fatalf("INTERSECTS error: %v", err)
+	}
+	if intersectsVal.Type != record.Integer || intersectsVal.Int != 1 {
+		t.Errorf("INTERSECTS failed: expected 1, got %v", intersectsVal)
+	}
+
+	// Test ST_GEOMFROMTEXT
+	wktVal, err := Registry["ST_GEOMFROMTEXT"]([]record.Value{
+		{Type: record.Varchar, Str: "POINT(12.3 45.6)"},
+	})
+	if err != nil {
+		t.Fatalf("ST_GEOMFROMTEXT error: %v", err)
+	}
+	if wktVal.Type != record.Point || wktVal.Pt.X != 12.3 || wktVal.Pt.Y != 45.6 {
+		t.Errorf("ST_GEOMFROMTEXT POINT failed: got %v", wktVal)
+	}
+}

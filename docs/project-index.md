@@ -51,9 +51,11 @@ flamingodb/
 *   **[cmd/flamingo/](file:///home/blaze/Projects/FlamingoDB/cmd/flamingo)**: Empty package designated for the command-line CLI client interface.
 *   **[cmd/flamingodbd/](file:///home/blaze/Projects/FlamingoDB/cmd/flamingodbd)**: Empty package designated for the database server engine daemon.
 
-### Scientific Types Package (`internal/datatypes/`)
+### Scientific and Geospatial Types Package (`internal/datatypes/`)
 *   **[internal/datatypes/datatypes.go](file:///home/blaze/Projects/FlamingoDB/internal/datatypes/datatypes.go)**: Defines VECTOR, MATRIX, TENSOR, and COMPLEX datatypes and mathematical operations.
 *   **[internal/datatypes/datatypes_test.go](file:///home/blaze/Projects/FlamingoDB/internal/datatypes/datatypes_test.go)**: Unit tests for the scientific datatypes and their operations.
+*   **[internal/datatypes/geospatial.go](file:///home/blaze/Projects/FlamingoDB/internal/datatypes/geospatial.go)**: Defines POINT and POLYGON geospatial datatypes, WKT parsing, distance, area, and intersection checks.
+*   **[internal/datatypes/geospatial_test.go](file:///home/blaze/Projects/FlamingoDB/internal/datatypes/geospatial_test.go)**: Unit tests for Point, Polygon, WKT parsing, and spatial math.
 
 ### SQL Parser Package (`internal/parser/`)
 *   **[internal/parser/ast/ast.go](file:///home/blaze/Projects/FlamingoDB/internal/parser/ast/ast.go)**: Defines the AST nodes for statements (e.g. `CreateTableStatement`, `InsertStatement`, `SelectStatement`) and expressions (e.g. `Identifier`, `IntegerLiteral`, `FloatLiteral`, `PrefixExpression`).
@@ -68,8 +70,8 @@ flamingodb/
 *   **[internal/planner/planner_test.go](file:///home/blaze/Projects/FlamingoDB/internal/planner/planner_test.go)**: Unit tests for logical plan generation and SQL mapping.
 
 ### Scientific Functions Package (`internal/functions/`)
-*   **[internal/functions/functions.go](file:///home/blaze/.gemini/antigravity-cli/brain/c54fcb7a-cda6-4e84-8836-4953f61b3a38/.system_generated/worktrees/subagent-Phase-10-Functions-Developer-phase10-developer-eb02d8b4/internal/functions/functions.go)**: Implements native scientific and mathematical functions (SIN, COS, TAN, ASIN, ACOS, ATAN, EXP, LOG, SQRT, ABS, POW, DOT, CROSS, NORM) and registers them in a global functions registry.
-*   **[internal/functions/functions_test.go](file:///home/blaze/.gemini/antigravity-cli/brain/c54fcb7a-cda6-4e84-8836-4953f61b3a38/.system_generated/worktrees/subagent-Phase-10-Functions-Developer-phase10-developer-eb02d8b4/internal/functions/functions_test.go)**: Unit tests for mathematical and vector function logic.
+*   **[internal/functions/functions.go](file:///home/blaze/Projects/FlamingoDB/internal/functions/functions.go)**: Implements native scientific and mathematical functions (SIN, COS, TAN, ASIN, ACOS, ATAN, EXP, LOG, SQRT, ABS, POW, DOT, CROSS, NORM) and registers them in a global functions registry.
+*   **[internal/functions/functions_test.go](file:///home/blaze/Projects/FlamingoDB/internal/functions/functions_test.go)**: Unit tests for mathematical and vector function logic.
 
 ### Physical Execution Package (`internal/executor/`)
 *   **[internal/executor/executor.go](file:///home/blaze/Projects/FlamingoDB/internal/executor/executor.go)**: Implements physical operators (Scan, Filter, Project, Insert, Create Table) and runs logical plans against the storage engine. Includes pre-checks for semantic validation.
@@ -105,4 +107,4 @@ flamingodb/
 ### Integration Tests (`tests/`)
 *   **[tests/integration_test.go](file:///home/blaze/Projects/FlamingoDB/tests/integration_test.go)**: End-to-end integration test validating a basic table creation, multi-row insertion, and data retrieval pipeline.
 *   **[tests/robustness_test.go](file:///home/blaze/Projects/FlamingoDB/tests/robustness_test.go)**: Comprehensive integration test suite verifying edge cases: case-insensitivity, negative/zero values, physical size limits, multi-page heap storage, comparisons, projection ordering, cold restart persistence, index node splits, and semantic error states.
-*   **[tests/functions_integration_test.go](file:///home/blaze/.gemini/antigravity-cli/brain/c54fcb7a-cda6-4e84-8836-4953f61b3a38/.system_generated/worktrees/subagent-Phase-10-Functions-Developer-phase10-developer-eb02d8b4/tests/functions_integration_test.go)**: Integration test verifying end-to-end execution of mathematical and vector functions in SQL SELECT queries and WHERE filtering conditions.
+*   **[tests/functions_integration_test.go](file:///home/blaze/Projects/FlamingoDB/tests/functions_integration_test.go)**: Integration test verifying end-to-end execution of mathematical and vector functions in SQL SELECT queries and WHERE filtering conditions.

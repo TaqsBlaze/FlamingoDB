@@ -210,3 +210,62 @@ func TestExecuteScientificTypes(t *testing.T) {
 		t.Errorf("expected id 2, got %d", filterResult2.Rows[0].Values[0].Int)
 	}
 }
+
+func TestExecuteGeospatialTypes(t *testing.T) {
+	exec := setupExecutor(t)
+
+	execSQL(t, exec, "CREATE TABLE geo (id INT, p POINT, poly POLYGON);")
+
+	// Test INSERT with POINT and POLYGON constructors, and WKT strings
+	execSQL(t, exec, "INSERT INTO geo VALUES (1, POINT(3.0, 4.0), POLYGON(POINT(0,0), POINT(10,0), POINT(10,10), POINT(0,10)));")
+	execSQL(t, exec, "INSERT INTO geo VALUES (2, 'POINT(-1 -1)', 'POLYGON((0 0, 2 0, 2 2, 0 2, 0 0))');")
+
+	// Test SELECT *
+	result := execSQL(t, exec, "SELECT * FROM geo;")
+	if len(result.Rows) != 2 {
+		t.Fatalf("expected 2 rows, got %d", len(result.Rows))
+	}
+
+	// Verify Row 1
+	row1 := result.Rows[0]
+	if row1.Values[0].Int != 1 {
+		t.Errorf("expected id 1, got %v", row1.Values[0].Int)
+	}
+	if !row1.Values[1].Pt.Equals(datatypes.Point{X: 3.0, Y: 4.0}) {
+		t.Errorf("row1 point wrong, got %v", row1.Values[1].Pt)
+	}
+	if len(row1.Values[2].Poly) != 4 || !row1.Values[2].Poly[1].Equals(datatypes.Point{X: 10, Y: 0}) {
+		t.Errorf("row1 poly wrong, got %v", row1.Values[2].Poly)
+	}
+
+	// Verify Row 2
+	row2 := result.Rows[1]
+	if row2.Values[0].Int != 2 {
+		t.Errorf("expected id 2, got %v", row2.Values[0].Int)
+	}
+	if !row2.Values[1].Pt.Equals(datatypes.Point{X: -1.0, Y: -1.0}) {
+		t.Errorf("row2 point wrong, got %v", row2.Values[1].Pt)
+	}
+
+	// Test SELECT with functions: DISTANCE, AREA, INTERSECTS
+	funcRes := execSQL(t, exec, "SELECT DISTANCE(p, POINT(0,0)), AREA(poly), INTERSECTS(POINT(5,5), poly) FROM geo WHERE id = 1;")
+	if len(funcRes.Rows) != 1 {
+		t.Fatalf("expected 1 row, got %d", len(funcRes.Rows))
+	}
+	fRow := funcRes.Rows[0]
+	
+	// DISTANCE(POINT(3,4), POINT(0,0)) -> 5.0
+	if fRow.Values[0].Flt != 5.0 {
+		t.Errorf("expected distance 5.0, got %f", fRow.Values[0].Flt)
+	}
+	
+	// AREA(POLYGON(...)) -> 100.0
+	if fRow.Values[1].Flt != 100.0 {
+		t.Errorf("expected area 100.0, got %f", fRow.Values[1].Flt)
+	}
+	
+	// INTERSECTS(POINT(5,5), POLYGON(...)) -> 1
+	if fRow.Values[2].Int != 1 {
+		t.Errorf("expected intersects 1 (true), got %d", fRow.Values[2].Int)
+	}
+}

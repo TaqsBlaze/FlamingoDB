@@ -13,6 +13,7 @@
 - `DiskManager` (in `internal/storage/disk`) handles page-level disk I/O.
 - `Pager` (in `internal/storage/pager`) manages caching and allocation of pages.
 - `Scientific Types` (in `internal/datatypes`) defines VECTOR, MATRIX, TENSOR, and COMPLEX datatypes with support for addition, subtraction, dot product, multiplication, and equality checks.
+- `Geospatial Types` (in `internal/datatypes/geospatial.go`) defines POINT and POLYGON datatypes with support for distance, area, intersection, and WKT parsing.
 - `Record` and `Schema` (in `internal/storage/record`) handles serialization/deserialization of typed table rows including VECTOR, MATRIX, TENSOR, and COMPLEX types.
 - `Catalog` and `TableMetadata` (in `internal/storage/catalog`) persists table schemas to Page 0 of the database.
 - `TableManager` (in `internal/storage/catalog`) acts as the schema-aware entrypoint for DDL and DML operations.
@@ -33,6 +34,8 @@
 - Database instantiation automatically executes WAL crash recovery (Redo phase).
 - Scientific datatypes are represented in-memory as native Go/custom types: COMPLEX (real/imag float64), VECTOR ([]float64), MATRIX ([][]float64), and TENSOR (shape []int, flat data []float64).
 - Scientific datatypes are serialized as length-prefixed structures.
+- Geospatial POINT datatypes are stored as 16-byte binary representations (two float64 coordinates).
+- Geospatial POLYGON datatypes are stored as a 4-byte length prefix (number of points) followed by 16-byte binary coordinates for each point.
 
 ## Active Work
-- None. Phases 1–10 are complete. Next phase is Phase 11 (Geospatial).
+- None. Phases 1–11 are complete.
