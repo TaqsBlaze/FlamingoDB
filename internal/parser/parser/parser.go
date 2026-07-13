@@ -5,6 +5,7 @@ import (
 	"flamingodb/internal/parser/lexer"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // Precedences for Pratt parser
@@ -63,6 +64,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(lexer.FLOAT, p.parseFloatLiteral)
 	p.registerPrefix(lexer.STRING, p.parseStringLiteral)
 	p.registerPrefix(lexer.MINUS, p.parsePrefixExpression)
+	p.registerPrefix(lexer.ASTERISK, p.parseWildcard)
 
 	p.infixParseFns = make(map[lexer.TokenType]infixParseFn)
 	p.registerInfix(lexer.EQ, p.parseInfixExpression)
@@ -164,8 +166,9 @@ func (p *Parser) parseSelectStatement() *ast.SelectStatement {
 
 	// Parse fields
 	for {
-		if p.curTokenIs(lexer.IDENT) || p.curTokenIs(lexer.ASTERISK) {
-			stmt.Fields = append(stmt.Fields, p.curToken.Literal)
+		expr := p.parseExpression(LOWEST)
+		if expr != nil {
+			stmt.Fields = append(stmt.Fields, expr)
 		}
 		if p.peekTokenIs(lexer.COMMA) {
 			p.nextToken() // Move to COMMA
@@ -385,7 +388,45 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 }
 
 func (p *Parser) parseIdentifier() ast.Expression {
+	if p.peekTokenIs(lexer.LPAREN) {
+		return p.parseCallExpression()
+	}
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+func (p *Parser) parseWildcard() ast.Expression {
+	return &ast.Identifier{Token: p.curToken, Value: "*"}
+}
+
+func (p *Parser) parseCallExpression() ast.Expression {
+	lit := &ast.CallExpression{Token: p.curToken, Function: strings.ToUpper(p.curToken.Literal)}
+
+	if !p.expectPeek(lexer.LPAREN) {
+		return nil
+	}
+
+	p.nextToken() // move past LPAREN
+
+	for !p.curTokenIs(lexer.RPAREN) && !p.curTokenIs(lexer.EOF) {
+		expr := p.parseExpression(LOWEST)
+		if expr != nil {
+			lit.Args = append(lit.Args, expr)
+		}
+
+		if p.peekTokenIs(lexer.COMMA) {
+			p.nextToken() // move to COMMA
+			p.nextToken() // move past COMMA
+		} else {
+			p.nextToken() // should be RPAREN
+		}
+	}
+
+	if !p.curTokenIs(lexer.RPAREN) {
+		p.errors = append(p.errors, fmt.Sprintf("expected RPAREN, got %s", p.curToken.Type))
+		return nil
+	}
+
+	return lit
 }
 
 // parsePrefixExpression handles unary prefix operators such as '-' for negative numbers.

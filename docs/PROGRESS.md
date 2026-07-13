@@ -42,5 +42,13 @@ Completed:
 - Fixed 1 critical bug during WAL integration:
   - Fixed transaction lock leak deadlock inside `TableManager` caused by variable shadowing of block-scoped `err` inside auto-commit wrappers.
 
+- Phase 10: Scientific Functions (SIN, COS, DOT, CROSS, NORM, etc.) - Agent Gamma.
+  - Implemented the function execution framework and native mathematical functions in `internal/functions/`.
+  - Added support for scalar functions (SIN, COS, TAN, ASIN, ACOS, ATAN, EXP, LOG, SQRT, ABS, POW) and vector operations (DOT, CROSS, NORM) parsing from strings.
+  - Extended SQL parser to support CallExpression AST nodes and parsing function calls.
+  - Modified query planner to pass CallExpression nodes down to ProjectNode.
+  - Updated query executor to validate and evaluate functions statically and dynamically on row variables.
+  - Created unit tests (`internal/functions/functions_test.go`) and integration tests (`tests/functions_integration_test.go`).
+
 Next:
 - Phase 9: Scientific Types (Vector, Matrix, Tensor, Complex types) - Agent Beta.

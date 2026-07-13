@@ -63,6 +63,10 @@ flamingodb/
 *   **[internal/planner/planner.go](file:///home/blaze/Projects/FlamingoDB/internal/planner/planner.go)**: Defines logical plan nodes (`CreateTableNode`, `InsertNode`, `ScanNode`, `FilterNode`, `ProjectNode`) and translates parsed AST statements into logical plans.
 *   **[internal/planner/planner_test.go](file:///home/blaze/Projects/FlamingoDB/internal/planner/planner_test.go)**: Unit tests for logical plan generation and SQL mapping.
 
+### Scientific Functions Package (`internal/functions/`)
+*   **[internal/functions/functions.go](file:///home/blaze/.gemini/antigravity-cli/brain/c54fcb7a-cda6-4e84-8836-4953f61b3a38/.system_generated/worktrees/subagent-Phase-10-Functions-Developer-phase10-developer-eb02d8b4/internal/functions/functions.go)**: Implements native scientific and mathematical functions (SIN, COS, TAN, ASIN, ACOS, ATAN, EXP, LOG, SQRT, ABS, POW, DOT, CROSS, NORM) and registers them in a global functions registry.
+*   **[internal/functions/functions_test.go](file:///home/blaze/.gemini/antigravity-cli/brain/c54fcb7a-cda6-4e84-8836-4953f61b3a38/.system_generated/worktrees/subagent-Phase-10-Functions-Developer-phase10-developer-eb02d8b4/internal/functions/functions_test.go)**: Unit tests for mathematical and vector function logic.
+
 ### Physical Execution Package (`internal/executor/`)
 *   **[internal/executor/executor.go](file:///home/blaze/Projects/FlamingoDB/internal/executor/executor.go)**: Implements physical operators (Scan, Filter, Project, Insert, Create Table) and runs logical plans against the storage engine. Includes pre-checks for semantic validation.
 *   **[internal/executor/executor_test.go](file:///home/blaze/Projects/FlamingoDB/internal/executor/executor_test.go)**: Unit tests for query plans and execution results.
@@ -97,3 +101,4 @@ flamingodb/
 ### Integration Tests (`tests/`)
 *   **[tests/integration_test.go](file:///home/blaze/Projects/FlamingoDB/tests/integration_test.go)**: End-to-end integration test validating a basic table creation, multi-row insertion, and data retrieval pipeline.
 *   **[tests/robustness_test.go](file:///home/blaze/Projects/FlamingoDB/tests/robustness_test.go)**: Comprehensive integration test suite verifying edge cases: case-insensitivity, negative/zero values, physical size limits, multi-page heap storage, comparisons, projection ordering, cold restart persistence, index node splits, and semantic error states.
+*   **[tests/functions_integration_test.go](file:///home/blaze/.gemini/antigravity-cli/brain/c54fcb7a-cda6-4e84-8836-4953f61b3a38/.system_generated/worktrees/subagent-Phase-10-Functions-Developer-phase10-developer-eb02d8b4/tests/functions_integration_test.go)**: Integration test verifying end-to-end execution of mathematical and vector functions in SQL SELECT queries and WHERE filtering conditions.
