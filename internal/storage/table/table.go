@@ -46,6 +46,21 @@ func New(p *pager.Pager, firstPageID page.PageID, initialize bool) (*Table, erro
 		if err := p.WritePage(pg); err != nil {
 			return nil, err
 		}
+	} else {
+		// Traverse the page linked list to find the actual lastPageID
+		currPageID := firstPageID
+		for {
+			pg, err := p.FetchPage(currPageID)
+			if err != nil {
+				return nil, err
+			}
+			nextID := encoding.Uint32(pg.Data()[8:12])
+			if page.PageID(nextID) == NoPage {
+				t.lastPageID = currPageID
+				break
+			}
+			currPageID = page.PageID(nextID)
+		}
 	}
 
 	return t, nil

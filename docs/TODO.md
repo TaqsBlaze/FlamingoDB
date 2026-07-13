@@ -10,9 +10,10 @@
 - [x] **Agent Beta**: Implement Planner (Phase 5) converting AST to Logical Plan.
 - [x] **Agent Beta**: Implement Executor (Phase 6) - Scan, Filter, Project, Insert, CreateTable.
 
+- [x] **Agent Alpha**: Implement B+ Tree Indexes (Phase 7) — INT, FLOAT, VARCHAR keys; insert, search, range scan.
+
 ## Pending Tasks
-- [ ] **Agent Alpha**: Implement B+ Tree Indexes (Phase 7).
 - [ ] **Agent Alpha**: Implement WAL, Transactions (Phase 8).
 
 ## Blocked Tasks
-- Phase 8 (Transactions) is blocked by Phase 7 (Indexes) completion.
+- Phase 9 (Scientific Types) is blocked by Phase 8 (Transactions) completion.

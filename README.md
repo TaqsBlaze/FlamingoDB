@@ -5,13 +5,13 @@
   <img src="https://img.shields.io/badge/Go-1.24%2B-00ADD8?logo=go&logoColor=white&style=for-the-badge" alt="Go Version" />
   <img src="https://img.shields.io/badge/Build-Passing-4CAF50?style=for-the-badge&logo=github-actions&logoColor=white" alt="Build" />
   <img src="https://img.shields.io/badge/Tests-All%20Passing-4CAF50?style=for-the-badge&logo=go&logoColor=white" alt="Tests" />
-  <img src="https://img.shields.io/badge/Phase-6%20%2F%2014-FF6B35?style=for-the-badge" alt="Phase" />
+  <img src="https://img.shields.io/badge/Phase-7%20%2F%2014-FF6B35?style=for-the-badge" alt="Phase" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
   <img src="https://img.shields.io/badge/Domain-Scientific%20Database-8A2BE2?style=for-the-badge" alt="Domain" />
 </p>
 
 <p align="center">
-  <strong>An open source scientific database system engineered for high-performance data storage, computational research, and large-scale scientific datasets.</strong>
+  <strong>An open source scientific database system engineered for high performance data storage, computational research, and large scale scientific datasets.</strong>
 </p>
 
 <p align="center">
@@ -35,17 +35,16 @@ Modern **scientific data management** demands more than what traditional relatio
 - **High-frequency time-series** from bioinformatics workflows
 - **Multidimensional arrays** from physics simulations and numerical methods
 
-Traditional databases treat these as afterthoughts — heavy BLOBs, generic binary fields, and expensive serialization cycles that destroy performance at scale.
+Traditional databases treat these as afterthoughts  heavy BLOBs, generic binary fields, and expensive serialization cycles that destroy performance at scale.
 
-**FlamingoDB is different.** It is purpose-built as a **scientific database system** where numerical and multidimensional types are **first-class citizens** in the storage engine itself.
+**FlamingoDB is different.** It is purpose built as a **scientific database system** where numerical and multidimensional types are **first class citizens** in the storage engine itself.
 
-> *"Every line of code should make FlamingoDB easier to understand, not harder."*
 
 ---
 
 ## 🎯 Built For
 
-FlamingoDB is **open source scientific software** designed specifically for **data-intensive science** and **reproducible research** workflows:
+FlamingoDB is **open source scientific software** designed specifically for **data intensive science** and **reproducible research** workflows:
 
 | Domain | Example Workloads |
 |--------|-------------------|
@@ -54,18 +53,18 @@ FlamingoDB is **open source scientific software** designed specifically for **da
 | 🔭 **Astronomy** | Star catalogues, spectroscopy arrays, photometric survey data |
 | ⚛️ **Physics** | Particle collision datasets, finite element matrices, simulation outputs |
 | 🤖 **Machine Learning** | Embedding vectors, feature matrices, model parameter storage |
-| 🧫 **Life Sciences** | Multi-omics data pipelines, proteomics arrays, biomarker research data infrastructure |
+| 🧫 **Life Sciences** | Multi omics data pipelines, proteomics arrays, biomarker research data infrastructure |
 
-FlamingoDB is designed from the ground up to power **research data infrastructure** for organisations that need **high performance data storage** for **large-scale scientific datasets** — without the overhead of repurposing a general-purpose RDBMS.
+FlamingoDB is designed from the ground up to power **research data infrastructure** for organisations that need **high performance data storage** for **large scale scientific datasets**  without the overhead of repurposing a general purpose RDBMS.
 
 ---
 
 ## 📊 Development Progress
 
-### Overall Completion: `43%`
+### Overall Completion: `50%`
 
 ```
-[████████░░░░░░░░░░░░] 43%
+[██████████░░░░░░░░░░] 50%
 ```
 
 ### Phase Status
@@ -78,8 +77,8 @@ FlamingoDB is designed from the ground up to power **research data infrastructur
 | 4 | **SQL Parser** — AST Construction, All DML/DDL Statements | ✅ Done | `100%` |
 | 5 | **Planner** — AST → Logical Plan (Scan, Filter, Project, Insert…) | ✅ Done | `100%` |
 | 6 | **Executor** — Physical Execution against Storage Engine | ✅ Done | `100%` |
-| 7 | **Indexes** — B+ Tree Lookup & Range Scans | ⏳ Next | `0%` |
-| 8 | **Transactions** — WAL, Commit, Rollback, Crash Recovery | ⏳ Planned | `0%` |
+| 7 | **Indexes** — B+ Tree Lookup & Range Scans | ✅ Done | `100%` |
+| 8 | **Transactions** — WAL, Commit, Rollback, Crash Recovery | ⏳ Next | `0%` |
 | 9 | **Scientific Types** — `VECTOR`, `MATRIX`, `TENSOR`, `COMPLEX` | ⏳ Planned | `0%` |
 | 10 | **Scientific Functions** — `SIN`, `COS`, `DOT`, `CROSS`, `NORM`… | ⏳ Planned | `0%` |
 | 11 | **Geospatial** — `POINT`, `POLYGON`, `DISTANCE`, `INTERSECTS`… | ⏳ Planned | `0%` |
@@ -91,7 +90,7 @@ FlamingoDB is designed from the ground up to power **research data infrastructur
 
 ## 🏗️ Architecture
 
-FlamingoDB follows a strict **Clean Architecture** — each layer communicates only with adjacent layers. Engineered for **computational research** workloads where correctness and predictability are non-negotiable.
+FlamingoDB follows a strict **Clean Architecture** each layer communicates only with adjacent layers. Engineered for **computational research** workloads where correctness and predictability are non-negotiable.
 
 ```
           SQL Query
@@ -131,7 +130,7 @@ FlamingoDB follows a strict **Clean Architecture** — each layer communicates o
 
 ## 🚀 Quick Start
 
-The following demonstrates a full SQL pipeline across the **scientific data management** stack — from raw SQL string to persisted records and filtered results.
+The following demonstrates a full SQL pipeline across the **scientific data management** stack from raw SQL string to persisted records and filtered results.
 
 ```go
 package main
@@ -241,18 +240,6 @@ ok   flamingodb/tests                      0.011s
 
 ---
 
-## 🤝 Contributing
-
-FlamingoDB is **open source scientific software** — contributions from the database and science communities are warmly welcomed. Whether you work in bioinformatics, climate science, physics, or database engineering, there is a place for you here.
-
-FlamingoDB uses a dual-agent development model defined in [`AGENTS.md`](./AGENTS.md):
-
-- **Agent Alpha** owns: Storage Engine, Pager, WAL, Transactions, Indexes
-- **Agent Beta** owns: SQL, Lexer, Parser, Planner, Executor, Scientific Types, SDK
-- Shared decisions are logged in [`docs/DECISIONS.md`](./docs/DECISIONS.md)
-- Progress is tracked in [`docs/PROGRESS.md`](./docs/PROGRESS.md)
-
----
 
 ## 🔖 Keywords
 

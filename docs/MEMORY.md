@@ -19,10 +19,12 @@
 - `Parser` (in `internal/parser/parser`) processes SQL tokens into AST nodes (supporting SELECT, INSERT, UPDATE, DELETE, CREATE TABLE).
 - `Planner` (in `internal/planner`) converts AST statement nodes into logical plan nodes (Scan, Filter, Project, Insert, Update, Delete, CreateTable).
 - `Executor` (in `internal/executor`) physically executes logical plan nodes against the `TableManager`. Supports CREATE TABLE, INSERT, full Scan, Filter (WHERE), and column Projection (SELECT fields).
+- `BTree` (in `internal/index/btree`) is a page-backed B+ Tree index supporting INT, FLOAT, and VARCHAR keys with point search, range scan, and automatic node splitting. Persisted via the Pager.
 
 ## Invariants
 - `PageSize` is fixed at 8192 bytes by default.
 - Page 0 of the database file is reserved for Catalog metadata.
+- BTree node key sizes: INT=4B, FLOAT=8B, VARCHAR=256B (fixed-width for page layout).
 
 ## Active Work
-- None. Phases 1–6 are complete. Next phase is Phase 7 (B+ Tree Indexes).
+- None. Phases 1–7 are complete. Next phase is Phase 8 (WAL + Transactions).

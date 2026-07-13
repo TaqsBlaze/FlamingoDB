@@ -22,7 +22,17 @@ Completed:
 - SQL Executor implemented (`internal/executor`) - Phase 6.
 - Parser fixed: unary minus prefix expressions supported (negative floats/ints).
 - AST extended with `PrefixExpression` node.
+- B+ Tree Index implemented (`internal/index/btree`) - Phase 7.
+  - Supports INT, FLOAT, VARCHAR key types.
+  - Insert, point search, range scan, node splitting (leaf + internal).
+  - Disk persistence via Pager.
+  - 500-key split stress test passing.
+- Robustness and Edge Case Integration Tests implemented (`tests/robustness_test.go`).
+  - Added test coverage for keyword case-insensitivity, negative/zero numbers, record size limits, multi-page heap storage, all comparison operators, column projection order, database restarts (persistence validation), B+ Tree page splits, and SQL/storage error states.
+- Fixed 3 critical bugs identified during robustness testing:
+  - Fixed out-of-bounds panic in `Record.Serialize` for records larger than 1024 bytes by dynamically sizing the buffer.
+  - Fixed heap table page link overwrite bug in `table.New` by traversing the page linked list to correctly resolve `lastPageID` for existing tables.
+  - Fixed query engine validation bypass on empty tables in `Executor` by validating project columns and filter conditions against the schema before row iterations.
 
 Next:
-- Phase 7: Indexes (B+ Tree lookup & range scan) - Agent Alpha.
-- Phase 8: Transactions (WAL, commit, rollback, recovery).
+- Phase 8: WAL, Transactions (commit, rollback, crash recovery).

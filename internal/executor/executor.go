@@ -130,6 +130,10 @@ func (e *Executor) executeFilter(n *planner.FilterNode) (*Result, error) {
 		return nil, err
 	}
 
+	if err := validateCondition(n.Condition, schema); err != nil {
+		return nil, err
+	}
+
 	var filtered []Row
 	for _, row := range childResult.Rows {
 		match, err := evalCondition(n.Condition, row, schema)
@@ -142,6 +146,39 @@ func (e *Executor) executeFilter(n *planner.FilterNode) (*Result, error) {
 	}
 
 	return &Result{Rows: filtered}, nil
+}
+
+// validateCondition checks that the filter condition is semantically valid for the schema.
+func validateCondition(expr ast.Expression, schema *record.Schema) error {
+	infix, ok := expr.(*ast.InfixExpression)
+	if !ok {
+		return fmt.Errorf("unsupported condition expression type: %T", expr)
+	}
+
+	ident, ok := infix.Left.(*ast.Identifier)
+	if !ok {
+		return fmt.Errorf("left side of condition must be a column identifier")
+	}
+
+	colIdx := -1
+	var colType record.TypeID
+	for i, col := range schema.Columns {
+		if strings.EqualFold(col.Name, ident.Value) {
+			colIdx = i
+			colType = col.Type
+			break
+		}
+	}
+	if colIdx == -1 {
+		return fmt.Errorf("column %q not found", ident.Value)
+	}
+
+	_, err := evalExpression(infix.Right, colType)
+	if err != nil {
+		return fmt.Errorf("condition right-hand side error: %w", err)
+	}
+
+	return nil
 }
 
 // executeProject handles column projection on top of a child node.
@@ -161,20 +198,23 @@ func (e *Executor) executeProject(n *planner.ProjectNode) (*Result, error) {
 		return nil, err
 	}
 
-	// Build column index map
+	// Build column index map and validate columns first
 	colIndex := make(map[string]int, len(schema.Columns))
 	for i, col := range schema.Columns {
 		colIndex[col.Name] = i
+	}
+
+	for _, field := range n.Fields {
+		if _, ok := colIndex[field]; !ok {
+			return nil, fmt.Errorf("column %q not found in table", field)
+		}
 	}
 
 	var projected []Row
 	for _, row := range childResult.Rows {
 		var vals []record.Value
 		for _, field := range n.Fields {
-			idx, ok := colIndex[field]
-			if !ok {
-				return nil, fmt.Errorf("column %q not found in table", field)
-			}
+			idx := colIndex[field]
 			vals = append(vals, row.Values[idx])
 		}
 		projected = append(projected, Row{Values: vals})

@@ -45,7 +45,20 @@ type Record struct {
 
 // Serialize encodes a Record into a byte slice according to its Schema.
 func (r *Record) Serialize(schema *Schema) []byte {
-	buf := make([]byte, 1024) // pre-allocate
+	size := 0
+	for i, col := range schema.Columns {
+		val := r.Values[i]
+		switch col.Type {
+		case Integer:
+			size += 4
+		case Float:
+			size += 8
+		case Varchar:
+			size += 4 + len(val.Str)
+		}
+	}
+
+	buf := make([]byte, size)
 	offset := 0
 
 	for i, col := range schema.Columns {
@@ -62,7 +75,7 @@ func (r *Record) Serialize(schema *Schema) []byte {
 			offset += n
 		}
 	}
-	return buf[:offset]
+	return buf
 }
 
 // Deserialize decodes a byte slice into a Record according to a Schema.
