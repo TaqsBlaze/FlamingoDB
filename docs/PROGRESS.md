@@ -41,6 +41,11 @@ Completed:
   - Added integration tests verifying commits, rollbacks, catalog rollbacks, and simulated system crashes.
 - Fixed 1 critical bug during WAL integration:
   - Fixed transaction lock leak deadlock inside `TableManager` caused by variable shadowing of block-scoped `err` inside auto-commit wrappers.
+- Scientific Types (VECTOR, MATRIX, TENSOR, and COMPLEX datatypes) implemented inside `internal/datatypes/` - Phase 9.
+  - Implemented data structures and operations (addition, subtraction, multiplication, dot product, equality).
+  - Extended storage serialization/deserialization in `internal/storage/record/record.go`.
+  - Extended SQL Lexer, Parser, Planner, and Physical Executor to handle scientific literal syntaxes, creations, values insertion, select scan, and where filter comparison queries.
+  - Wrote comprehensive package and system integration tests.
 
 Next:
-- Phase 9: Scientific Types (Vector, Matrix, Tensor, Complex types) - Agent Beta.
+- Phase 10: Scientific Functions (Native mathematical, vector, matrix functions).

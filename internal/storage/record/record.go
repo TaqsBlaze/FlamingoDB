@@ -1,6 +1,7 @@
 package record
 
 import (
+	"flamingodb/internal/datatypes"
 	"flamingodb/internal/storage/encoding"
 )
 
@@ -12,6 +13,10 @@ const (
 	Integer TypeID = iota // int32
 	Float                 // float64
 	Varchar               // length-prefixed string
+	Complex               // complex128
+	Vector                // length-prefixed float64 slice
+	Matrix                // matrix (row major)
+	Tensor                // tensor
 )
 
 // Column defines a single column in a schema.
@@ -36,6 +41,10 @@ type Value struct {
 	Int  int32
 	Flt  float64
 	Str  string
+	Comp datatypes.Complex
+	Vec  datatypes.Vector
+	Mat  datatypes.Matrix
+	Ten  datatypes.Tensor
 }
 
 // Record represents a single row in a table.
@@ -55,6 +64,19 @@ func (r *Record) Serialize(schema *Schema) []byte {
 			size += 8
 		case Varchar:
 			size += 4 + len(val.Str)
+		case Complex:
+			size += 16
+		case Vector:
+			size += 4 + len(val.Vec)*8
+		case Matrix:
+			rows := len(val.Mat)
+			cols := 0
+			if rows > 0 {
+				cols = len(val.Mat[0])
+			}
+			size += 8 + rows*cols*8
+		case Tensor:
+			size += 4 + len(val.Ten.Shape)*4 + 4 + len(val.Ten.Data)*8
 		}
 	}
 
@@ -73,6 +95,45 @@ func (r *Record) Serialize(schema *Schema) []byte {
 		case Varchar:
 			n := encoding.PutString(buf[offset:], val.Str)
 			offset += n
+		case Complex:
+			encoding.PutFloat64(buf[offset:], val.Comp.Real)
+			encoding.PutFloat64(buf[offset+8:], val.Comp.Imag)
+			offset += 16
+		case Vector:
+			encoding.PutUint32(buf[offset:], uint32(len(val.Vec)))
+			offset += 4
+			for _, v := range val.Vec {
+				encoding.PutFloat64(buf[offset:], v)
+				offset += 8
+			}
+		case Matrix:
+			rows := len(val.Mat)
+			cols := 0
+			if rows > 0 {
+				cols = len(val.Mat[0])
+			}
+			encoding.PutUint32(buf[offset:], uint32(rows))
+			encoding.PutUint32(buf[offset+4:], uint32(cols))
+			offset += 8
+			for r := 0; r < rows; r++ {
+				for c := 0; c < cols; c++ {
+					encoding.PutFloat64(buf[offset:], val.Mat[r][c])
+					offset += 8
+				}
+			}
+		case Tensor:
+			encoding.PutUint32(buf[offset:], uint32(len(val.Ten.Shape)))
+			offset += 4
+			for _, dim := range val.Ten.Shape {
+				encoding.PutUint32(buf[offset:], uint32(dim))
+				offset += 4
+			}
+			encoding.PutUint32(buf[offset:], uint32(len(val.Ten.Data)))
+			offset += 4
+			for _, d := range val.Ten.Data {
+				encoding.PutFloat64(buf[offset:], d)
+				offset += 8
+			}
 		}
 	}
 	return buf
@@ -95,6 +156,49 @@ func Deserialize(data []byte, schema *Schema) *Record {
 			str, n := encoding.String(data[offset:])
 			vals[i] = Value{Type: Varchar, Str: str}
 			offset += n
+		case Complex:
+			realPart := encoding.Float64(data[offset:])
+			imagPart := encoding.Float64(data[offset+8:])
+			vals[i] = Value{Type: Complex, Comp: datatypes.Complex{Real: realPart, Imag: imagPart}}
+			offset += 16
+		case Vector:
+			length := int(encoding.Uint32(data[offset:]))
+			offset += 4
+			vec := make(datatypes.Vector, length)
+			for idx := 0; idx < length; idx++ {
+				vec[idx] = encoding.Float64(data[offset:])
+				offset += 8
+			}
+			vals[i] = Value{Type: Vector, Vec: vec}
+		case Matrix:
+			rows := int(encoding.Uint32(data[offset:]))
+			cols := int(encoding.Uint32(data[offset+4:]))
+			offset += 8
+			mat := make(datatypes.Matrix, rows)
+			for r := 0; r < rows; r++ {
+				mat[r] = make([]float64, cols)
+				for c := 0; c < cols; c++ {
+					mat[r][c] = encoding.Float64(data[offset:])
+					offset += 8
+				}
+			}
+			vals[i] = Value{Type: Matrix, Mat: mat}
+		case Tensor:
+			shapeLen := int(encoding.Uint32(data[offset:]))
+			offset += 4
+			shape := make([]int, shapeLen)
+			for idx := 0; idx < shapeLen; idx++ {
+				shape[idx] = int(encoding.Uint32(data[offset:]))
+				offset += 4
+			}
+			dataLen := int(encoding.Uint32(data[offset:]))
+			offset += 4
+			tdata := make([]float64, dataLen)
+			for idx := 0; idx < dataLen; idx++ {
+				tdata[idx] = encoding.Float64(data[offset:])
+				offset += 8
+			}
+			vals[i] = Value{Type: Tensor, Ten: datatypes.Tensor{Shape: shape, Data: tdata}}
 		}
 	}
 

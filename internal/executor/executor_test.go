@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"flamingodb/internal/datatypes"
 	"flamingodb/internal/executor"
 	"flamingodb/internal/parser/lexer"
 	"flamingodb/internal/parser/parser"
@@ -142,5 +143,70 @@ func TestExecuteInsertRowsAffected(t *testing.T) {
 	result := execSQL(t, exec, "INSERT INTO log VALUES (1, 'startup', 0.0);")
 	if result.RowsAffected != 1 {
 		t.Errorf("expected RowsAffected=1, got %d", result.RowsAffected)
+	}
+}
+
+
+func TestExecuteScientificTypes(t *testing.T) {
+	exec := setupExecutor(t)
+
+	execSQL(t, exec, "CREATE TABLE sci (id INT, c COMPLEX, v VECTOR, m MATRIX, ten TENSOR);")
+	
+	// Test basic INSERT with scientific literals
+	execSQL(t, exec, "INSERT INTO sci VALUES (1, 1.2+3.4i, [1.0, 2.5, 3.0], [[1, 2], [3, 4]], [[[1.0, 2.0]], [[3.0, 4.0]]]);")
+	execSQL(t, exec, "INSERT INTO sci VALUES (2, -4.5i, [0.0, -1.0], [[5, 6, 7]], [[[9.0]]]);")
+	
+	// Test SELECT
+	result := execSQL(t, exec, "SELECT * FROM sci;")
+	if len(result.Rows) != 2 {
+		t.Fatalf("expected 2 rows, got %d", len(result.Rows))
+	}
+
+	// Verify Row 1
+	row1 := result.Rows[0]
+	// Complex: 1.2+3.4i
+	if !row1.Values[1].Comp.Equals(datatypes.Complex{Real: 1.2, Imag: 3.4}) {
+		t.Errorf("row1 complex wrong: got %v", row1.Values[1].Comp)
+	}
+	// Vector: [1.0, 2.5, 3.0]
+	if !row1.Values[2].Vec.Equals(datatypes.Vector{1.0, 2.5, 3.0}) {
+		t.Errorf("row1 vector wrong: got %v", row1.Values[2].Vec)
+	}
+	// Matrix: [[1, 2], [3, 4]]
+	if !row1.Values[3].Mat.Equals(datatypes.Matrix{{1.0, 2.0}, {3.0, 4.0}}) {
+		t.Errorf("row1 matrix wrong: got %v", row1.Values[3].Mat)
+	}
+	// Tensor: [[[1.0, 2.0]], [[3.0, 4.0]]] -> shape [2, 1, 2], data [1, 2, 3, 4]
+	expectedTensor1 := datatypes.Tensor{Shape: []int{2, 1, 2}, Data: []float64{1.0, 2.0, 3.0, 4.0}}
+	if !row1.Values[4].Ten.Equals(expectedTensor1) {
+		t.Errorf("row1 tensor wrong: got %v", row1.Values[4].Ten)
+	}
+
+	// Verify Row 2
+	row2 := result.Rows[1]
+	// Complex: -4.5i -> Real: 0, Imag: -4.5
+	if !row2.Values[1].Comp.Equals(datatypes.Complex{Real: 0, Imag: -4.5}) {
+		t.Errorf("row2 complex wrong: got %v", row2.Values[1].Comp)
+	}
+	// Vector: [0.0, -1.0]
+	if !row2.Values[2].Vec.Equals(datatypes.Vector{0.0, -1.0}) {
+		t.Errorf("row2 vector wrong: got %v", row2.Values[2].Vec)
+	}
+
+	// Test FILTERing on scientific values
+	filterResult1 := execSQL(t, exec, "SELECT * FROM sci WHERE c == 1.2+3.4i;")
+	if len(filterResult1.Rows) != 1 {
+		t.Fatalf("expected 1 row for complex filter, got %d", len(filterResult1.Rows))
+	}
+	if filterResult1.Rows[0].Values[0].Int != 1 {
+		t.Errorf("expected id 1, got %d", filterResult1.Rows[0].Values[0].Int)
+	}
+
+	filterResult2 := execSQL(t, exec, "SELECT * FROM sci WHERE v == [0.0, -1.0];")
+	if len(filterResult2.Rows) != 1 {
+		t.Fatalf("expected 1 row for vector filter, got %d", len(filterResult2.Rows))
+	}
+	if filterResult2.Rows[0].Values[0].Int != 2 {
+		t.Errorf("expected id 2, got %d", filterResult2.Rows[0].Values[0].Int)
 	}
 }

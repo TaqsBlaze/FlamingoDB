@@ -100,3 +100,49 @@ func TestNextToken(t *testing.T) {
 		}
 	}
 }
+
+
+func TestScientificTokens(t *testing.T) {
+	input := `[1, 2.5, 3] [[1, 2], [3i, 4i]] 1.2+3.4i -5.6i`
+	tests := []struct {
+		expectedType    TokenType
+		expectedLiteral string
+	}{
+		{LBRACKET, "["},
+		{INT, "1"},
+		{COMMA, ","},
+		{FLOAT, "2.5"},
+		{COMMA, ","},
+		{INT, "3"},
+		{RBRACKET, "]"},
+		{LBRACKET, "["},
+		{LBRACKET, "["},
+		{INT, "1"},
+		{COMMA, ","},
+		{INT, "2"},
+		{RBRACKET, "]"},
+		{COMMA, ","},
+		{LBRACKET, "["},
+		{IMAGINARY, "3i"},
+		{COMMA, ","},
+		{IMAGINARY, "4i"},
+		{RBRACKET, "]"},
+		{RBRACKET, "]"},
+		{FLOAT, "1.2"},
+		{PLUS, "+"},
+		{IMAGINARY, "3.4i"},
+		{MINUS, "-"},
+		{IMAGINARY, "5.6i"},
+		{EOF, ""},
+	}
+	l := New(input)
+	for i, tt := range tests {
+		tok := l.NextToken()
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong. expected=%q, got=%q (literal: %q)", i, tt.expectedType, tok.Type, tok.Literal)
+		}
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}

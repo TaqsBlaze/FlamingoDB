@@ -166,3 +166,69 @@ func checkParserErrors(t *testing.T, p *Parser) {
 	}
 	t.FailNow()
 }
+
+
+func TestParseScientificLiterals(t *testing.T) {
+	input := "INSERT INTO science VALUES ([1, 2.5, 3], [[1, 2], [3.5, 4.5]], 1.2+3.4i, -5.6i);"
+	l := lexer.New(input)
+	p := New(l)
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program.Statements does not contain 1 statement. got=%d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.InsertStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.InsertStatement. got=%T", program.Statements[0])
+	}
+
+	if len(stmt.Values) != 4 {
+		t.Fatalf("len(stmt.Values) not 4. got=%d", len(stmt.Values))
+	}
+
+	// Value 0: [1, 2.5, 3] -> ArrayLiteral
+	arr1, ok := stmt.Values[0].(*ast.ArrayLiteral)
+	if !ok {
+		t.Fatalf("stmt.Values[0] is not *ast.ArrayLiteral. got=%T", stmt.Values[0])
+	}
+	if len(arr1.Elements) != 3 {
+		t.Fatalf("arr1 length wrong. got=%d", len(arr1.Elements))
+	}
+
+	// Value 1: [[1, 2], [3.5, 4.5]] -> ArrayLiteral of ArrayLiterals
+	arr2, ok := stmt.Values[1].(*ast.ArrayLiteral)
+	if !ok {
+		t.Fatalf("stmt.Values[1] is not *ast.ArrayLiteral. got=%T", stmt.Values[1])
+	}
+	if len(arr2.Elements) != 2 {
+		t.Fatalf("arr2 length wrong. got=%d", len(arr2.Elements))
+	}
+	subArr1, ok := arr2.Elements[0].(*ast.ArrayLiteral)
+	if !ok {
+		t.Fatalf("subArr1 is not *ast.ArrayLiteral. got=%T", arr2.Elements[0])
+	}
+	if len(subArr1.Elements) != 2 {
+		t.Fatalf("subArr1 length wrong. got=%d", len(subArr1.Elements))
+	}
+
+	// Value 2: 1.2+3.4i -> InfixExpression
+	inf, ok := stmt.Values[2].(*ast.InfixExpression)
+	if !ok {
+		t.Fatalf("stmt.Values[2] is not *ast.InfixExpression. got=%T", stmt.Values[2])
+	}
+	if inf.Operator != "+" {
+		t.Errorf("inf operator wrong. got=%s", inf.Operator)
+	}
+
+	// Value 3: -5.6i -> ImaginaryLiteral (folded)
+	imag, ok := stmt.Values[3].(*ast.ImaginaryLiteral)
+	if !ok {
+		t.Fatalf("stmt.Values[3] is not *ast.ImaginaryLiteral. got=%T", stmt.Values[3])
+	}
+	if imag.Value != -5.6 {
+		t.Errorf("imaginary value wrong. expected=-5.6, got=%g", imag.Value)
+	}
+}

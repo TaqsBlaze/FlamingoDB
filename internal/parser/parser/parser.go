@@ -63,6 +63,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(lexer.FLOAT, p.parseFloatLiteral)
 	p.registerPrefix(lexer.STRING, p.parseStringLiteral)
 	p.registerPrefix(lexer.MINUS, p.parsePrefixExpression)
+	p.registerPrefix(lexer.IMAGINARY, p.parseImaginaryLiteral)
+	p.registerPrefix(lexer.LBRACKET, p.parseArrayLiteral)
 
 	p.infixParseFns = make(map[lexer.TokenType]infixParseFn)
 	p.registerInfix(lexer.EQ, p.parseInfixExpression)
@@ -406,6 +408,10 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 		r.Value = -r.Value
 		r.Token = operatorToken
 		return r
+	case *ast.ImaginaryLiteral:
+		r.Value = -r.Value
+		r.Token = operatorToken
+		return r
 	}
 	return &ast.PrefixExpression{Token: operatorToken, Operator: operatorToken.Literal, Right: right}
 }
@@ -462,4 +468,45 @@ func (p *Parser) curPrecedence() int {
 		return p
 	}
 	return LOWEST
+}
+
+
+func (p *Parser) parseImaginaryLiteral() ast.Expression {
+	lit := &ast.ImaginaryLiteral{Token: p.curToken}
+	litStr := p.curToken.Literal
+	if len(litStr) > 0 && litStr[len(litStr)-1] == 'i' {
+		litStr = litStr[:len(litStr)-1]
+	}
+	value, err := strconv.ParseFloat(litStr, 64)
+	if err != nil {
+		p.errors = append(p.errors, fmt.Sprintf("could not parse %q as imaginary coefficient", p.curToken.Literal))
+		return nil
+	}
+	lit.Value = value
+	return lit
+}
+
+func (p *Parser) parseArrayLiteral() ast.Expression {
+	lit := &ast.ArrayLiteral{Token: p.curToken}
+	lit.Elements = []ast.Expression{}
+
+	if p.peekTokenIs(lexer.RBRACKET) {
+		p.nextToken()
+		return lit
+	}
+
+	p.nextToken()
+	lit.Elements = append(lit.Elements, p.parseExpression(LOWEST))
+
+	for p.peekTokenIs(lexer.COMMA) {
+		p.nextToken() // COMMA
+		p.nextToken() // expression
+		lit.Elements = append(lit.Elements, p.parseExpression(LOWEST))
+	}
+
+	if !p.expectPeek(lexer.RBRACKET) {
+		return nil
+	}
+
+	return lit
 }

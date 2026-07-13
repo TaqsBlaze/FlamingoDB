@@ -3,6 +3,7 @@ package record_test
 import (
 	"testing"
 
+	"flamingodb/internal/datatypes"
 	"flamingodb/internal/storage/record"
 )
 
@@ -36,5 +37,51 @@ func TestRecordSerialization(t *testing.T) {
 	}
 	if decoded.Values[2].Str != "Station A" {
 		t.Errorf("expected station 'Station A', got '%s'", decoded.Values[2].Str)
+	}
+}
+
+
+func TestScientificRecordSerialization(t *testing.T) {
+	schema := record.NewSchema([]record.Column{
+		{Name: "c", Type: record.Complex},
+		{Name: "v", Type: record.Vector},
+		{Name: "m", Type: record.Matrix},
+		{Name: "t", Type: record.Tensor},
+	})
+
+	rec := &record.Record{
+		Values: []record.Value{
+			{Type: record.Complex, Comp: datatypes.Complex{Real: 1.2, Imag: -3.4}},
+			{Type: record.Vector, Vec: datatypes.Vector{1.0, 2.0, 3.0}},
+			{Type: record.Matrix, Mat: datatypes.Matrix{{1.0, 2.0}, {3.0, 4.0}}},
+			{Type: record.Tensor, Ten: datatypes.Tensor{Shape: []int{2, 1, 2}, Data: []float64{1.0, 2.0, 3.0, 4.0}}},
+		},
+	}
+
+	data := rec.Serialize(schema)
+	decoded := record.Deserialize(data, schema)
+
+	if len(decoded.Values) != 4 {
+		t.Fatalf("expected 4 values, got %d", len(decoded.Values))
+	}
+
+	// Complex
+	if !decoded.Values[0].Comp.Equals(rec.Values[0].Comp) {
+		t.Errorf("expected complex %v, got %v", rec.Values[0].Comp, decoded.Values[0].Comp)
+	}
+
+	// Vector
+	if !decoded.Values[1].Vec.Equals(rec.Values[1].Vec) {
+		t.Errorf("expected vector %v, got %v", rec.Values[1].Vec, decoded.Values[1].Vec)
+	}
+
+	// Matrix
+	if !decoded.Values[2].Mat.Equals(rec.Values[2].Mat) {
+		t.Errorf("expected matrix %v, got %v", rec.Values[2].Mat, decoded.Values[2].Mat)
+	}
+
+	// Tensor
+	if !decoded.Values[3].Ten.Equals(rec.Values[3].Ten) {
+		t.Errorf("expected tensor %v, got %v", rec.Values[3].Ten, decoded.Values[3].Ten)
 	}
 }

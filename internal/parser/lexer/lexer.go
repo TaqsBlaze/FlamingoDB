@@ -91,6 +91,10 @@ func (l *Lexer) NextToken() Token {
 		tok = newToken(LPAREN, l.ch)
 	case ')':
 		tok = newToken(RPAREN, l.ch)
+	case '[':
+		tok = newToken(LBRACKET, l.ch)
+	case ']':
+		tok = newToken(RBRACKET, l.ch)
 	case '\'', '"':
 		tok.Type = STRING
 		tok.Literal = l.readString(l.ch)
@@ -136,6 +140,10 @@ func (l *Lexer) readNumber() (TokenType, string) {
 			isFloat = true
 		}
 		l.readChar()
+	}
+	if l.ch == 'i' {
+		l.readChar()
+		return IMAGINARY, l.input[position:l.position]
 	}
 	if isFloat {
 		return FLOAT, l.input[position:l.position]

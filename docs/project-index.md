@@ -51,6 +51,10 @@ flamingodb/
 *   **[cmd/flamingo/](file:///home/blaze/Projects/FlamingoDB/cmd/flamingo)**: Empty package designated for the command-line CLI client interface.
 *   **[cmd/flamingodbd/](file:///home/blaze/Projects/FlamingoDB/cmd/flamingodbd)**: Empty package designated for the database server engine daemon.
 
+### Scientific Types Package (`internal/datatypes/`)
+*   **[internal/datatypes/datatypes.go](file:///home/blaze/Projects/FlamingoDB/internal/datatypes/datatypes.go)**: Defines VECTOR, MATRIX, TENSOR, and COMPLEX datatypes and mathematical operations.
+*   **[internal/datatypes/datatypes_test.go](file:///home/blaze/Projects/FlamingoDB/internal/datatypes/datatypes_test.go)**: Unit tests for the scientific datatypes and their operations.
+
 ### SQL Parser Package (`internal/parser/`)
 *   **[internal/parser/ast/ast.go](file:///home/blaze/Projects/FlamingoDB/internal/parser/ast/ast.go)**: Defines the AST nodes for statements (e.g. `CreateTableStatement`, `InsertStatement`, `SelectStatement`) and expressions (e.g. `Identifier`, `IntegerLiteral`, `FloatLiteral`, `PrefixExpression`).
 *   **[internal/parser/lexer/token.go](file:///home/blaze/Projects/FlamingoDB/internal/parser/lexer/token.go)**: Registers SQL token types and keywords (`CREATE`, `TABLE`, `SELECT`, `WHERE`, etc.).

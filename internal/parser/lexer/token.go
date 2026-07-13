@@ -32,6 +32,11 @@ const (
 	SEMICOLON = ";"
 	LPAREN    = "("
 	RPAREN    = ")"
+	LBRACKET  = "["
+	RBRACKET  = "]"
+
+	// Imaginary suffix
+	IMAGINARY = "IMAGINARY"
 
 	// Keywords
 	CREATE = "CREATE"

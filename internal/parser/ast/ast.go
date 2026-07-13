@@ -209,3 +209,30 @@ func (s *CreateTableStatement) String() string {
 	out += strings.Join(cols, ", ") + ");"
 	return out
 }
+
+
+// ImaginaryLiteral represents an imaginary number literal (e.g. 3i, 4.5i).
+type ImaginaryLiteral struct {
+	Token lexer.Token
+	Value float64
+}
+
+func (il *ImaginaryLiteral) expressionNode()      {}
+func (il *ImaginaryLiteral) TokenLiteral() string { return il.Token.Literal }
+func (il *ImaginaryLiteral) String() string       { return il.Token.Literal }
+
+// ArrayLiteral represents vector/matrix/tensor literal syntaxes like [1, 2, 3].
+type ArrayLiteral struct {
+	Token    lexer.Token // the "[" token
+	Elements []Expression
+}
+
+func (al *ArrayLiteral) expressionNode()      {}
+func (al *ArrayLiteral) TokenLiteral() string { return al.Token.Literal }
+func (al *ArrayLiteral) String() string {
+	var elems []string
+	for _, el := range al.Elements {
+		elems = append(elems, el.String())
+	}
+	return "[" + strings.Join(elems, ", ") + "]"
+}

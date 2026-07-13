@@ -169,6 +169,14 @@ func MapStringToTypeID(t string) (record.TypeID, error) {
 		return record.Float, nil
 	case "VARCHAR", "STRING", "TEXT":
 		return record.Varchar, nil
+	case "COMPLEX":
+		return record.Complex, nil
+	case "VECTOR":
+		return record.Vector, nil
+	case "MATRIX":
+		return record.Matrix, nil
+	case "TENSOR":
+		return record.Tensor, nil
 	default:
 		return 0, fmt.Errorf("unknown type: %s", t)
 	}

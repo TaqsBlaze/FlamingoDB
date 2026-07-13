@@ -12,7 +12,8 @@
 - `Page` abstraction (in `internal/storage/page`) defines PageID and basic fixed-size memory blocks.
 - `DiskManager` (in `internal/storage/disk`) handles page-level disk I/O.
 - `Pager` (in `internal/storage/pager`) manages caching and allocation of pages.
-- `Record` and `Schema` (in `internal/storage/record`) handles serialization/deserialization of typed table rows.
+- `Scientific Types` (in `internal/datatypes`) defines VECTOR, MATRIX, TENSOR, and COMPLEX datatypes with support for addition, subtraction, dot product, multiplication, and equality checks.
+- `Record` and `Schema` (in `internal/storage/record`) handles serialization/deserialization of typed table rows including VECTOR, MATRIX, TENSOR, and COMPLEX types.
 - `Catalog` and `TableMetadata` (in `internal/storage/catalog`) persists table schemas to Page 0 of the database.
 - `TableManager` (in `internal/storage/catalog`) acts as the schema-aware entrypoint for DDL and DML operations.
 - `Lexer` (in `internal/parser/lexer`) tokenizes raw SQL statements.
@@ -30,5 +31,14 @@
 - Every DDL/DML statement executed outside an explicit transaction runs in auto-commit mode.
 - Database instantiation automatically executes WAL crash recovery (Redo phase).
 
+## Invariants
+- `PageSize` is fixed at 8192 bytes by default.
+- Page 0 of the database file is reserved for Catalog metadata.
+- BTree node key sizes: INT=4B, FLOAT=8B, VARCHAR=256B (fixed-width for page layout).
+- Every DDL/DML statement executed outside an explicit transaction runs in auto-commit mode.
+- Database instantiation automatically executes WAL crash recovery (Redo phase).
+- Scientific datatypes are represented in-memory as native Go/custom types: COMPLEX (real/imag float64), VECTOR ([]float64), MATRIX ([][]float64), and TENSOR (shape []int, flat data []float64).
+- Scientific datatypes are serialized as length-prefixed structures.
+
 ## Active Work
-- None. Phases 1–8 are complete. Next phase is Phase 9 (Scientific Types).
+- None. Phase 9 (Scientific Types) is complete. Next phase is Phase 10 (Scientific Functions).

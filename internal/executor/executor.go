@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"flamingodb/internal/datatypes"
 	"flamingodb/internal/parser/ast"
 	"flamingodb/internal/planner"
 	"flamingodb/internal/storage/catalog"
@@ -241,8 +242,229 @@ func (e *Executor) schemaFromChild(child planner.PlanNode) (*record.Schema, erro
 	}
 }
 
+func evalComplex(expr ast.Expression) (datatypes.Complex, error) {
+	switch e := expr.(type) {
+	case *ast.IntegerLiteral:
+		return datatypes.Complex{Real: float64(e.Value), Imag: 0}, nil
+	case *ast.FloatLiteral:
+		return datatypes.Complex{Real: e.Value, Imag: 0}, nil
+	case *ast.ImaginaryLiteral:
+		return datatypes.Complex{Real: 0, Imag: e.Value}, nil
+	case *ast.PrefixExpression:
+		if e.Operator == "-" {
+			val, err := evalComplex(e.Right)
+			if err != nil {
+				return datatypes.Complex{}, err
+			}
+			return datatypes.Complex{Real: -val.Real, Imag: -val.Imag}, nil
+		}
+		return datatypes.Complex{}, fmt.Errorf("unsupported complex prefix operator: %s", e.Operator)
+	case *ast.InfixExpression:
+		if e.Operator != "+" && e.Operator != "-" {
+			return datatypes.Complex{}, fmt.Errorf("unsupported complex operator: %s", e.Operator)
+		}
+		leftReal, err := evalRealPart(e.Left)
+		if err != nil {
+			return datatypes.Complex{}, err
+		}
+		rightImag, err := evalImagPart(e.Right)
+		if err != nil {
+			return datatypes.Complex{}, err
+		}
+		if e.Operator == "-" {
+			rightImag = -rightImag
+		}
+		return datatypes.Complex{Real: leftReal, Imag: rightImag}, nil
+	default:
+		return datatypes.Complex{}, fmt.Errorf("unsupported expression type for complex: %T", expr)
+	}
+}
+
+func evalRealPart(expr ast.Expression) (float64, error) {
+	switch e := expr.(type) {
+	case *ast.IntegerLiteral:
+		return float64(e.Value), nil
+	case *ast.FloatLiteral:
+		return e.Value, nil
+	case *ast.PrefixExpression:
+		if e.Operator == "-" {
+			val, err := evalRealPart(e.Right)
+			if err != nil {
+				return 0, err
+			}
+			return -val, nil
+		}
+	}
+	return 0, fmt.Errorf("expected real number, got %T", expr)
+}
+
+func evalImagPart(expr ast.Expression) (float64, error) {
+	switch e := expr.(type) {
+	case *ast.ImaginaryLiteral:
+		return e.Value, nil
+	case *ast.PrefixExpression:
+		if e.Operator == "-" {
+			val, err := evalImagPart(e.Right)
+			if err != nil {
+				return 0, err
+			}
+			return -val, nil
+		}
+	}
+	return 0, fmt.Errorf("expected imaginary number, got %T", expr)
+}
+
+func evalFloatVal(expr ast.Expression) (float64, error) {
+	switch e := expr.(type) {
+	case *ast.IntegerLiteral:
+		return float64(e.Value), nil
+	case *ast.FloatLiteral:
+		return e.Value, nil
+	case *ast.PrefixExpression:
+		if e.Operator == "-" {
+			val, err := evalFloatVal(e.Right)
+			if err != nil {
+				return 0, err
+			}
+			return -val, nil
+		}
+	}
+	return 0, fmt.Errorf("expected number, got %T", expr)
+}
+
+func evalVector(expr ast.Expression) (datatypes.Vector, error) {
+	arr, ok := expr.(*ast.ArrayLiteral)
+	if !ok {
+		return nil, fmt.Errorf("expected array literal for vector, got %T", expr)
+	}
+	vec := make(datatypes.Vector, len(arr.Elements))
+	for i, el := range arr.Elements {
+		val, err := evalFloatVal(el)
+		if err != nil {
+			return nil, fmt.Errorf("vector element %d: %w", i, err)
+		}
+		vec[i] = val
+	}
+	return vec, nil
+}
+
+func evalMatrix(expr ast.Expression) (datatypes.Matrix, error) {
+	arr, ok := expr.(*ast.ArrayLiteral)
+	if !ok {
+		return nil, fmt.Errorf("expected array literal for matrix, got %T", expr)
+	}
+	if len(arr.Elements) == 0 {
+		return make(datatypes.Matrix, 0), nil
+	}
+	mat := make(datatypes.Matrix, len(arr.Elements))
+	colCount := -1
+	for i, el := range arr.Elements {
+		rowVec, err := evalVector(el)
+		if err != nil {
+			return nil, fmt.Errorf("matrix row %d: %w", i, err)
+		}
+		if colCount == -1 {
+			colCount = len(rowVec)
+		} else if len(rowVec) != colCount {
+			return nil, fmt.Errorf("matrix row %d: dimension mismatch (expected %d columns, got %d)", i, colCount, len(rowVec))
+		}
+		mat[i] = rowVec
+	}
+	return mat, nil
+}
+
+func flattenArrayLiteral(expr ast.Expression) ([]int, []float64, error) {
+	switch e := expr.(type) {
+	case *ast.IntegerLiteral:
+		return nil, []float64{float64(e.Value)}, nil
+	case *ast.FloatLiteral:
+		return nil, []float64{e.Value}, nil
+	case *ast.PrefixExpression:
+		if e.Operator == "-" {
+			shape, data, err := flattenArrayLiteral(e.Right)
+			if err != nil {
+				return nil, nil, err
+			}
+			if len(data) != 1 || len(shape) != 0 {
+				return nil, nil, fmt.Errorf("cannot negate a multi-dimensional array directly")
+			}
+			data[0] = -data[0]
+			return nil, data, nil
+		}
+		return nil, nil, fmt.Errorf("unsupported tensor prefix operator: %s", e.Operator)
+	case *ast.ArrayLiteral:
+		if len(e.Elements) == 0 {
+			return []int{0}, nil, nil
+		}
+		var firstShape []int
+		var allData []float64
+		for idx, elem := range e.Elements {
+			subShape, subData, err := flattenArrayLiteral(elem)
+			if err != nil {
+				return nil, nil, err
+			}
+			if idx == 0 {
+				firstShape = subShape
+			} else {
+				if len(subShape) != len(firstShape) {
+					return nil, nil, fmt.Errorf("tensor shape mismatch at element %d", idx)
+				}
+				for dimIdx := range firstShape {
+					if firstShape[dimIdx] != subShape[dimIdx] {
+						return nil, nil, fmt.Errorf("tensor shape mismatch at element %d", idx)
+					}
+				}
+			}
+			allData = append(allData, subData...)
+		}
+		shape := append([]int{len(e.Elements)}, firstShape...)
+		return shape, allData, nil
+	default:
+		return nil, nil, fmt.Errorf("invalid element type in tensor: %T", expr)
+	}
+}
+
+func evalTensor(expr ast.Expression) (datatypes.Tensor, error) {
+	arr, ok := expr.(*ast.ArrayLiteral)
+	if !ok {
+		return datatypes.Tensor{}, fmt.Errorf("expected array literal for tensor, got %T", expr)
+	}
+	shape, data, err := flattenArrayLiteral(arr)
+	if err != nil {
+		return datatypes.Tensor{}, err
+	}
+	return datatypes.Tensor{Shape: shape, Data: data}, nil
+}
+
 // evalExpression converts an AST Expression to a typed record.Value based on the expected column type.
 func evalExpression(expr ast.Expression, colType record.TypeID) (record.Value, error) {
+	switch colType {
+	case record.Complex:
+		comp, err := evalComplex(expr)
+		if err != nil {
+			return record.Value{}, err
+		}
+		return record.Value{Type: record.Complex, Comp: comp}, nil
+	case record.Vector:
+		vec, err := evalVector(expr)
+		if err != nil {
+			return record.Value{}, err
+		}
+		return record.Value{Type: record.Vector, Vec: vec}, nil
+	case record.Matrix:
+		mat, err := evalMatrix(expr)
+		if err != nil {
+			return record.Value{}, err
+		}
+		return record.Value{Type: record.Matrix, Mat: mat}, nil
+	case record.Tensor:
+		ten, err := evalTensor(expr)
+		if err != nil {
+			return record.Value{}, err
+		}
+		return record.Value{Type: record.Tensor, Ten: ten}, nil
+	}
+
 	switch e := expr.(type) {
 	case *ast.IntegerLiteral:
 		if colType != record.Integer {
@@ -345,6 +567,38 @@ func compareValues(left record.Value, op string, right record.Value) (bool, erro
 			return l == r, nil
 		case "!=":
 			return l != r, nil
+		}
+	case record.Complex:
+		l, r := left.Comp, right.Comp
+		switch op {
+		case "=", "==":
+			return l.Equals(r), nil
+		case "!=":
+			return !l.Equals(r), nil
+		}
+	case record.Vector:
+		l, r := left.Vec, right.Vec
+		switch op {
+		case "=", "==":
+			return l.Equals(r), nil
+		case "!=":
+			return !l.Equals(r), nil
+		}
+	case record.Matrix:
+		l, r := left.Mat, right.Mat
+		switch op {
+		case "=", "==":
+			return l.Equals(r), nil
+		case "!=":
+			return !l.Equals(r), nil
+		}
+	case record.Tensor:
+		l, r := left.Ten, right.Ten
+		switch op {
+		case "=", "==":
+			return l.Equals(r), nil
+		case "!=":
+			return !l.Equals(r), nil
 		}
 	}
 	return false, fmt.Errorf("unsupported operator %q for type %v", op, left.Type)
