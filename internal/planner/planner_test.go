@@ -1,10 +1,10 @@
 package planner
 
 import (
-	"flamingodb/internal/parser/ast"
-	"flamingodb/internal/parser/lexer"
-	"flamingodb/internal/parser/parser"
-	"flamingodb/internal/storage/record"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/ast"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/lexer"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/parser"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/record"
 	"testing"
 )
 

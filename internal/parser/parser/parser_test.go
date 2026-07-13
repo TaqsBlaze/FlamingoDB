@@ -1,8 +1,8 @@
 package parser
 
 import (
-	"flamingodb/internal/parser/ast"
-	"flamingodb/internal/parser/lexer"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/ast"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/lexer"
 	"testing"
 )
 

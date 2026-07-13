@@ -3,7 +3,7 @@ package encoding_test
 import (
 	"testing"
 
-	"flamingodb/internal/storage/encoding"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/encoding"
 )
 
 func TestBinaryEncoding(t *testing.T) {

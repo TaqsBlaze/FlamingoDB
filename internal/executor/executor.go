@@ -5,15 +5,15 @@ import (
 	"math"
 	"strings"
 
-	"flamingodb/internal/datatypes"
-	"flamingodb/internal/functions"
-	"flamingodb/internal/index/btree"
-	"flamingodb/internal/parser/ast"
-	"flamingodb/internal/planner"
-	"flamingodb/internal/storage/catalog"
-	"flamingodb/internal/storage/page"
-	"flamingodb/internal/storage/record"
-	"flamingodb/internal/transaction"
+	"github.com/TaqsBlaze/FlamingoDB/internal/datatypes"
+	"github.com/TaqsBlaze/FlamingoDB/internal/functions"
+	"github.com/TaqsBlaze/FlamingoDB/internal/index/btree"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/ast"
+	"github.com/TaqsBlaze/FlamingoDB/internal/planner"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/catalog"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/page"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/record"
+	"github.com/TaqsBlaze/FlamingoDB/internal/transaction"
 )
 
 // Row represents a single result row returned from execution.

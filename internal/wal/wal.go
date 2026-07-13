@@ -8,7 +8,7 @@ import (
 	"os"
 	"sync"
 
-	"flamingodb/internal/storage/page"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/page"
 )
 
 // RecordType represents the action logged in the WAL.

@@ -4,10 +4,10 @@ import (
 	"errors"
 	"math"
 
-	"flamingodb/internal/storage/encoding"
-	"flamingodb/internal/storage/page"
-	"flamingodb/internal/storage/pager"
-	"flamingodb/internal/transaction"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/encoding"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/page"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/pager"
+	"github.com/TaqsBlaze/FlamingoDB/internal/transaction"
 )
 
 var (
