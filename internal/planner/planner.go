@@ -20,6 +20,7 @@ const (
 	PlanUpdate      PlanType = "Update"
 	PlanDelete      PlanType = "Delete"
 	PlanCreateTable PlanType = "CreateTable"
+	PlanIndexScan   PlanType = "IndexScan"
 )
 
 // PlanNode is the common interface for all logical plan nodes.
@@ -333,4 +334,32 @@ func (p *Planner) planCreateTable(stmt *ast.CreateTableStatement) (PlanNode, err
 		Table:   stmt.Table,
 		Columns: stmt.Columns,
 	}, nil
+}
+
+// IndexScanNode represents an index-assisted scan on a table.
+type IndexScanNode struct {
+	Table       string
+	ColumnName  string
+	IndexRootID uint32
+	KeyType     uint8 // btree.KeyType
+	LowVal      *record.Value
+	HighVal     *record.Value
+}
+
+// Type returns PlanIndexScan.
+func (n *IndexScanNode) Type() PlanType { return PlanIndexScan }
+
+// Children returns nil (IndexScan is a leaf node).
+func (n *IndexScanNode) Children() []PlanNode { return nil }
+
+// String returns a string representation of IndexScanNode.
+func (n *IndexScanNode) String() string {
+	var lowStr, highStr string = "nil", "nil"
+	if n.LowVal != nil {
+		lowStr = fmt.Sprintf("%v", n.LowVal)
+	}
+	if n.HighVal != nil {
+		highStr = fmt.Sprintf("%v", n.HighVal)
+	}
+	return fmt.Sprintf("IndexScan(%s.%s, root=%d, range=[%s, %s])", n.Table, n.ColumnName, n.IndexRootID, lowStr, highStr)
 }

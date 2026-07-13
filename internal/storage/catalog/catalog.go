@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 
+	"flamingodb/internal/index/btree"
 	"flamingodb/internal/storage/encoding"
 	"flamingodb/internal/storage/page"
 	"flamingodb/internal/storage/pager"
@@ -16,11 +17,19 @@ var (
 	ErrTableNotFound = errors.New("table not found")
 )
 
+// IndexMetadata stores metadata for a B+ tree index on a column.
+type IndexMetadata struct {
+	ColumnName string
+	RootPageID page.PageID
+	KeyType    btree.KeyType
+}
+
 // TableMetadata stores metadata for a single table.
 type TableMetadata struct {
 	Name        string
 	FirstPageID page.PageID
 	Schema      *record.Schema
+	Indexes     map[string]*IndexMetadata
 }
 
 // Catalog manages database tables and their schemas.
@@ -81,6 +90,7 @@ func (c *Catalog) CreateTable(tx *transaction.Transaction, name string, schema *
 		Name:        name,
 		FirstPageID: firstPageID,
 		Schema:      schema,
+		Indexes:     make(map[string]*IndexMetadata),
 	}
 
 	return c.persist(tx)
@@ -162,6 +172,20 @@ func (c *Catalog) serialize() []byte {
 			buf[offset] = uint8(col.Type)
 			offset += 1
 		}
+
+		encoding.PutUint32(buf[offset:], uint32(len(t.Indexes)))
+		offset += 4
+
+		for _, idx := range t.Indexes {
+			n = encoding.PutString(buf[offset:], idx.ColumnName)
+			offset += n
+
+			encoding.PutUint32(buf[offset:], uint32(idx.RootPageID))
+			offset += 4
+
+			buf[offset] = uint8(idx.KeyType)
+			offset += 1
+		}
 	}
 
 	return buf
@@ -195,10 +219,32 @@ func deserializeCatalog(data []byte) (map[string]*TableMetadata, error) {
 			cols[j] = record.Column{Name: colName, Type: colType}
 		}
 
+		numIndexes := encoding.Uint32(data[offset:])
+		offset += 4
+
+		indexes := make(map[string]*IndexMetadata)
+		for j := uint32(0); j < numIndexes; j++ {
+			colName, n := encoding.String(data[offset:])
+			offset += n
+
+			rootPID := page.PageID(encoding.Uint32(data[offset:]))
+			offset += 4
+
+			kType := btree.KeyType(data[offset])
+			offset += 1
+
+			indexes[colName] = &IndexMetadata{
+				ColumnName: colName,
+				RootPageID: rootPID,
+				KeyType:    kType,
+			}
+		}
+
 		tables[name] = &TableMetadata{
 			Name:        name,
 			FirstPageID: firstPageID,
 			Schema:      record.NewSchema(cols),
+			Indexes:     indexes,
 		}
 	}
 

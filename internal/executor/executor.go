@@ -2,13 +2,16 @@ package executor
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"flamingodb/internal/datatypes"
 	"flamingodb/internal/functions"
+	"flamingodb/internal/index/btree"
 	"flamingodb/internal/parser/ast"
 	"flamingodb/internal/planner"
 	"flamingodb/internal/storage/catalog"
+	"flamingodb/internal/storage/page"
 	"flamingodb/internal/storage/record"
 	"flamingodb/internal/transaction"
 )
@@ -60,6 +63,8 @@ func (e *Executor) ExecuteWithTx(tx *transaction.Transaction, node planner.PlanN
 		return e.executeFilter(tx, n)
 	case *planner.ScanNode:
 		return e.executeScan(tx, n)
+	case *planner.IndexScanNode:
+		return e.executeIndexScan(tx, n)
 	default:
 		return nil, fmt.Errorf("unsupported plan node type: %T", node)
 	}
@@ -495,6 +500,8 @@ func (e *Executor) executeProject(tx *transaction.Transaction, n *planner.Projec
 func (e *Executor) schemaFromChild(child planner.PlanNode) (*record.Schema, error) {
 	switch n := child.(type) {
 	case *planner.ScanNode:
+		return e.tm.GetSchema(n.Table)
+	case *planner.IndexScanNode:
 		return e.tm.GetSchema(n.Table)
 	case *planner.FilterNode:
 		return e.schemaFromChild(n.Child)
@@ -933,6 +940,70 @@ func evalRowExpression(expr ast.Expression, row Row, schema *record.Schema) (rec
 	default:
 		return record.Value{}, fmt.Errorf("unsupported row expression type: %T", expr)
 	}
+}
+
+// executeIndexScan handles index-assisted scans by calling the catalog.TableManager.
+func (e *Executor) executeIndexScan(tx *transaction.Transaction, n *planner.IndexScanNode) (*Result, error) {
+	var lowKey, highKey btree.Key
+	if n.LowVal != nil {
+		lowKey = toBtreeKey(*n.LowVal, btree.KeyType(n.KeyType))
+	} else {
+		lowKey = getMinKey(btree.KeyType(n.KeyType))
+	}
+
+	if n.HighVal != nil {
+		highKey = toBtreeKey(*n.HighVal, btree.KeyType(n.KeyType))
+	} else {
+		highKey = getMaxKey(btree.KeyType(n.KeyType))
+	}
+
+	records, err := e.tm.ReadRecordsIndexed(tx, n.Table, n.ColumnName, page.PageID(n.IndexRootID), btree.KeyType(n.KeyType), lowKey, highKey)
+	if err != nil {
+		return nil, fmt.Errorf("index scan failed on %s.%s: %w", n.Table, n.ColumnName, err)
+	}
+
+	rows := make([]Row, len(records))
+	for i, r := range records {
+		rows[i] = Row{Values: r.Values}
+	}
+
+	return &Result{Rows: rows}, nil
+}
+
+func toBtreeKey(v record.Value, kt btree.KeyType) btree.Key {
+	switch kt {
+	case btree.KeyInt:
+		return btree.Key{Type: btree.KeyInt, IVal: v.Int}
+	case btree.KeyFloat:
+		return btree.Key{Type: btree.KeyFloat, FVal: v.Flt}
+	case btree.KeyVarchar:
+		return btree.Key{Type: btree.KeyVarchar, SVal: v.Str}
+	}
+	return btree.Key{}
+}
+
+func getMinKey(kt btree.KeyType) btree.Key {
+	switch kt {
+	case btree.KeyInt:
+		return btree.Key{Type: btree.KeyInt, IVal: math.MinInt32}
+	case btree.KeyFloat:
+		return btree.Key{Type: btree.KeyFloat, FVal: -math.MaxFloat64}
+	case btree.KeyVarchar:
+		return btree.Key{Type: btree.KeyVarchar, SVal: ""}
+	}
+	return btree.Key{}
+}
+
+func getMaxKey(kt btree.KeyType) btree.Key {
+	switch kt {
+	case btree.KeyInt:
+		return btree.Key{Type: btree.KeyInt, IVal: math.MaxInt32}
+	case btree.KeyFloat:
+		return btree.Key{Type: btree.KeyFloat, FVal: math.MaxFloat64}
+	case btree.KeyVarchar:
+		return btree.Key{Type: btree.KeyVarchar, SVal: strings.Repeat(string(rune(0xff)), 255)}
+	}
+	return btree.Key{}
 }
 
 func toFloatVal(v record.Value) (float64, error) {

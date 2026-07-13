@@ -109,6 +109,13 @@ func (p *Pager) AllocatePage() (*page.Page, error) {
 	return pg, nil
 }
 
+// PageSize returns the size of pages managed by the pager.
+func (p *Pager) PageSize() uint32 {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.pageSize
+}
+
 // FlushAll writes all cached pages to disk.
 func (p *Pager) FlushAll() error {
 	p.mu.Lock()
