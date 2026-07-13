@@ -4,14 +4,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"flamingodb/internal/datatypes"
-	"flamingodb/internal/executor"
-	"flamingodb/internal/parser/lexer"
-	"flamingodb/internal/parser/parser"
-	"flamingodb/internal/planner"
-	"flamingodb/internal/storage/catalog"
-	"flamingodb/internal/storage/disk"
-	"flamingodb/internal/storage/pager"
+	"github.com/TaqsBlaze/FlamingoDB/internal/datatypes"
+	"github.com/TaqsBlaze/FlamingoDB/internal/executor"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/lexer"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/parser"
+	"github.com/TaqsBlaze/FlamingoDB/internal/planner"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/catalog"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/disk"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/pager"
 )
 
 // setupExecutor creates a clean in-memory-backed executor for each test.

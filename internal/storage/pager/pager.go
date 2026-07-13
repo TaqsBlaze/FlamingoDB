@@ -4,8 +4,8 @@ import (
 	"errors"
 	"sync"
 
-	"flamingodb/internal/storage/disk"
-	"flamingodb/internal/storage/page"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/disk"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/page"
 )
 
 var (

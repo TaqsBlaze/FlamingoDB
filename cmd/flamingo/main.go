@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"flamingodb/internal/network"
+	"github.com/TaqsBlaze/FlamingoDB/internal/network"
 )
 
 func main() {

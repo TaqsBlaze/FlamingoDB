@@ -5,13 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"flamingodb/internal/parser/ast"
-	"flamingodb/internal/parser/lexer"
-	"flamingodb/internal/parser/parser"
-	"flamingodb/internal/storage/catalog"
-	"flamingodb/internal/storage/disk"
-	"flamingodb/internal/storage/pager"
-	"flamingodb/internal/storage/record"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/ast"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/lexer"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/parser"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/catalog"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/disk"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/pager"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/record"
 )
 
 func TestEndToEndIntegration(t *testing.T) {
