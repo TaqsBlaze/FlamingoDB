@@ -32,7 +32,7 @@ Modern **scientific data management** demands more than what traditional relatio
 
 - **Tensors and matrices** from deep learning training runs
 - **Geospatial coordinates** from satellite or climate datasets
-- **High-frequency time-series** from bioinformatics workflows
+- **High frequency time series** from bioinformatics workflows
 - **Multidimensional arrays** from physics simulations and numerical methods
 
 Traditional databases treat these as afterthoughts  heavy BLOBs, generic binary fields, and expensive serialization cycles that destroy performance at scale.
