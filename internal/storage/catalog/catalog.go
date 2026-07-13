@@ -8,6 +8,7 @@ import (
 	"flamingodb/internal/storage/page"
 	"flamingodb/internal/storage/pager"
 	"flamingodb/internal/storage/record"
+	"flamingodb/internal/transaction"
 )
 
 var (
@@ -26,14 +27,16 @@ type TableMetadata struct {
 // It persists itself to Page 0 of the database file.
 type Catalog struct {
 	pager  *pager.Pager
+	txMgr  *transaction.TransactionManager
 	tables map[string]*TableMetadata
 	mu     sync.RWMutex
 }
 
 // New creates or loads a Catalog from the database.
-func New(p *pager.Pager) (*Catalog, error) {
+func New(p *pager.Pager, txMgr *transaction.TransactionManager) (*Catalog, error) {
 	c := &Catalog{
 		pager:  p,
+		txMgr:  txMgr,
 		tables: make(map[string]*TableMetadata),
 	}
 
@@ -66,7 +69,7 @@ func New(p *pager.Pager) (*Catalog, error) {
 }
 
 // CreateTable adds a new table metadata entry.
-func (c *Catalog) CreateTable(name string, schema *record.Schema, firstPageID page.PageID) error {
+func (c *Catalog) CreateTable(tx *transaction.Transaction, name string, schema *record.Schema, firstPageID page.PageID) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -80,7 +83,7 @@ func (c *Catalog) CreateTable(name string, schema *record.Schema, firstPageID pa
 		Schema:      schema,
 	}
 
-	return c.persist()
+	return c.persist(tx)
 }
 
 // GetTable retrieves metadata for a table.
@@ -95,8 +98,32 @@ func (c *Catalog) GetTable(name string) (*TableMetadata, error) {
 	return meta, nil
 }
 
-func (c *Catalog) persist() error {
+// Reload re-reads the Catalog from disk, reversing uncommitted modifications.
+func (c *Catalog) Reload() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	pg, err := c.pager.FetchPage(0)
+	if err != nil {
+		return err
+	}
+
+	tables, err := deserializeCatalog(pg.Data())
+	if err != nil {
+		return err
+	}
+	c.tables = tables
+	return nil
+}
+
+func (c *Catalog) persist(tx *transaction.Transaction) error {
+	var pg *page.Page
+	var err error
+	if c.txMgr != nil && tx != nil {
+		pg, err = c.txMgr.FetchPage(tx, 0)
+	} else {
+		pg, err = c.pager.FetchPage(0)
+	}
 	if err != nil {
 		return err
 	}
@@ -104,7 +131,11 @@ func (c *Catalog) persist() error {
 	data := c.serialize()
 	pg.CopyData(data)
 
-	return c.pager.WritePage(pg)
+	if c.txMgr != nil && tx != nil {
+		return c.txMgr.WritePage(tx, pg)
+	} else {
+		return c.pager.WritePage(pg)
+	}
 }
 
 func (c *Catalog) serialize() []byte {

@@ -8,6 +8,7 @@ import (
 	"flamingodb/internal/planner"
 	"flamingodb/internal/storage/catalog"
 	"flamingodb/internal/storage/record"
+	"flamingodb/internal/transaction"
 )
 
 // Row represents a single result row returned from execution.
@@ -37,34 +38,39 @@ func New(tm *catalog.TableManager) *Executor {
 
 // Execute runs the given plan node and returns a Result.
 func (e *Executor) Execute(node planner.PlanNode) (*Result, error) {
+	return e.ExecuteWithTx(nil, node)
+}
+
+// ExecuteWithTx runs the given plan node under an explicit transaction context.
+func (e *Executor) ExecuteWithTx(tx *transaction.Transaction, node planner.PlanNode) (*Result, error) {
 	if node == nil {
 		return nil, fmt.Errorf("cannot execute nil plan node")
 	}
 
 	switch n := node.(type) {
 	case *planner.CreateTableNode:
-		return e.executeCreateTable(n)
+		return e.executeCreateTable(tx, n)
 	case *planner.InsertNode:
-		return e.executeInsert(n)
+		return e.executeInsert(tx, n)
 	case *planner.ProjectNode:
-		return e.executeProject(n)
+		return e.executeProject(tx, n)
 	case *planner.FilterNode:
-		return e.executeFilter(n)
+		return e.executeFilter(tx, n)
 	case *planner.ScanNode:
-		return e.executeScan(n)
+		return e.executeScan(tx, n)
 	default:
 		return nil, fmt.Errorf("unsupported plan node type: %T", node)
 	}
 }
 
 // executeCreateTable handles CREATE TABLE by registering the schema with the TableManager.
-func (e *Executor) executeCreateTable(n *planner.CreateTableNode) (*Result, error) {
+func (e *Executor) executeCreateTable(tx *transaction.Transaction, n *planner.CreateTableNode) (*Result, error) {
 	schema, err := n.ToSchema()
 	if err != nil {
 		return nil, fmt.Errorf("create table schema error: %w", err)
 	}
 
-	if err := e.tm.CreateTable(n.Table, schema); err != nil {
+	if err := e.tm.CreateTable(tx, n.Table, schema); err != nil {
 		return nil, fmt.Errorf("create table %q failed: %w", n.Table, err)
 	}
 
@@ -72,7 +78,7 @@ func (e *Executor) executeCreateTable(n *planner.CreateTableNode) (*Result, erro
 }
 
 // executeInsert handles INSERT by converting expressions to typed Values and persisting.
-func (e *Executor) executeInsert(n *planner.InsertNode) (*Result, error) {
+func (e *Executor) executeInsert(tx *transaction.Transaction, n *planner.InsertNode) (*Result, error) {
 	schema, err := e.tm.GetSchema(n.Table)
 	if err != nil {
 		return nil, fmt.Errorf("insert into %q failed: %w", n.Table, err)
@@ -96,7 +102,7 @@ func (e *Executor) executeInsert(n *planner.InsertNode) (*Result, error) {
 	}
 
 	rec := &record.Record{Values: values}
-	if err := e.tm.InsertRecord(n.Table, rec); err != nil {
+	if err := e.tm.InsertRecord(tx, n.Table, rec); err != nil {
 		return nil, fmt.Errorf("insert into %q failed: %w", n.Table, err)
 	}
 
@@ -104,8 +110,8 @@ func (e *Executor) executeInsert(n *planner.InsertNode) (*Result, error) {
 }
 
 // executeScan handles full table scans, returning all rows.
-func (e *Executor) executeScan(n *planner.ScanNode) (*Result, error) {
-	records, err := e.tm.ReadRecords(n.Table)
+func (e *Executor) executeScan(tx *transaction.Transaction, n *planner.ScanNode) (*Result, error) {
+	records, err := e.tm.ReadRecords(tx, n.Table)
 	if err != nil {
 		return nil, fmt.Errorf("scan %q failed: %w", n.Table, err)
 	}
@@ -119,8 +125,8 @@ func (e *Executor) executeScan(n *planner.ScanNode) (*Result, error) {
 }
 
 // executeFilter handles WHERE clause filtering on top of a child node.
-func (e *Executor) executeFilter(n *planner.FilterNode) (*Result, error) {
-	childResult, err := e.Execute(n.Child)
+func (e *Executor) executeFilter(tx *transaction.Transaction, n *planner.FilterNode) (*Result, error) {
+	childResult, err := e.ExecuteWithTx(tx, n.Child)
 	if err != nil {
 		return nil, err
 	}
@@ -182,8 +188,8 @@ func validateCondition(expr ast.Expression, schema *record.Schema) error {
 }
 
 // executeProject handles column projection on top of a child node.
-func (e *Executor) executeProject(n *planner.ProjectNode) (*Result, error) {
-	childResult, err := e.Execute(n.Child)
+func (e *Executor) executeProject(tx *transaction.Transaction, n *planner.ProjectNode) (*Result, error) {
+	childResult, err := e.ExecuteWithTx(tx, n.Child)
 	if err != nil {
 		return nil, err
 	}

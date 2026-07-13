@@ -87,6 +87,13 @@ flamingodb/
 *   **[internal/index/btree/btree.go](file:///home/blaze/Projects/FlamingoDB/internal/index/btree/btree.go)**: Implements a page-backed B+ Tree index with support for `INT`, `FLOAT`, and `VARCHAR` keys. Handles point lookups, range scans, and multi-level page splits.
 *   **[internal/index/btree/btree_test.go](file:///home/blaze/Projects/FlamingoDB/internal/index/btree/btree_test.go)**: Unit tests for B+ Tree splits, scans, and persistence.
 
+### Write-Ahead Log Package (`internal/wal/`)
+*   **[internal/wal/wal.go](file:///home/blaze/Projects/FlamingoDB/internal/wal/wal.go)**: Implements Write-Ahead Logging (WAL) record representation, checksumming (CRC32), log appending, and reading.
+
+### Transaction Package (`internal/transaction/`)
+*   **[internal/transaction/transaction.go](file:///home/blaze/Projects/FlamingoDB/internal/transaction/transaction.go)**: Defines the transaction data structure and lifecycles (Active, Committed, Aborted) with a private dirty page cache.
+*   **[internal/transaction/manager.go](file:///home/blaze/Projects/FlamingoDB/internal/transaction/manager.go)**: Manages starting, committing, aborting transactions, global locking for isolation, and boot-time crash recovery.
+
 ### Integration Tests (`tests/`)
 *   **[tests/integration_test.go](file:///home/blaze/Projects/FlamingoDB/tests/integration_test.go)**: End-to-end integration test validating a basic table creation, multi-row insertion, and data retrieval pipeline.
 *   **[tests/robustness_test.go](file:///home/blaze/Projects/FlamingoDB/tests/robustness_test.go)**: Comprehensive integration test suite verifying edge cases: case-insensitivity, negative/zero values, physical size limits, multi-page heap storage, comparisons, projection ordering, cold restart persistence, index node splits, and semantic error states.

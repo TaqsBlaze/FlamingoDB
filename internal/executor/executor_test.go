@@ -35,6 +35,7 @@ func setupExecutor(t *testing.T) *executor.Executor {
 	if err != nil {
 		t.Fatalf("failed to create table manager: %v", err)
 	}
+	t.Cleanup(func() { tm.Close() })
 
 	return executor.New(tm)
 }

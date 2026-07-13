@@ -44,6 +44,11 @@ func (dm *DiskManager) Close() error {
 	return dm.file.Close()
 }
 
+// Filename returns the database filepath.
+func (dm *DiskManager) Filename() string {
+	return dm.filename
+}
+
 // ReadPage reads a page from the database file into the provided Page object.
 func (dm *DiskManager) ReadPage(pageID page.PageID, p *page.Page) error {
 	dm.mu.Lock()

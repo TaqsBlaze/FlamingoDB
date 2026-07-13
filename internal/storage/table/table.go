@@ -7,6 +7,7 @@ import (
 	"flamingodb/internal/storage/encoding"
 	"flamingodb/internal/storage/page"
 	"flamingodb/internal/storage/pager"
+	"flamingodb/internal/transaction"
 )
 
 var (
@@ -22,20 +23,28 @@ const (
 // In Phase 1, this is a simple append-only heap table using a linked list of pages.
 type Table struct {
 	pager       *pager.Pager
+	txMgr       *transaction.TransactionManager
 	firstPageID page.PageID
 	lastPageID  page.PageID
 }
 
 // New creates a new simple Table. If initialize is true, it allocates the first page.
-func New(p *pager.Pager, firstPageID page.PageID, initialize bool) (*Table, error) {
+func New(p *pager.Pager, txMgr *transaction.TransactionManager, tx *transaction.Transaction, firstPageID page.PageID, initialize bool) (*Table, error) {
 	t := &Table{
 		pager:       p,
+		txMgr:       txMgr,
 		firstPageID: firstPageID,
 		lastPageID:  firstPageID,
 	}
 
 	if initialize {
-		pg, err := p.AllocatePage()
+		var pg *page.Page
+		var err error
+		if txMgr != nil && tx != nil {
+			pg, err = txMgr.AllocatePage(tx)
+		} else {
+			pg, err = p.AllocatePage()
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -43,14 +52,26 @@ func New(p *pager.Pager, firstPageID page.PageID, initialize bool) (*Table, erro
 		t.lastPageID = pg.ID()
 
 		t.initPageHeader(pg)
-		if err := p.WritePage(pg); err != nil {
-			return nil, err
+		if txMgr != nil && tx != nil {
+			if err := txMgr.WritePage(tx, pg); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := p.WritePage(pg); err != nil {
+				return nil, err
+			}
 		}
 	} else {
 		// Traverse the page linked list to find the actual lastPageID
 		currPageID := firstPageID
 		for {
-			pg, err := p.FetchPage(currPageID)
+			var pg *page.Page
+			var err error
+			if txMgr != nil && tx != nil {
+				pg, err = txMgr.FetchPage(tx, currPageID)
+			} else {
+				pg, err = p.FetchPage(currPageID)
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -78,11 +99,17 @@ func (t *Table) initPageHeader(pg *page.Page) {
 }
 
 // InsertRecord inserts a raw record into the table and returns the pageID it was written to.
-func (t *Table) InsertRecord(record []byte) (page.PageID, error) {
+func (t *Table) InsertRecord(tx *transaction.Transaction, record []byte) (page.PageID, error) {
 	recordSize := uint32(len(record))
 	totalSize := recordSize + 4 // +4 for length prefix
 
-	pg, err := t.pager.FetchPage(t.lastPageID)
+	var pg *page.Page
+	var err error
+	if t.txMgr != nil && tx != nil {
+		pg, err = t.txMgr.FetchPage(tx, t.lastPageID)
+	} else {
+		pg, err = t.pager.FetchPage(t.lastPageID)
+	}
 	if err != nil {
 		return 0, err
 	}
@@ -95,7 +122,12 @@ func (t *Table) InsertRecord(record []byte) (page.PageID, error) {
 			return 0, ErrRecordTooLarge
 		}
 
-		newPg, err := t.pager.AllocatePage()
+		var newPg *page.Page
+		if t.txMgr != nil && tx != nil {
+			newPg, err = t.txMgr.AllocatePage(tx)
+		} else {
+			newPg, err = t.pager.AllocatePage()
+		}
 		if err != nil {
 			return 0, err
 		}
@@ -103,8 +135,14 @@ func (t *Table) InsertRecord(record []byte) (page.PageID, error) {
 
 		// Link the old page to the new page
 		encoding.PutUint32(pg.Data()[8:12], uint32(newPg.ID()))
-		if err := t.pager.WritePage(pg); err != nil {
-			return 0, err
+		if t.txMgr != nil && tx != nil {
+			if err := t.txMgr.WritePage(tx, pg); err != nil {
+				return 0, err
+			}
+		} else {
+			if err := t.pager.WritePage(pg); err != nil {
+				return 0, err
+			}
 		}
 
 		t.lastPageID = newPg.ID()
@@ -122,17 +160,27 @@ func (t *Table) InsertRecord(record []byte) (page.PageID, error) {
 	encoding.PutUint32(pg.Data()[0:4], numRecords+1)
 	encoding.PutUint32(pg.Data()[4:8], freeOffset+totalSize)
 
-	err = t.pager.WritePage(pg)
+	if t.txMgr != nil && tx != nil {
+		err = t.txMgr.WritePage(tx, pg)
+	} else {
+		err = t.pager.WritePage(pg)
+	}
 	return pg.ID(), err
 }
 
 // ReadAll iterates over all pages and records in the table and returns them.
-func (t *Table) ReadAll() ([][]byte, error) {
+func (t *Table) ReadAll(tx *transaction.Transaction) ([][]byte, error) {
 	var records [][]byte
 	currPageID := t.firstPageID
 
 	for currPageID != NoPage {
-		pg, err := t.pager.FetchPage(currPageID)
+		var pg *page.Page
+		var err error
+		if t.txMgr != nil && tx != nil {
+			pg, err = t.txMgr.FetchPage(tx, currPageID)
+		} else {
+			pg, err = t.pager.FetchPage(currPageID)
+		}
 		if err != nil {
 			return nil, err
 		}

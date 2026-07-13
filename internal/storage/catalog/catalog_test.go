@@ -30,6 +30,7 @@ func TestTableManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create table manager: %v", err)
 	}
+	defer tm.Close()
 
 	// 1. Create a table
 	schema := record.NewSchema([]record.Column{
@@ -38,7 +39,7 @@ func TestTableManager(t *testing.T) {
 		{Name: "rating", Type: record.Float},
 	})
 
-	err = tm.CreateTable("users", schema)
+	err = tm.CreateTable(nil, "users", schema)
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
 	}
@@ -59,15 +60,15 @@ func TestTableManager(t *testing.T) {
 		},
 	}
 
-	if err := tm.InsertRecord("users", r1); err != nil {
+	if err := tm.InsertRecord(nil, "users", r1); err != nil {
 		t.Fatalf("failed to insert r1: %v", err)
 	}
-	if err := tm.InsertRecord("users", r2); err != nil {
+	if err := tm.InsertRecord(nil, "users", r2); err != nil {
 		t.Fatalf("failed to insert r2: %v", err)
 	}
 
 	// 3. Read records and verify
-	records, err := tm.ReadRecords("users")
+	records, err := tm.ReadRecords(nil, "users")
 	if err != nil {
 		t.Fatalf("failed to read records: %v", err)
 	}
@@ -85,6 +86,7 @@ func TestTableManager(t *testing.T) {
 
 	// 4. Close and reload from disk to verify persistence of Catalog
 	p.FlushAll()
+	tm.Close()
 	dm.Close()
 
 	dm2, err := disk.NewDiskManager(dbPath, pageSize)
@@ -102,8 +104,9 @@ func TestTableManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to recreate table manager: %v", err)
 	}
+	defer tm2.Close()
 
-	records2, err := tm2.ReadRecords("users")
+	records2, err := tm2.ReadRecords(nil, "users")
 	if err != nil {
 		t.Fatalf("failed to read records after reload: %v", err)
 	}

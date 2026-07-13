@@ -2,6 +2,7 @@ package tests
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -40,6 +41,7 @@ func setupExecutor(t *testing.T) *executor.Executor {
 	if err != nil {
 		t.Fatalf("failed to create table manager: %v", err)
 	}
+	t.Cleanup(func() { tm.Close() })
 
 	return executor.New(tm)
 }
@@ -135,12 +137,13 @@ func TestRobustnessStorageLimits(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create table manager: %v", err)
 	}
+	defer tm.Close()
 
 	schema := record.NewSchema([]record.Column{
 		{Name: "data", Type: record.Varchar},
 	})
 
-	err = tm.CreateTable("limits", schema)
+	err = tm.CreateTable(nil, "limits", schema)
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
 	}
@@ -152,14 +155,14 @@ func TestRobustnessStorageLimits(t *testing.T) {
 	// So max len(string) = 4076.
 	maxString := strings.Repeat("A", 4076)
 	recMax := &record.Record{Values: []record.Value{{Type: record.Varchar, Str: maxString}}}
-	err = tm.InsertRecord("limits", recMax)
+	err = tm.InsertRecord(nil, "limits", recMax)
 	if err != nil {
 		t.Fatalf("expected string of length 4076 to fit, got: %v", err)
 	}
 
 	tooLargeString := strings.Repeat("B", 4077)
 	recTooLarge := &record.Record{Values: []record.Value{{Type: record.Varchar, Str: tooLargeString}}}
-	err = tm.InsertRecord("limits", recTooLarge)
+	err = tm.InsertRecord(nil, "limits", recTooLarge)
 	if err == nil {
 		t.Fatalf("expected string of length 4077 to fail with ErrRecordTooLarge, but it succeeded")
 	}
@@ -186,13 +189,14 @@ func TestRobustnessMultiPageHeap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create table manager: %v", err)
 	}
+	defer tm.Close()
 
 	schema := record.NewSchema([]record.Column{
 		{Name: "id", Type: record.Integer},
 		{Name: "content", Type: record.Varchar},
 	})
 
-	err = tm.CreateTable("multipage", schema)
+	err = tm.CreateTable(nil, "multipage", schema)
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
 	}
@@ -204,12 +208,12 @@ func TestRobustnessMultiPageHeap(t *testing.T) {
 			{Type: record.Integer, Int: i},
 			{Type: record.Varchar, Str: content},
 		}}
-		if err := tm.InsertRecord("multipage", rec); err != nil {
+		if err := tm.InsertRecord(nil, "multipage", rec); err != nil {
 			t.Fatalf("failed to insert record %d: %v", i, err)
 		}
 	}
 
-	records, err := tm.ReadRecords("multipage")
+	records, err := tm.ReadRecords(nil, "multipage")
 	if err != nil {
 		t.Fatalf("failed to read records: %v", err)
 	}
@@ -342,6 +346,7 @@ func TestRobustnessDatabaseRestart(t *testing.T) {
 		if err := p.FlushAll(); err != nil {
 			t.Fatalf("failed to flush pager: %v", err)
 		}
+		tm.Close()
 		dm.Close()
 	}
 
@@ -361,6 +366,7 @@ func TestRobustnessDatabaseRestart(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create table manager: %v", err)
 		}
+		defer tm.Close()
 
 		exec := executor.New(tm)
 		result := execSQL(t, exec, "SELECT * FROM physics WHERE charge = -1;")
@@ -494,5 +500,204 @@ func TestRobustnessErrorHandling(t *testing.T) {
 	_, err = execSQLWithError(exec, "INSERT INTO multi VALUES (1, 'string instead of float', 'hello');")
 	if err == nil {
 		t.Error("expected error for insert type mismatch, got nil")
+	}
+}
+
+// TestRobustnessTransactions verifies transaction commit, rollback, and catalog rollback isolation.
+func TestRobustnessTransactions(t *testing.T) {
+	tempDir := t.TempDir()
+	dbPath := filepath.Join(tempDir, "tx_test.db")
+	pageSize := uint32(4096)
+
+	dm, err := disk.NewDiskManager(dbPath, pageSize)
+	if err != nil {
+		t.Fatalf("failed to create disk manager: %v", err)
+	}
+	defer dm.Close()
+
+	p, err := pager.New(dm, pageSize)
+	if err != nil {
+		t.Fatalf("failed to create pager: %v", err)
+	}
+
+	tm, err := catalog.NewTableManager(p)
+	if err != nil {
+		t.Fatalf("failed to create table manager: %v", err)
+	}
+	defer tm.Close()
+
+	schema := record.NewSchema([]record.Column{
+		{Name: "id", Type: record.Integer},
+		{Name: "name", Type: record.Varchar},
+	})
+
+	// 1. Commit DDL + DML
+	tx, err := tm.Begin()
+	if err != nil {
+		t.Fatalf("failed to begin transaction: %v", err)
+	}
+
+	err = tm.CreateTable(tx, "users", schema)
+	if err != nil {
+		t.Fatalf("failed to create table in transaction: %v", err)
+	}
+
+	err = tm.InsertRecord(tx, "users", &record.Record{Values: []record.Value{
+		{Type: record.Integer, Int: 1},
+		{Type: record.Varchar, Str: "Alice"},
+	}})
+	if err != nil {
+		t.Fatalf("failed to insert record in transaction: %v", err)
+	}
+
+	if err := tm.Commit(tx); err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+
+	// Verify committed record is readable
+	records, err := tm.ReadRecords(nil, "users")
+	if err != nil {
+		t.Fatalf("failed to read records: %v", err)
+	}
+	if len(records) != 1 || records[0].Values[1].Str != "Alice" {
+		t.Fatalf("record not committed properly: %+v", records)
+	}
+
+	// 2. Rollback DML
+	tx2, err := tm.Begin()
+	if err != nil {
+		t.Fatalf("failed to begin transaction 2: %v", err)
+	}
+
+	err = tm.InsertRecord(tx2, "users", &record.Record{Values: []record.Value{
+		{Type: record.Integer, Int: 2},
+		{Type: record.Varchar, Str: "Bob"},
+	}})
+	if err != nil {
+		t.Fatalf("failed to insert inside transaction 2: %v", err)
+	}
+
+	if err := tm.Rollback(tx2); err != nil {
+		t.Fatalf("failed to rollback: %v", err)
+	}
+
+	// Verify Bob is not in the database
+	records, err = tm.ReadRecords(nil, "users")
+	if err != nil {
+		t.Fatalf("failed to read records: %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record (Bob should have been rolled back), got %d", len(records))
+	}
+
+	// 3. Rollback DDL (Table Creation Rollback)
+	tx3, err := tm.Begin()
+	if err != nil {
+		t.Fatalf("failed to begin transaction 3: %v", err)
+	}
+
+	err = tm.CreateTable(tx3, "rolled_back_table", schema)
+	if err != nil {
+		t.Fatalf("failed to create table inside transaction 3: %v", err)
+	}
+
+	if err := tm.Rollback(tx3); err != nil {
+		t.Fatalf("failed to rollback transaction 3: %v", err)
+	}
+
+	// Table should be gone from Catalog
+	_, err = tm.GetSchema("rolled_back_table")
+	if err == nil {
+		t.Fatalf("expected rolled_back_table to be absent from catalog")
+	}
+}
+
+// TestRobustnessCrashRecovery simulates a physical database crash and recovery using committed WAL logs.
+func TestRobustnessCrashRecovery(t *testing.T) {
+	tempDir := t.TempDir()
+	dbPath := filepath.Join(tempDir, "crash.db")
+	pageSize := uint32(4096)
+
+	// Step 1: Create table and record, commit it normally
+	{
+		dm, _ := disk.NewDiskManager(dbPath, pageSize)
+		p, _ := pager.New(dm, pageSize)
+		tm, _ := catalog.NewTableManager(p)
+
+		schema := record.NewSchema([]record.Column{
+			{Name: "id", Type: record.Integer},
+			{Name: "val", Type: record.Varchar},
+		})
+		tm.CreateTable(nil, "backup", schema)
+		tm.InsertRecord(nil, "backup", &record.Record{Values: []record.Value{
+			{Type: record.Integer, Int: 10},
+			{Type: record.Varchar, Str: "initial state"},
+		}})
+
+		p.FlushAll()
+		tm.Close()
+		dm.Close()
+	}
+
+	// Step 2: Make a backup copy of the database file (simulates old disk state before write-back)
+	backupPath := filepath.Join(tempDir, "crash.db.backup")
+	data, err := os.ReadFile(dbPath)
+	if err != nil {
+		t.Fatalf("failed to read db file: %v", err)
+	}
+	if err := os.WriteFile(backupPath, data, 0666); err != nil {
+		t.Fatalf("failed to write backup: %v", err)
+	}
+
+	// Step 3: Open database, perform a transaction, commit it.
+	// This writes committed pages to WAL, but we will restore the backup database file afterwards
+	// to simulate that the database file was not updated before the crash occurred.
+	{
+		dm, _ := disk.NewDiskManager(dbPath, pageSize)
+		p, _ := pager.New(dm, pageSize)
+		tm, _ := catalog.NewTableManager(p)
+
+		tx, _ := tm.Begin()
+		tm.InsertRecord(tx, "backup", &record.Record{Values: []record.Value{
+			{Type: record.Integer, Int: 20},
+			{Type: record.Varchar, Str: "committed in WAL but crashed before page flush"},
+		}})
+		tm.Commit(tx)
+
+		tm.Close()
+		dm.Close()
+	}
+
+	// Restore the backup database file, simulating that the database file is stale (missing the commit)
+	// but the WAL file is intact with the committed update log records.
+	if err := os.WriteFile(dbPath, data, 0666); err != nil {
+		t.Fatalf("failed to restore backup: %v", err)
+	}
+
+	// Step 4: Reopen the database. The TableManager constructor automatically runs txMgr.Recover(),
+	// which must read the WAL, identify the committed transaction, and replay the pages to the database file.
+	{
+		dm, _ := disk.NewDiskManager(dbPath, pageSize)
+		p, _ := pager.New(dm, pageSize)
+		tm, err := catalog.NewTableManager(p)
+		if err != nil {
+			t.Fatalf("failed to reopen: %v", err)
+		}
+		defer tm.Close()
+		defer dm.Close()
+
+		// Read records — it should contain the recovered committed record from the WAL!
+		records, err := tm.ReadRecords(nil, "backup")
+		if err != nil {
+			t.Fatalf("failed to read: %v", err)
+		}
+
+		if len(records) != 2 {
+			t.Fatalf("expected 2 records after recovery, got %d", len(records))
+		}
+
+		if records[1].Values[0].Int != 20 || records[1].Values[1].Str != "committed in WAL but crashed before page flush" {
+			t.Errorf("recovery failed to replay committed transaction: %+v", records[1].Values)
+		}
 	}
 }

@@ -39,6 +39,11 @@ func New(diskManager *disk.DiskManager, pageSize uint32) (*Pager, error) {
 	}, nil
 }
 
+// Filename returns the database filepath managed by the disk manager.
+func (p *Pager) Filename() string {
+	return p.diskManager.Filename()
+}
+
 // FetchPage retrieves a page from the cache or disk.
 func (p *Pager) FetchPage(id page.PageID) (*page.Page, error) {
 	p.mu.RLock()

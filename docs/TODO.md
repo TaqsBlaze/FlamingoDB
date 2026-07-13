@@ -11,9 +11,10 @@
 - [x] **Agent Beta**: Implement Executor (Phase 6) - Scan, Filter, Project, Insert, CreateTable.
 
 - [x] **Agent Alpha**: Implement B+ Tree Indexes (Phase 7) — INT, FLOAT, VARCHAR keys; insert, search, range scan.
+- [x] **Agent Alpha**: Implement WAL, Transactions (Phase 8).
 
 ## Pending Tasks
-- [ ] **Agent Alpha**: Implement WAL, Transactions (Phase 8).
+- [ ] **Agent Beta**: Implement Scientific Types — `VECTOR`, `MATRIX`, `TENSOR`, `COMPLEX` (Phase 9).
 
 ## Blocked Tasks
-- Phase 9 (Scientific Types) is blocked by Phase 8 (Transactions) completion.
+- None.

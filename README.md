@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/Go-1.24%2B-00ADD8?logo=go&logoColor=white&style=for-the-badge" alt="Go Version" />
   <img src="https://img.shields.io/badge/Build-Passing-4CAF50?style=for-the-badge&logo=github-actions&logoColor=white" alt="Build" />
   <img src="https://img.shields.io/badge/Tests-All%20Passing-4CAF50?style=for-the-badge&logo=go&logoColor=white" alt="Tests" />
-  <img src="https://img.shields.io/badge/Phase-7%20%2F%2014-FF6B35?style=for-the-badge" alt="Phase" />
+  <img src="https://img.shields.io/badge/Phase-8%20%2F%2014-FF6B35?style=for-the-badge" alt="Phase" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
   <img src="https://img.shields.io/badge/Domain-Scientific%20Database-8A2BE2?style=for-the-badge" alt="Domain" />
 </p>
@@ -61,10 +61,10 @@ FlamingoDB is designed from the ground up to power **research data infrastructur
 
 ## 📊 Development Progress
 
-### Overall Completion: `50%`
+### Overall Completion: `57%`
 
 ```
-[██████████░░░░░░░░░░] 50%
+[███████████░░░░░░░░░] 57%
 ```
 
 ### Phase Status
@@ -78,8 +78,8 @@ FlamingoDB is designed from the ground up to power **research data infrastructur
 | 5 | **Planner** — AST → Logical Plan (Scan, Filter, Project, Insert…) | ✅ Done | `100%` |
 | 6 | **Executor** — Physical Execution against Storage Engine | ✅ Done | `100%` |
 | 7 | **Indexes** — B+ Tree Lookup & Range Scans | ✅ Done | `100%` |
-| 8 | **Transactions** — WAL, Commit, Rollback, Crash Recovery | ⏳ Next | `0%` |
-| 9 | **Scientific Types** — `VECTOR`, `MATRIX`, `TENSOR`, `COMPLEX` | ⏳ Planned | `0%` |
+| 8 | **Transactions** — WAL, Commit, Rollback, Crash Recovery | ✅ Done | `100%` |
+| 9 | **Scientific Types** — `VECTOR`, `MATRIX`, `TENSOR`, `COMPLEX` | ⏳ Next | `0%` |
 | 10 | **Scientific Functions** — `SIN`, `COS`, `DOT`, `CROSS`, `NORM`… | ⏳ Planned | `0%` |
 | 11 | **Geospatial** — `POINT`, `POLYGON`, `DISTANCE`, `INTERSECTS`… | ⏳ Planned | `0%` |
 | 12 | **Optimization** — Query Planner, SIMD, Parallel Execution | ⏳ Planned | `0%` |
@@ -225,17 +225,18 @@ go test ./...
 
 **Current Results — All Passing:**
 ```
-ok   flamingodb/internal/executor          0.015s
-ok   flamingodb/internal/parser/lexer      0.009s
-ok   flamingodb/internal/parser/parser     0.010s
-ok   flamingodb/internal/planner           0.011s
-ok   flamingodb/internal/storage/catalog   0.011s
-ok   flamingodb/internal/storage/disk      0.001s
-ok   flamingodb/internal/storage/encoding  0.001s
-ok   flamingodb/internal/storage/pager     0.002s
-ok   flamingodb/internal/storage/record    0.002s
-ok   flamingodb/internal/storage/table     0.009s
-ok   flamingodb/tests                      0.011s
+ok   flamingodb/internal/executor          0.025s
+ok   flamingodb/internal/index/btree       0.232s
+ok   flamingodb/internal/parser/lexer      0.029s
+ok   flamingodb/internal/parser/parser     0.038s
+ok   flamingodb/internal/planner           0.022s
+ok   flamingodb/internal/storage/catalog   0.027s
+ok   flamingodb/internal/storage/disk      0.038s
+ok   flamingodb/internal/storage/encoding  0.040s
+ok   flamingodb/internal/storage/pager     0.013s
+ok   flamingodb/internal/storage/record    0.011s
+ok   flamingodb/internal/storage/table     0.010s
+ok   flamingodb/tests                      0.103s
 ```
 
 ---

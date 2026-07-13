@@ -9,6 +9,7 @@ This document records the bugs identified during robustness and edge case integr
 | **Bug 001**: Record Serialization Buffer Out-of-Bounds Panic | Dynamically compute required serialization buffer size based on column schema before allocation instead of hardcoding 1024 bytes. | Fixed |
 | **Bug 002**: Heap Table `lastPageID` Link Overwrite | Traverse page linked list in `table.New` on database open to find the actual tail page containing `NextPageID == NoPage`. | Fixed |
 | **Bug 003**: Query Engine Semantic Validation Bypass on Empty Tables | Move query filter and column projection schema validation logic outside of row iteration loops to ensure checks execute for empty tables. | Fixed |
+| **Bug 004**: Auto-Commit Transaction Lock Leak / Deadlock | Use named return parameters in `TableManager.CreateTable` and `TableManager.InsertRecord` and remove local `err` shadows to ensure `Rollback` executes on errors. | Fixed |
 
 ---
 
@@ -129,3 +130,55 @@ If a table contained zero rows, the loop body was never entered. Thus, the inval
 Separated query validation from row evaluation. We now validate that all projected columns exist and that filter conditions are compatible with the table schema *before* looping over child rows:
 *   In `executeProject`, we check column existence in the index map before row processing.
 *   Introduced a new helper `validateCondition` to pre-check conditions before row processing in `executeFilter`.
+
+---
+
+## Bug 004: Auto-Commit Transaction Lock Leak / Deadlock
+
+*   **Status**: Fixed
+*   **Module**: Storage Catalog (`internal/storage/catalog`)
+*   **File**: `internal/storage/catalog/table_manager.go`
+*   **Identified by**: `TestRobustnessErrorHandling` (Timeout failure)
+
+### Symptom
+When a statement returned an error during auto-commit execution (such as attempting to create a duplicate table), the query engine stalled completely, causing tests to hang indefinitely and eventually time out (10-minute limit).
+
+### Cause
+Auto-commit execution in `TableManager.CreateTable` and `TableManager.InsertRecord` begins a temporary transaction context using `tx, err = tm.Begin()`. If subsequent catalog operations fail, a deferred function is registered to roll back the transaction and release the database's exclusive transaction lock:
+```go
+	isAutoCommit := (tx == nil)
+	if isAutoCommit {
+		var err error   // <--- Shadow variable declared inside block
+		tx, err = tm.Begin()
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if err != nil {
+				tm.Rollback(tx)
+			}
+		}()
+	}
+```
+However, the `err` variable inside the block was shadowed by the outer function's `err` variables (e.g. `tbl, err := table.New(...)`). When subsequent table writes failed and returned errors, they updated the outer scope's `err` variable, but the block-scoped `err` captured by the deferred rollback closure remained `nil`.
+As a result, the deferred function bypassed calling `Rollback(tx)`, leaving the transaction active and the global exclusive lock locked. The next query block hung indefinitely waiting for the lock.
+
+### Fix
+Refactored the methods to use a **named return parameter** `(err error)` and eliminated all block-scoped `err` declarations. The deferred function now references the function's shared return parameter directly, executing `Rollback(tx)` and releasing transaction locks upon any failure:
+```go
+func (tm *TableManager) CreateTable(tx *transaction.Transaction, name string, schema *record.Schema) (err error) {
+	isAutoCommit := (tx == nil)
+	if isAutoCommit {
+		tx, err = tm.Begin()
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if err != nil {
+				tm.Rollback(tx)
+			}
+		}()
+	}
+	...
+```
+

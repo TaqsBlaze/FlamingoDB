@@ -33,6 +33,14 @@ Completed:
   - Fixed out-of-bounds panic in `Record.Serialize` for records larger than 1024 bytes by dynamically sizing the buffer.
   - Fixed heap table page link overwrite bug in `table.New` by traversing the page linked list to correctly resolve `lastPageID` for existing tables.
   - Fixed query engine validation bypass on empty tables in `Executor` by validating project columns and filter conditions against the schema before row iterations.
+- WAL and Transactions implemented (`internal/wal`, `internal/transaction`) - Phase 8.
+  - Formatted WAL record with CRC32 checksums for block-level physical logging.
+  - Created transaction manager with local private dirty page cache (NO-STEAL/FORCE).
+  - Integrated TableManager and Catalog to support transactional mutations, automatic rollbacks, and catalog resets.
+  - Implemented Redo crash recovery on database boot to replay committed WAL records.
+  - Added integration tests verifying commits, rollbacks, catalog rollbacks, and simulated system crashes.
+- Fixed 1 critical bug during WAL integration:
+  - Fixed transaction lock leak deadlock inside `TableManager` caused by variable shadowing of block-scoped `err` inside auto-commit wrappers.
 
 Next:
-- Phase 8: WAL, Transactions (commit, rollback, crash recovery).
+- Phase 9: Scientific Types (Vector, Matrix, Tensor, Complex types) - Agent Beta.

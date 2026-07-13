@@ -35,6 +35,7 @@ func TestEndToEndIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create table manager: %v", err)
 	}
+	defer tm.Close()
 
 	// 2. Define SQL commands
 	sqlStatements := []string{
@@ -79,7 +80,7 @@ func TestEndToEndIntegration(t *testing.T) {
 				})
 			}
 			schema := record.NewSchema(cols)
-			if err := tm.CreateTable(s.Table, schema); err != nil {
+			if err := tm.CreateTable(nil, s.Table, schema); err != nil {
 				t.Fatalf("failed to create table %s: %v", s.Table, err)
 			}
 
@@ -107,7 +108,7 @@ func TestEndToEndIntegration(t *testing.T) {
 				}
 			}
 			rec := &record.Record{Values: values}
-			if err := tm.InsertRecord(s.Table, rec); err != nil {
+			if err := tm.InsertRecord(nil, s.Table, rec); err != nil {
 				t.Fatalf("failed to insert record into %s: %v", s.Table, err)
 			}
 		default:
@@ -116,7 +117,7 @@ func TestEndToEndIntegration(t *testing.T) {
 	}
 
 	// 4. Retrieve records and verify
-	records, err := tm.ReadRecords("items")
+	records, err := tm.ReadRecords(nil, "items")
 	if err != nil {
 		t.Fatalf("failed to read records: %v", err)
 	}

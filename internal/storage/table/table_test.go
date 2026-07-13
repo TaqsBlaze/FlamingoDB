@@ -26,7 +26,7 @@ func TestTable(t *testing.T) {
 		t.Fatalf("failed to create pager: %v", err)
 	}
 
-	tbl, err := table.New(p, 0, true)
+	tbl, err := table.New(p, nil, nil, 0, true)
 	if err != nil {
 		t.Fatalf("failed to create table: %v", err)
 	}
@@ -40,14 +40,14 @@ func TestTable(t *testing.T) {
 	}
 
 	for _, rec := range recordsToInsert {
-		_, err := tbl.InsertRecord(rec)
+		_, err := tbl.InsertRecord(nil, rec)
 		if err != nil {
 			t.Fatalf("failed to insert record: %v", err)
 		}
 	}
 
 	// Read all records
-	records, err := tbl.ReadAll()
+	records, err := tbl.ReadAll(nil)
 	if err != nil {
 		t.Fatalf("failed to read all records: %v", err)
 	}
