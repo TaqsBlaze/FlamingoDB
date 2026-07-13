@@ -1,0 +1,106 @@
+package main
+
+import (
+	"flag"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"syscall"
+
+	"flamingodb/internal/network"
+	"flamingodb/internal/storage/catalog"
+	"flamingodb/internal/storage/disk"
+	"flamingodb/internal/storage/pager"
+	"flamingodb/pkg/config"
+	"flamingodb/pkg/logger"
+)
+
+func main() {
+	tcpAddr := flag.String("tcp", ":4080", "TCP address to listen on")
+	httpAddr := flag.String("http", ":8080", "HTTP address to listen on")
+	username := flag.String("user", "admin", "Database auth username")
+	password := flag.String("pass", "admin", "Database auth password")
+	dataDir := flag.String("dir", "./data", "Database data directory")
+	flag.Parse()
+
+	log := logger.New(logger.LevelInfo)
+	log.Info("Starting FlamingoDB server...")
+
+	// 1. Initialize data directory
+	if err := os.MkdirAll(*dataDir, 0755); err != nil {
+		log.Error("Failed to create data directory: %v", err)
+		os.Exit(1)
+	}
+
+	dbPath := filepath.Join(*dataDir, "flamingo.db")
+	cfg := config.Default()
+	cfg.DataDirectory = *dataDir
+
+	// 2. Initialize storage engine components
+	dm, err := disk.NewDiskManager(dbPath, cfg.PageSize)
+	if err != nil {
+		log.Error("Failed to initialize disk manager: %v", err)
+		os.Exit(1)
+	}
+
+	p, err := pager.New(dm, cfg.PageSize)
+	if err != nil {
+		log.Error("Failed to initialize pager: %v", err)
+		_ = dm.Close()
+		os.Exit(1)
+	}
+
+	tm, err := catalog.NewTableManager(p)
+	if err != nil {
+		log.Error("Failed to initialize table manager: %v", err)
+		_ = dm.Close()
+		os.Exit(1)
+	}
+
+	// 3. Setup Network Server configuration
+	netCfg := network.Config{
+		TCPAddr:        *tcpAddr,
+		HTTPAddr:       *httpAddr,
+		Username:       *username,
+		Password:       *password,
+		MaxConnections: 100,
+	}
+
+	srv, err := network.NewServer(netCfg, tm, log)
+	if err != nil {
+		log.Error("Failed to initialize network server: %v", err)
+		_ = tm.Close()
+		_ = dm.Close()
+		os.Exit(1)
+	}
+
+	// 4. Start server
+	if err := srv.Start(); err != nil {
+		log.Error("Failed to start network server: %v", err)
+		_ = tm.Close()
+		_ = dm.Close()
+		os.Exit(1)
+	}
+
+	log.Info("FlamingoDB is ready to accept connections")
+
+	// 5. Wait for termination signals for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	sig := <-sigChan
+	log.Info("Received signal %v, shutting down...", sig)
+
+	// Shutdown order: network server first, then table manager, then disk manager
+	if err := srv.Close(); err != nil {
+		log.Error("Error closing network server: %v", err)
+	}
+	if err := tm.Close(); err != nil {
+		log.Error("Error closing table manager: %v", err)
+	}
+	if err := dm.Close(); err != nil {
+		log.Error("Error closing disk manager: %v", err)
+	}
+
+	log.Info("FlamingoDB shutdown complete.")
+}
