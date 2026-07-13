@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	"flamingodb/internal/index/btree"
-	"flamingodb/internal/storage/encoding"
-	"flamingodb/internal/storage/page"
-	"flamingodb/internal/storage/pager"
-	"flamingodb/internal/storage/record"
-	"flamingodb/internal/storage/table"
-	"flamingodb/internal/transaction"
+	"github.com/TaqsBlaze/FlamingoDB/internal/index/btree"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/encoding"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/page"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/pager"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/record"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/table"
+	"github.com/TaqsBlaze/FlamingoDB/internal/transaction"
 )
 
 // TableManager coordinates creating tables, inserting, and reading records using schemas and metadata.

@@ -4,12 +4,12 @@ import (
 	"errors"
 	"sync"
 
-	"flamingodb/internal/index/btree"
-	"flamingodb/internal/storage/encoding"
-	"flamingodb/internal/storage/page"
-	"flamingodb/internal/storage/pager"
-	"flamingodb/internal/storage/record"
-	"flamingodb/internal/transaction"
+	"github.com/TaqsBlaze/FlamingoDB/internal/index/btree"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/encoding"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/page"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/pager"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/record"
+	"github.com/TaqsBlaze/FlamingoDB/internal/transaction"
 )
 
 var (

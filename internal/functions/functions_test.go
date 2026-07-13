@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"flamingodb/internal/storage/record"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/record"
 )
 
 func TestScalarFunctions(t *testing.T) {

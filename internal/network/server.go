@@ -13,15 +13,15 @@ import (
 	"sync"
 	"time"
 
-	"flamingodb/internal/executor"
-	"flamingodb/internal/optimizer"
-	"flamingodb/internal/parser/lexer"
-	"flamingodb/internal/parser/parser"
-	"flamingodb/internal/planner"
-	"flamingodb/internal/storage/catalog"
-	"flamingodb/internal/storage/record"
-	"flamingodb/internal/transaction"
-	"flamingodb/pkg/logger"
+	"github.com/TaqsBlaze/FlamingoDB/internal/executor"
+	"github.com/TaqsBlaze/FlamingoDB/internal/optimizer"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/lexer"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/parser"
+	"github.com/TaqsBlaze/FlamingoDB/internal/planner"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/catalog"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/record"
+	"github.com/TaqsBlaze/FlamingoDB/internal/transaction"
+	"github.com/TaqsBlaze/FlamingoDB/pkg/logger"
 )
 
 // Config holds network server configurations.

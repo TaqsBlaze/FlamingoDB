@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"flamingodb/internal/parser/ast"
-	"flamingodb/internal/storage/record"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/ast"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/record"
 )
 
 // PlanType represents the type of logical plan node.
