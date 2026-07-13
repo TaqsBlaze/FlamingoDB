@@ -178,6 +178,23 @@ func typeOfExpression(expr ast.Expression, schema *record.Schema) (record.TypeID
 			}
 		}
 		return 0, fmt.Errorf("column %q not found in schema", e.Value)
+	case *ast.ImaginaryLiteral:
+		return record.Complex, nil
+	case *ast.ArrayLiteral:
+		if len(e.Elements) == 0 {
+			return record.Vector, nil
+		}
+		firstType, err := typeOfExpression(e.Elements[0], schema)
+		if err != nil {
+			return 0, err
+		}
+		if firstType == record.Vector {
+			return record.Matrix, nil
+		}
+		if firstType == record.Matrix || firstType == record.Tensor {
+			return record.Tensor, nil
+		}
+		return record.Vector, nil
 	case *ast.PrefixExpression:
 		t, err := typeOfExpression(e.Right, schema)
 		if err != nil {
@@ -209,6 +226,12 @@ func typeOfExpression(expr ast.Expression, schema *record.Schema) (record.TypeID
 			return 0, fmt.Errorf("type mismatch in comparison: %v %s %v", leftType, e.Operator, rightType)
 
 		case "+", "-", "*", "/":
+			if leftType == record.Complex || rightType == record.Complex {
+				if (leftType == record.Integer || leftType == record.Float || leftType == record.Complex) &&
+					(rightType == record.Integer || rightType == record.Float || rightType == record.Complex) {
+					return record.Complex, nil
+				}
+			}
 			if (leftType == record.Integer || leftType == record.Float) &&
 				(rightType == record.Integer || rightType == record.Float) {
 				if leftType == record.Float || rightType == record.Float {
@@ -380,7 +403,6 @@ func (e *Executor) schemaFromChild(child planner.PlanNode) (*record.Schema, erro
 	}
 }
 
-<<<<<<< HEAD
 func evalComplex(expr ast.Expression) (datatypes.Complex, error) {
 	switch e := expr.(type) {
 	case *ast.IntegerLiteral:
@@ -684,6 +706,26 @@ func evalRowExpression(expr ast.Expression, row Row, schema *record.Schema) (rec
 			return record.Value{}, err
 		}
 
+		// Handle complex binary operations +, -
+		if leftVal.Type == record.Complex || rightVal.Type == record.Complex {
+			lComp, errL := toComplexVal(leftVal)
+			rComp, errR := toComplexVal(rightVal)
+			if errL == nil && errR == nil {
+				switch e.Operator {
+				case "+":
+					return record.Value{Type: record.Complex, Comp: datatypes.Complex{
+						Real: lComp.Real + rComp.Real,
+						Imag: lComp.Imag + rComp.Imag,
+					}}, nil
+				case "-":
+					return record.Value{Type: record.Complex, Comp: datatypes.Complex{
+						Real: lComp.Real - rComp.Real,
+						Imag: lComp.Imag - rComp.Imag,
+					}}, nil
+				}
+			}
+		}
+
 		// Handle numeric binary operations +, -, *, /
 		if (leftVal.Type == record.Integer || leftVal.Type == record.Float) &&
 			(rightVal.Type == record.Integer || rightVal.Type == record.Float) {
@@ -761,6 +803,19 @@ func toFloatVal(v record.Value) (float64, error) {
 		return float64(v.Int), nil
 	default:
 		return 0, fmt.Errorf("cannot convert type %v to float", v.Type)
+	}
+}
+
+func toComplexVal(v record.Value) (datatypes.Complex, error) {
+	switch v.Type {
+	case record.Complex:
+		return v.Comp, nil
+	case record.Float:
+		return datatypes.Complex{Real: v.Flt, Imag: 0}, nil
+	case record.Integer:
+		return datatypes.Complex{Real: float64(v.Int), Imag: 0}, nil
+	default:
+		return datatypes.Complex{}, fmt.Errorf("cannot convert type %v to complex", v.Type)
 	}
 }
 
