@@ -1,0 +1,142 @@
+package table
+
+import (
+	"errors"
+	"math"
+
+	"flamingodb/internal/storage/encoding"
+	"flamingodb/internal/storage/page"
+	"flamingodb/internal/storage/pager"
+)
+
+var (
+	ErrRecordTooLarge = errors.New("record too large for a page")
+)
+
+const (
+	PageHeaderSize = 12
+	NoPage         = page.PageID(math.MaxUint32)
+)
+
+// Table manages inserting and reading raw records from a collection of pages.
+// In Phase 1, this is a simple append-only heap table using a linked list of pages.
+type Table struct {
+	pager       *pager.Pager
+	firstPageID page.PageID
+	lastPageID  page.PageID
+}
+
+// New creates a new simple Table. If initialize is true, it allocates the first page.
+func New(p *pager.Pager, firstPageID page.PageID, initialize bool) (*Table, error) {
+	t := &Table{
+		pager:       p,
+		firstPageID: firstPageID,
+		lastPageID:  firstPageID,
+	}
+
+	if initialize {
+		pg, err := p.AllocatePage()
+		if err != nil {
+			return nil, err
+		}
+		t.firstPageID = pg.ID()
+		t.lastPageID = pg.ID()
+
+		t.initPageHeader(pg)
+		if err := p.WritePage(pg); err != nil {
+			return nil, err
+		}
+	}
+
+	return t, nil
+}
+
+// FirstPageID returns the first page ID of this table.
+func (t *Table) FirstPageID() page.PageID {
+	return t.firstPageID
+}
+
+func (t *Table) initPageHeader(pg *page.Page) {
+	encoding.PutUint32(pg.Data()[0:4], 0)               // NumRecords = 0
+	encoding.PutUint32(pg.Data()[4:8], PageHeaderSize)  // FreeSpaceOffset = 12
+	encoding.PutUint32(pg.Data()[8:12], uint32(NoPage)) // NextPageID = NoPage
+}
+
+// InsertRecord inserts a raw record into the table and returns the pageID it was written to.
+func (t *Table) InsertRecord(record []byte) (page.PageID, error) {
+	recordSize := uint32(len(record))
+	totalSize := recordSize + 4 // +4 for length prefix
+
+	pg, err := t.pager.FetchPage(t.lastPageID)
+	if err != nil {
+		return 0, err
+	}
+
+	freeOffset := encoding.Uint32(pg.Data()[4:8])
+
+	// Check if it fits
+	if freeOffset+totalSize > uint32(len(pg.Data())) {
+		if totalSize > uint32(len(pg.Data()))-PageHeaderSize {
+			return 0, ErrRecordTooLarge
+		}
+
+		newPg, err := t.pager.AllocatePage()
+		if err != nil {
+			return 0, err
+		}
+		t.initPageHeader(newPg)
+
+		// Link the old page to the new page
+		encoding.PutUint32(pg.Data()[8:12], uint32(newPg.ID()))
+		if err := t.pager.WritePage(pg); err != nil {
+			return 0, err
+		}
+
+		t.lastPageID = newPg.ID()
+		pg = newPg
+		freeOffset = PageHeaderSize
+	}
+
+	// Write record
+	numRecords := encoding.Uint32(pg.Data()[0:4])
+
+	encoding.PutUint32(pg.Data()[freeOffset:freeOffset+4], recordSize)
+	copy(pg.Data()[freeOffset+4:freeOffset+totalSize], record)
+
+	// Update header
+	encoding.PutUint32(pg.Data()[0:4], numRecords+1)
+	encoding.PutUint32(pg.Data()[4:8], freeOffset+totalSize)
+
+	err = t.pager.WritePage(pg)
+	return pg.ID(), err
+}
+
+// ReadAll iterates over all pages and records in the table and returns them.
+func (t *Table) ReadAll() ([][]byte, error) {
+	var records [][]byte
+	currPageID := t.firstPageID
+
+	for currPageID != NoPage {
+		pg, err := t.pager.FetchPage(currPageID)
+		if err != nil {
+			return nil, err
+		}
+
+		numRecords := encoding.Uint32(pg.Data()[0:4])
+		offset := uint32(PageHeaderSize)
+
+		for i := uint32(0); i < numRecords; i++ {
+			recordSize := encoding.Uint32(pg.Data()[offset : offset+4])
+			record := make([]byte, recordSize)
+			copy(record, pg.Data()[offset+4:offset+4+recordSize])
+
+			records = append(records, record)
+			offset += 4 + recordSize
+		}
+
+		nextID := encoding.Uint32(pg.Data()[8:12])
+		currPageID = page.PageID(nextID)
+	}
+
+	return records, nil
+}
