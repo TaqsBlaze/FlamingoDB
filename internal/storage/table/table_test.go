@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"flamingodb/internal/storage/disk"
-	"flamingodb/internal/storage/pager"
-	"flamingodb/internal/storage/table"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/disk"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/pager"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/table"
 )
 
 func TestTable(t *testing.T) {

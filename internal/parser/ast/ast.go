@@ -1,7 +1,7 @@
 package ast
 
 import (
-	"flamingodb/internal/parser/lexer"
+	"github.com/TaqsBlaze/FlamingoDB/internal/parser/lexer"
 	"strings"
 )
 

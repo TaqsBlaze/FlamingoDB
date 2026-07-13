@@ -3,7 +3,7 @@ package transaction
 import (
 	"sync"
 
-	"flamingodb/internal/storage/page"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/page"
 )
 
 // TxState defines the lifecycle state of a transaction.

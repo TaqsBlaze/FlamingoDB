@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"math"
 
-	"flamingodb/internal/storage/page"
-	"flamingodb/internal/storage/pager"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/page"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/pager"
 )
 
 // ---------------------------------------------------------------------------

@@ -1,8 +1,8 @@
 package record
 
 import (
-	"flamingodb/internal/datatypes"
-	"flamingodb/internal/storage/encoding"
+	"github.com/TaqsBlaze/FlamingoDB/internal/datatypes"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/encoding"
 )
 
 // TypeID identifies the basic data types for columns.

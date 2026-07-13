@@ -3,8 +3,8 @@ package record_test
 import (
 	"testing"
 
-	"flamingodb/internal/datatypes"
-	"flamingodb/internal/storage/record"
+	"github.com/TaqsBlaze/FlamingoDB/internal/datatypes"
+	"github.com/TaqsBlaze/FlamingoDB/internal/storage/record"
 )
 
 func TestRecordSerialization(t *testing.T) {
