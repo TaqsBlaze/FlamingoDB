@@ -1,4 +1,5 @@
-# 🔥 FlamingoDB
+![alt FlamingoDB](https://raw.githubusercontent.com/TaqsBlaze/FlamingoDB/refs/heads/main/banner/flamingodb.png)
+# FlamingoDB
 
 <p align="center">
   <img src="https://img.shields.io/badge/Go-1.24%2B-00ADD8?logo=go&logoColor=white&style=for-the-badge" alt="Go Version" />
