@@ -64,6 +64,7 @@ func main() {
 		HTTPAddr:       *httpAddr,
 		Username:       *username,
 		Password:       *password,
+		DataDir:        *dataDir,
 		MaxConnections: 100,
 	}
 

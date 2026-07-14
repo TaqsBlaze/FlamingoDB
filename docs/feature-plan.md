@@ -102,24 +102,28 @@
 </details>
 
 <!-- 5. Web UI Dashboard -->
-<details style="background: #ffffff; border: 1px solid #e1e4e8; border-left: 4px solid #dbab09; border-radius: 6px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(27,31,35,0.04);">
+<details style="background: #ffffff; border: 1px solid #e1e4e8; border-left: 4px solid #28a745; border-radius: 6px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(27,31,35,0.04);">
   <summary style="padding: 16px; font-weight: 600; font-size: 1.15em; cursor: pointer; display: flex; justify-content: space-between; align-items: center; outline: none; user-select: none; background-color: #fafbfc; border-radius: 0 6px 6px 0;">
     <span style="display: flex; align-items: center; gap: 10px; color: #24292e;">
       🌐 Built-in Admin Web Dashboard
     </span>
-    <span style="background: #fff8c5; color: #9a6700; border: 1px solid rgba(154,103,0,0.2); padding: 4px 12px; border-radius: 2em; font-size: 0.75em; font-weight: 500; letter-spacing: 0.3px;">Medium</span>
+    <span style="background: #dcffe4; color: #1a7f37; border: 1px solid rgba(26,127,55,0.2); padding: 4px 12px; border-radius: 2em; font-size: 0.75em; font-weight: 500; letter-spacing: 0.3px;">Complete</span>
   </summary>
   <div style="padding: 0 20px 20px 20px;">
     <div style="margin-top: 20px; background: #f6f8fa; padding: 12px 16px; border-radius: 6px; border: 1px solid #e1e4e8; display: flex; align-items: center; gap: 16px;">
       <span style="font-weight: 600; color: #24292e; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px;">Progress</span> 
-      <progress value="0" max="100" style="flex-grow: 1; height: 10px; border-radius: 5px;"></progress> 
-      <span style="font-weight: 600; color: #586069;">0%</span>
+      <progress value="100" max="100" style="flex-grow: 1; height: 10px; border-radius: 5px;"></progress> 
+      <span style="font-weight: 600; color: #0366d6;">100%</span>
     </div>
     <h4 style="margin: 20px 0 12px 0; color: #24292e; font-size: 1.05em;">Deliverables:</h4>
     <ul style="list-style-type: none; padding-left: 0; margin: 0;">
-      <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;"><input type="checkbox" disabled style="margin-top: 5px;"> Serve a static Single Page Application (React/Vue) directly from the <code>flamingodbd</code> HTTP router.</li>
-      <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;"><input type="checkbox" disabled style="margin-top: 5px;"> Build an interactive query editor pane with syntax highlighting.</li>
-      <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;"><input type="checkbox" disabled style="margin-top: 5px;"> Create a schema explorer to easily visualize tables, columns, and types without writing queries.</li>
+      <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;"><input type="checkbox" checked disabled style="margin-top: 5px;"> Serve a React SPA directly from the <code>flamingodbd</code> HTTP router via Go embed.</li>
+      <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;"><input type="checkbox" checked disabled style="margin-top: 5px;"> Interactive SQL Console with syntax-highlighted editor, Ctrl+Enter shortcut, quick actions, and per-session query history.</li>
+      <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;"><input type="checkbox" checked disabled style="margin-top: 5px;"> Schema explorer — browse tables, view column types, and preview live data without writing queries.</li>
+      <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;"><input type="checkbox" checked disabled style="margin-top: 5px;"> User management page — list users, create users, assign named/custom policies, and delete users.</li>
+      <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;"><input type="checkbox" checked disabled style="margin-top: 5px;"> Settings page — define reusable named policies (e.g. Read-Only, Read-Write) to assign to database users.</li>
+      <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;"><input type="checkbox" checked disabled style="margin-top: 5px;"> Profile page — view own account details and change password.</li>
+      <li style="margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px;"><input type="checkbox" checked disabled style="margin-top: 5px;"> Policy enforcement in the HTTP query handler — non-admin users are blocked per their assigned permissions.</li>
     </ul>
   </div>
 </details>
