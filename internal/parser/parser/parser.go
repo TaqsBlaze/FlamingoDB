@@ -155,10 +155,30 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseDeleteStatement()
 	case lexer.CREATE:
 		return p.parseCreateTableStatement()
+	case lexer.DROP:
+		return p.parseDropTableStatement()
 	default:
 		// Not implemented or error
 		return nil
 	}
+}
+
+func (p *Parser) parseDropTableStatement() *ast.DropTableStatement {
+	stmt := &ast.DropTableStatement{Token: p.curToken}
+
+	if !p.expectPeek(lexer.TABLE) {
+		return nil
+	}
+
+	if !p.expectPeek(lexer.IDENT) {
+		return nil
+	}
+	stmt.Table = p.curToken.Literal
+
+	if p.peekTokenIs(lexer.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
 }
 
 func (p *Parser) parseSelectStatement() *ast.SelectStatement {

@@ -21,6 +21,7 @@ func main() {
 	username := flag.String("user", "admin", "Database auth username")
 	password := flag.String("pass", "admin", "Database auth password")
 	dataDir := flag.String("dir", "./data", "Database data directory")
+	dbName := flag.String("db", "flamingo", "Database name")
 	flag.Parse()
 
 	log := logger.New(logger.LevelInfo)
@@ -32,7 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	dbPath := filepath.Join(*dataDir, "flamingo.db")
+	dbPath := filepath.Join(*dataDir, *dbName+".db")
 	cfg := config.Default()
 	cfg.DataDirectory = *dataDir
 

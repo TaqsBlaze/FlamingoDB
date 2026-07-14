@@ -96,6 +96,19 @@ func (c *Catalog) CreateTable(tx *transaction.Transaction, name string, schema *
 	return c.persist(tx)
 }
 
+// DropTable removes a table metadata entry.
+func (c *Catalog) DropTable(tx *transaction.Transaction, name string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if _, exists := c.tables[name]; !exists {
+		return ErrTableNotFound
+	}
+
+	delete(c.tables, name)
+	return c.persist(tx)
+}
+
 // GetTable retrieves metadata for a table.
 func (c *Catalog) GetTable(name string) (*TableMetadata, error) {
 	c.mu.RLock()
@@ -106,6 +119,18 @@ func (c *Catalog) GetTable(name string) (*TableMetadata, error) {
 		return nil, ErrTableNotFound
 	}
 	return meta, nil
+}
+
+// ListTables returns a list of all table names in the catalog.
+func (c *Catalog) ListTables() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	var names []string
+	for name := range c.tables {
+		names = append(names, name)
+	}
+	return names
 }
 
 // Reload re-reads the Catalog from disk, reversing uncommitted modifications.

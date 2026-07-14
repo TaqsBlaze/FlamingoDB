@@ -75,13 +75,18 @@ func (tm *TableManager) Recover() error {
 	return tm.txMgr.Recover()
 }
 
-// GetSchema retrieves the schema for a given table.
+// GetSchema returns the schema for a table.
 func (tm *TableManager) GetSchema(tableName string) (*record.Schema, error) {
 	meta, err := tm.catalog.GetTable(tableName)
 	if err != nil {
 		return nil, err
 	}
 	return meta.Schema, nil
+}
+
+// ListTables returns a list of all tables.
+func (tm *TableManager) ListTables() []string {
+	return tm.catalog.ListTables()
 }
 
 // CreateTable registers a new table with a schema and allocates its first page.
@@ -106,6 +111,32 @@ func (tm *TableManager) CreateTable(tx *transaction.Transaction, name string, sc
 	}
 
 	err = tm.catalog.CreateTable(tx, name, schema, tbl.FirstPageID())
+	if err != nil {
+		return err
+	}
+
+	if isAutoCommit {
+		err = tm.Commit(tx)
+	}
+	return err
+}
+
+// DropTable removes a table from the catalog.
+func (tm *TableManager) DropTable(tx *transaction.Transaction, name string) (err error) {
+	isAutoCommit := (tx == nil)
+	if isAutoCommit {
+		tx, err = tm.Begin()
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if err != nil {
+				tm.Rollback(tx)
+			}
+		}()
+	}
+
+	err = tm.catalog.DropTable(tx, name)
 	if err != nil {
 		return err
 	}
