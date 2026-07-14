@@ -20,6 +20,7 @@ const (
 	PlanUpdate      PlanType = "Update"
 	PlanDelete      PlanType = "Delete"
 	PlanCreateTable PlanType = "CreateTable"
+	PlanDropTable   PlanType = "DropTable"
 	PlanIndexScan   PlanType = "IndexScan"
 )
 
@@ -165,6 +166,22 @@ func (n *CreateTableNode) String() string {
 	return fmt.Sprintf("CreateTable(table=%s, columns=[%s])", n.Table, strings.Join(cols, ", "))
 }
 
+// DropTableNode represents a DROP TABLE query.
+type DropTableNode struct {
+	Table string
+}
+
+// Type returns PlanDropTable.
+func (n *DropTableNode) Type() PlanType { return PlanDropTable }
+
+// Children returns nil.
+func (n *DropTableNode) Children() []PlanNode { return nil }
+
+// String returns a string representation.
+func (n *DropTableNode) String() string {
+	return fmt.Sprintf("DropTable(table=%s)", n.Table)
+}
+
 // MapStringToTypeID converts a string representation of a type (e.g. "INT", "FLOAT", "VARCHAR") into a record.TypeID.
 func MapStringToTypeID(t string) (record.TypeID, error) {
 	switch strings.ToUpper(t) {
@@ -232,6 +249,8 @@ func (p *Planner) Plan(stmt ast.Statement) (PlanNode, error) {
 		return p.planDelete(s)
 	case *ast.CreateTableStatement:
 		return p.planCreateTable(s)
+	case *ast.DropTableStatement:
+		return p.planDropTable(s)
 	default:
 		return nil, fmt.Errorf("unsupported statement type: %T", stmt)
 	}
@@ -333,6 +352,16 @@ func (p *Planner) planCreateTable(stmt *ast.CreateTableStatement) (PlanNode, err
 	return &CreateTableNode{
 		Table:   stmt.Table,
 		Columns: stmt.Columns,
+	}, nil
+}
+
+func (p *Planner) planDropTable(stmt *ast.DropTableStatement) (PlanNode, error) {
+	if stmt.Table == "" {
+		return nil, errors.New("drop table statement must specify a table")
+	}
+
+	return &DropTableNode{
+		Table: stmt.Table,
 	}, nil
 }
 

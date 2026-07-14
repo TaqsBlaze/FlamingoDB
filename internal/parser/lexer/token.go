@@ -50,6 +50,7 @@ const (
 	FROM   = "FROM"
 	INTO   = "INTO"
 	SET    = "SET"
+	DROP   = "DROP"
 )
 
 // Token represents a lexical token.
@@ -70,6 +71,7 @@ var keywords = map[string]TokenType{
 	"FROM":   FROM,
 	"INTO":   INTO,
 	"SET":    SET,
+	"DROP":   DROP,
 }
 
 // LookupIdent checks whether the given identifier is a keyword.

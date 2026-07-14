@@ -231,6 +231,18 @@ func (s *CreateTableStatement) String() string {
 	return out
 }
 
+// DropTableStatement represents a DROP TABLE query.
+type DropTableStatement struct {
+	Token lexer.Token // the 'DROP' token
+	Table string
+}
+
+func (s *DropTableStatement) statementNode()       {}
+func (s *DropTableStatement) TokenLiteral() string { return s.Token.Literal }
+func (s *DropTableStatement) String() string {
+	return "DROP TABLE " + s.Table + ";"
+}
+
 
 // ImaginaryLiteral represents an imaginary number literal (e.g. 3i, 4.5i).
 type ImaginaryLiteral struct {

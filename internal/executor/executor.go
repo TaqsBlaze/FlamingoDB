@@ -55,6 +55,8 @@ func (e *Executor) ExecuteWithTx(tx *transaction.Transaction, node planner.PlanN
 	switch n := node.(type) {
 	case *planner.CreateTableNode:
 		return e.executeCreateTable(tx, n)
+	case *planner.DropTableNode:
+		return e.executeDropTable(tx, n)
 	case *planner.InsertNode:
 		return e.executeInsert(tx, n)
 	case *planner.ProjectNode:
@@ -82,6 +84,14 @@ func (e *Executor) executeCreateTable(tx *transaction.Transaction, n *planner.Cr
 	}
 
 	return &Result{Message: fmt.Sprintf("table %q created", n.Table)}, nil
+}
+
+// executeDropTable handles DROP TABLE by delegating to TableManager.
+func (e *Executor) executeDropTable(tx *transaction.Transaction, n *planner.DropTableNode) (*Result, error) {
+	if err := e.tm.DropTable(tx, n.Table); err != nil {
+		return nil, fmt.Errorf("drop table %q failed: %w", n.Table, err)
+	}
+	return &Result{Message: fmt.Sprintf("table %q dropped", n.Table)}, nil
 }
 
 // executeInsert handles INSERT by converting expressions to typed Values and persisting.

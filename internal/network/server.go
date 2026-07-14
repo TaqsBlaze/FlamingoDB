@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -208,10 +209,11 @@ func (s *Server) acceptTCPConnections() {
 }
 
 type TCPRequest struct {
-	Type     string `json:"type"`               // "auth", "query", "begin", "commit", "rollback", "close"
+	Type     string `json:"type"`               // "auth", "query", "begin", "commit", "rollback", "close", "meta"
 	Username string `json:"username,omitempty"` // credentials for auth
 	Password string `json:"password,omitempty"`
 	Query    string `json:"query,omitempty"`    // SQL string
+	Command  string `json:"command,omitempty"`  // "list_tables", "describe_table"
 }
 
 type TCPResponse struct {
@@ -313,6 +315,46 @@ func (s *Server) handleTCPClient(conn net.Conn) {
 				txID := tx.ID()
 				tx = nil
 				s.writeTCPResponse(conn, TCPResponse{Success: true, Message: fmt.Sprintf("transaction %d rolled back", txID)})
+			}
+
+		case "meta":
+			switch req.Command {
+			case "list_tables":
+				tables := s.tm.ListTables()
+				var rows [][]any
+				for _, t := range tables {
+					rows = append(rows, []any{t})
+				}
+				s.writeTCPResponse(conn, TCPResponse{
+					Success: true,
+					Columns: []string{"Table Name"},
+					Rows:    rows,
+				})
+			case "describe_table":
+				schema, err := s.tm.GetSchema(req.Query)
+				if err != nil {
+					s.writeTCPResponse(conn, TCPResponse{Success: false, Error: err.Error()})
+					continue
+				}
+				var rows [][]any
+				for _, col := range schema.Columns {
+					rows = append(rows, []any{col.Name, fmt.Sprintf("%d", col.Type)})
+				}
+				s.writeTCPResponse(conn, TCPResponse{
+					Success: true,
+					Columns: []string{"Column Name", "Type ID"},
+					Rows:    rows,
+				})
+			case "shutdown":
+				s.writeTCPResponse(conn, TCPResponse{Success: true, Message: "Server shutting down..."})
+				// Launch a goroutine to wait a tiny bit then send a signal to ourselves to trigger graceful shutdown
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					p, _ := os.FindProcess(os.Getpid())
+					p.Signal(os.Interrupt)
+				}()
+			default:
+				s.writeTCPResponse(conn, TCPResponse{Success: false, Error: "unknown meta command"})
 			}
 
 		case "query":
