@@ -1,0 +1,29 @@
+[
+  {
+    "name": "Read-Write",
+    "can_select": true,
+    "can_insert": true,
+    "can_update": true,
+    "can_delete": true,
+    "can_create": false,
+    "can_drop": false
+  },
+  {
+    "name": "Schema-Admin",
+    "can_select": true,
+    "can_insert": true,
+    "can_update": true,
+    "can_delete": true,
+    "can_create": true,
+    "can_drop": true
+  },
+  {
+    "name": "Read-Only",
+    "can_select": true,
+    "can_insert": false,
+    "can_update": false,
+    "can_delete": false,
+    "can_create": false,
+    "can_drop": false
+  }
+]
