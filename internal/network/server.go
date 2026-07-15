@@ -178,6 +178,13 @@ func (s *Server) Start() error {
 		uiSubFS, _ := fs.Sub(uiFS, "ui")
 		uiFileServer := http.FileServer(http.FS(uiSubFS))
 		uiHandler := func(w http.ResponseWriter, r *http.Request) {
+			// If request path is for lucide.js, serve it from the file server
+			if strings.HasSuffix(r.URL.Path, "/lucide.js") {
+				r2 := *r
+				r2.URL.Path = "/lucide.js"
+				uiFileServer.ServeHTTP(w, &r2)
+				return
+			}
 			// Strip any prefix and serve index.html for any unmatched path
 			r2 := *r
 			r2.URL.Path = "/"

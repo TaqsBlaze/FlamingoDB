@@ -420,3 +420,63 @@ func TestHTTPServerEndToEnd(t *testing.T) {
 		}
 	}
 }
+
+func TestHTTPServerUI(t *testing.T) {
+	srv, _ := setupTestServer(t, "admin", "adminpass", 5)
+	httpAddr := srv.HTTPAddr()
+	client := &http.Client{}
+
+	// 1. Fetch index.html
+	req, _ := http.NewRequest("GET", "http://"+httpAddr+"/", nil)
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("HTTP GET index failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status 200 OK for /, got: %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to read body: %v", err)
+	}
+	if !strings.Contains(string(body), "<title>FlamingoDB Admin</title>") {
+		t.Errorf("expected index.html content, got: %s", string(body))
+	}
+
+	// 2. Fetch lucide.js
+	req, _ = http.NewRequest("GET", "http://"+httpAddr+"/lucide.js", nil)
+	resp2, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("HTTP GET lucide.js failed: %v", err)
+	}
+	defer resp2.Body.Close()
+	if resp2.StatusCode != http.StatusOK {
+		t.Errorf("expected status 200 OK for /lucide.js, got: %d", resp2.StatusCode)
+	}
+	body2, err := io.ReadAll(resp2.Body)
+	if err != nil {
+		t.Fatalf("failed to read body: %v", err)
+	}
+	if !strings.Contains(string(body2), "lucide v") {
+		t.Errorf("expected lucide.js content, got: %s", string(body2))
+	}
+
+	// 3. Fetch /ui/lucide.js
+	req, _ = http.NewRequest("GET", "http://"+httpAddr+"/ui/lucide.js", nil)
+	resp3, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("HTTP GET /ui/lucide.js failed: %v", err)
+	}
+	defer resp3.Body.Close()
+	if resp3.StatusCode != http.StatusOK {
+		t.Errorf("expected status 200 OK for /ui/lucide.js, got: %d", resp3.StatusCode)
+	}
+	body3, err := io.ReadAll(resp3.Body)
+	if err != nil {
+		t.Fatalf("failed to read body: %v", err)
+	}
+	if !strings.Contains(string(body3), "lucide v") {
+		t.Errorf("expected lucide.js content, got: %s", string(body3))
+	}
+}

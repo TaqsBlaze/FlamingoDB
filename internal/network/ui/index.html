@@ -1,45 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FlamingoDB Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/framer-motion@10.16.4/dist/framer-motion.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg:        #080d1a;
-      --surface:   #0f1829;
-      --card:      #131e2e;
-      --card2:     #172236;
-      --border:    #1e2d45;
-      --border2:   #263654;
-      --text:      #e2e8f0;
-      --muted:     #64748b;
-      --muted2:    #94a3b8;
-      --pink:      #f43f87;
-      --pink2:     #fb7bb2;
-      --blue:      #3b82f6;
-      --blue2:     #60a5fa;
-      --green:     #10b981;
-      --green2:    #34d399;
-      --purple:    #8b5cf6;
-      --purple2:   #a78bfa;
-      --gold:      #f59e0b;
-      --gold2:     #fbbf24;
-      --red:       #ef4444;
-      --red2:      #f87171;
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    html, body, #root {
+    :root {
+      --bg: #080d1a;
+      --surface: #0f1829;
+      --card: #131e2e;
+      --card2: #172236;
+      --border: #1e2d45;
+      --border2: #263654;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --muted2: #94a3b8;
+      --pink: #f43f87;
+      --pink2: #fb7bb2;
+      --blue: #3b82f6;
+      --blue2: #60a5fa;
+      --green: #10b981;
+      --green2: #34d399;
+      --purple: #8b5cf6;
+      --purple2: #a78bfa;
+      --gold: #f59e0b;
+      --gold2: #fbbf24;
+      --red: #ef4444;
+      --red2: #f87171;
+    }
+
+    html,
+    body,
+    #root {
       height: 100%;
       width: 100%;
       font-family: 'Inter', sans-serif;
@@ -48,10 +59,23 @@
       overflow: hidden;
     }
 
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--muted);
+    }
 
     .app-shell {
       display: flex;
@@ -66,8 +90,8 @@
       position: fixed;
       inset: 0;
       background:
-        radial-gradient(ellipse 80% 60% at 10% -10%, rgba(244,63,135,.12) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 90% 110%, rgba(59,130,246,.10) 0%, transparent 60%);
+        radial-gradient(ellipse 80% 60% at 10% -10%, rgba(244, 63, 135, .12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 90% 110%, rgba(59, 130, 246, .10) 0%, transparent 60%);
       pointer-events: none;
       z-index: 0;
     }
@@ -92,14 +116,22 @@
     }
 
     .sidebar-logo .logo-icon {
-      width: 36px; height: 36px;
+      width: 36px;
+      height: 36px;
       background: linear-gradient(135deg, var(--pink), var(--purple));
       border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
-      box-shadow: 0 0 20px rgba(244,63,135,.35);
+      box-shadow: 0 0 20px rgba(244, 63, 135, .35);
     }
-    .sidebar-logo .logo-icon svg { width: 20px; height: 20px; stroke: #fff; }
+
+    .sidebar-logo .logo-icon svg {
+      width: 20px;
+      height: 20px;
+      stroke: #fff;
+    }
 
     .sidebar-logo .logo-text {
       font-size: 17px;
@@ -144,17 +176,36 @@
       user-select: none;
       border: 1px solid transparent;
     }
-    .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
-    .nav-item:hover { background: rgba(255,255,255,.04); color: var(--text); }
-    .nav-item.active {
-      background: rgba(244,63,135,.1);
-      color: var(--pink);
-      border-color: rgba(244,63,135,.2);
+
+    .nav-item svg {
+      width: 17px;
+      height: 17px;
+      flex-shrink: 0;
     }
-    .nav-item.active svg { stroke: var(--pink); }
+
+    .nav-item:hover {
+      background: rgba(255, 255, 255, .04);
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      background: rgba(244, 63, 135, .1);
+      color: var(--pink);
+      border-color: rgba(244, 63, 135, .2);
+    }
+
+    .nav-item.active svg {
+      stroke: var(--pink);
+    }
+
     .nav-item .nav-dot {
-      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-      width: 6px; height: 6px; border-radius: 50%;
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
       background: var(--pink);
       box-shadow: 0 0 6px var(--pink);
     }
@@ -168,26 +219,48 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(16,185,129,.08);
-      border: 1px solid rgba(16,185,129,.2);
+      background: rgba(16, 185, 129, .08);
+      border: 1px solid rgba(16, 185, 129, .2);
       border-radius: 99px;
       padding: 8px 14px;
       font-size: 12px;
       font-weight: 500;
       color: var(--green2);
     }
+
     .conn-pill .dot {
-      width: 7px; height: 7px; border-radius: 50%;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
       background: var(--green);
       box-shadow: 0 0 8px var(--green);
       animation: pulse-green 2s infinite;
     }
-    .conn-pill.offline { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.2); color: var(--red2); }
-    .conn-pill.offline .dot { background: var(--red); box-shadow: 0 0 8px var(--red); animation: none; }
+
+    .conn-pill.offline {
+      background: rgba(239, 68, 68, .08);
+      border-color: rgba(239, 68, 68, .2);
+      color: var(--red2);
+    }
+
+    .conn-pill.offline .dot {
+      background: var(--red);
+      box-shadow: 0 0 8px var(--red);
+      animation: none;
+    }
 
     @keyframes pulse-green {
-      0%,100% { opacity:1; box-shadow: 0 0 8px var(--green); }
-      50% { opacity:.6; box-shadow: 0 0 3px var(--green); }
+
+      0%,
+      100% {
+        opacity: 1;
+        box-shadow: 0 0 8px var(--green);
+      }
+
+      50% {
+        opacity: .6;
+        box-shadow: 0 0 3px var(--green);
+      }
     }
 
     .main-area {
@@ -201,7 +274,7 @@
     .topbar {
       height: 64px;
       min-height: 64px;
-      background: rgba(15,24,41,.85);
+      background: rgba(15, 24, 41, .85);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
       display: flex;
@@ -209,21 +282,46 @@
       padding: 0 28px;
       gap: 16px;
     }
-    .topbar-title { flex: 1; font-size: 18px; font-weight: 700; letter-spacing: -.3px; }
-    .topbar-title span { color: var(--muted2); font-weight: 400; font-size: 13px; margin-left: 8px; }
 
-    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+    .topbar-title {
+      flex: 1;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -.3px;
+    }
+
+    .topbar-title span {
+      color: var(--muted2);
+      font-weight: 400;
+      font-size: 13px;
+      margin-left: 8px;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
     .avatar {
-      width: 36px; height: 36px; border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
       background: linear-gradient(135deg, var(--pink), var(--purple));
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 700; color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
       cursor: pointer;
       border: 2px solid transparent;
       transition: border-color .2s;
     }
-    .avatar:hover { border-color: var(--pink); }
+
+    .avatar:hover {
+      border-color: var(--pink);
+    }
 
     .page-content {
       flex: 1;
@@ -250,16 +348,43 @@
     }
 
     .stat-icon {
-      width: 44px; height: 44px; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
     }
-    .stat-icon svg { width: 22px; height: 22px; }
 
-    .stat-body { flex: 1; }
-    .stat-label { font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
-    .stat-value { font-size: 26px; font-weight: 700; letter-spacing: -.5px; line-height: 1; }
-    .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .stat-icon svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .stat-body {
+      flex: 1;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -.5px;
+      line-height: 1;
+    }
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
 
     .card {
       background: var(--card);
@@ -267,52 +392,125 @@
       border-radius: 14px;
       overflow: hidden;
     }
+
     .card-header {
       padding: 16px 20px;
       border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    .card-header h3 { font-size: 14px; font-weight: 600; flex: 1; }
-    .card-body { padding: 20px; }
+
+    .card-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .card-body {
+      padding: 20px;
+    }
 
     .btn {
-      display: inline-flex; align-items: center; gap: 7px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
       padding: 9px 18px;
       border-radius: 9px;
-      font-size: 13px; font-weight: 600;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
       border: none;
       transition: all .18s ease;
       font-family: inherit;
       white-space: nowrap;
     }
-    .btn svg { width: 15px; height: 15px; }
-    .btn:disabled { opacity: .45; cursor: not-allowed; }
 
-    .btn-primary { background: var(--pink); color: #fff; }
-    .btn-primary:hover:not(:disabled) { background: #e0336f; box-shadow: 0 4px 16px rgba(244,63,135,.4); }
+    .btn svg {
+      width: 15px;
+      height: 15px;
+    }
 
-    .btn-secondary { background: rgba(255,255,255,.06); color: var(--text); border: 1px solid var(--border); }
-    .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,.1); }
+    .btn:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
 
-    .btn-blue { background: rgba(59,130,246,.15); color: var(--blue2); border: 1px solid rgba(59,130,246,.3); }
-    .btn-blue:hover:not(:disabled) { background: rgba(59,130,246,.25); }
+    .btn-primary {
+      background: var(--pink);
+      color: #fff;
+    }
 
-    .btn-green { background: rgba(16,185,129,.15); color: var(--green2); border: 1px solid rgba(16,185,129,.3); }
-    .btn-green:hover:not(:disabled) { background: rgba(16,185,129,.25); }
+    .btn-primary:hover:not(:disabled) {
+      background: #e0336f;
+      box-shadow: 0 4px 16px rgba(244, 63, 135, .4);
+    }
 
-    .btn-red { background: rgba(239,68,68,.12); color: var(--red2); border: 1px solid rgba(239,68,68,.25); }
-    .btn-red:hover:not(:disabled) { background: rgba(239,68,68,.22); }
+    .btn-secondary {
+      background: rgba(255, 255, 255, .06);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
 
-    .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 7px; }
-    .btn-sm svg { width: 13px; height: 13px; }
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(255, 255, 255, .1);
+    }
+
+    .btn-blue {
+      background: rgba(59, 130, 246, .15);
+      color: var(--blue2);
+      border: 1px solid rgba(59, 130, 246, .3);
+    }
+
+    .btn-blue:hover:not(:disabled) {
+      background: rgba(59, 130, 246, .25);
+    }
+
+    .btn-green {
+      background: rgba(16, 185, 129, .15);
+      color: var(--green2);
+      border: 1px solid rgba(16, 185, 129, .3);
+    }
+
+    .btn-green:hover:not(:disabled) {
+      background: rgba(16, 185, 129, .25);
+    }
+
+    .btn-red {
+      background: rgba(239, 68, 68, .12);
+      color: var(--red2);
+      border: 1px solid rgba(239, 68, 68, .25);
+    }
+
+    .btn-red:hover:not(:disabled) {
+      background: rgba(239, 68, 68, .22);
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 7px;
+    }
+
+    .btn-sm svg {
+      width: 13px;
+      height: 13px;
+    }
 
     .btn-icon {
-      width: 34px; height: 34px; padding: 0;
-      display: inline-flex; align-items: center; justify-content: center;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       border-radius: 8px;
     }
-    .btn-icon svg { width: 16px; height: 16px; }
+
+    .btn-icon svg {
+      width: 16px;
+      height: 16px;
+    }
 
     .input {
       width: 100%;
@@ -326,8 +524,15 @@
       transition: border-color .18s;
       outline: none;
     }
-    .input:focus { border-color: var(--pink); box-shadow: 0 0 0 3px rgba(244,63,135,.1); }
-    .input::placeholder { color: var(--muted); }
+
+    .input:focus {
+      border-color: var(--pink);
+      box-shadow: 0 0 0 3px rgba(244, 63, 135, .1);
+    }
+
+    .input::placeholder {
+      color: var(--muted);
+    }
 
     .input-code {
       font-family: 'Fira Code', monospace;
@@ -338,41 +543,127 @@
       tab-size: 2;
     }
 
-    .label { font-size: 12px; font-weight: 600; color: var(--muted2); margin-bottom: 6px; display: block; letter-spacing: .3px; }
+    .label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted2);
+      margin-bottom: 6px;
+      display: block;
+      letter-spacing: .3px;
+    }
 
-    .field { margin-bottom: 16px; }
+    .field {
+      margin-bottom: 16px;
+    }
 
     .table-wrap {
       overflow-x: auto;
       border-radius: 10px;
       border: 1px solid var(--border);
     }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    thead tr { background: rgba(255,255,255,.03); border-bottom: 1px solid var(--border); }
-    th { padding: 11px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .6px; text-transform: uppercase; white-space: nowrap; }
-    td { padding: 12px 16px; border-bottom: 1px solid rgba(30,45,69,.6); font-family: 'Fira Code', monospace; font-size: 12px; color: var(--muted2); white-space: nowrap; }
-    tbody tr:last-child td { border-bottom: none; }
-    tbody tr { transition: background .15s; }
-    tbody tr:hover { background: rgba(255,255,255,.025); }
-    tbody tr.clickable { cursor: pointer; }
-    tbody tr.clickable:hover { background: rgba(244,63,135,.06); }
 
-    .badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 2px 8px;
-      border-radius: 99px;
-      font-size: 11px; font-weight: 600;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead tr {
+      background: rgba(255, 255, 255, .03);
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      padding: 11px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: .6px;
+      text-transform: uppercase;
       white-space: nowrap;
     }
-    .badge-pink { background: rgba(244,63,135,.15); color: var(--pink2); border: 1px solid rgba(244,63,135,.25); }
-    .badge-blue { background: rgba(59,130,246,.12); color: var(--blue2); border: 1px solid rgba(59,130,246,.25); }
-    .badge-green { background: rgba(16,185,129,.12); color: var(--green2); border: 1px solid rgba(16,185,129,.25); }
-    .badge-purple { background: rgba(139,92,246,.12); color: var(--purple2); border: 1px solid rgba(139,92,246,.25); }
-    .badge-gold { background: rgba(245,158,11,.12); color: var(--gold2); border: 1px solid rgba(245,158,11,.25); }
-    .badge-gray { background: rgba(100,116,139,.12); color: var(--muted2); border: 1px solid rgba(100,116,139,.2); }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(30, 45, 69, .6);
+      font-family: 'Fira Code', monospace;
+      font-size: 12px;
+      color: var(--muted2);
+      white-space: nowrap;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr {
+      transition: background .15s;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, .025);
+    }
+
+    tbody tr.clickable {
+      cursor: pointer;
+    }
+
+    tbody tr.clickable:hover {
+      background: rgba(244, 63, 135, .06);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge-pink {
+      background: rgba(244, 63, 135, .15);
+      color: var(--pink2);
+      border: 1px solid rgba(244, 63, 135, .25);
+    }
+
+    .badge-blue {
+      background: rgba(59, 130, 246, .12);
+      color: var(--blue2);
+      border: 1px solid rgba(59, 130, 246, .25);
+    }
+
+    .badge-green {
+      background: rgba(16, 185, 129, .12);
+      color: var(--green2);
+      border: 1px solid rgba(16, 185, 129, .25);
+    }
+
+    .badge-purple {
+      background: rgba(139, 92, 246, .12);
+      color: var(--purple2);
+      border: 1px solid rgba(139, 92, 246, .25);
+    }
+
+    .badge-gold {
+      background: rgba(245, 158, 11, .12);
+      color: var(--gold2);
+      border: 1px solid rgba(245, 158, 11, .25);
+    }
+
+    .badge-gray {
+      background: rgba(100, 116, 139, .12);
+      color: var(--muted2);
+      border: 1px solid rgba(100, 116, 139, .2);
+    }
 
     .toggle-row {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       padding: 13px 16px;
       border-radius: 10px;
       border: 1px solid var(--border);
@@ -380,150 +671,343 @@
       margin-bottom: 8px;
       gap: 12px;
     }
-    .toggle-row-info { flex: 1; }
-    .toggle-row-info .t-label { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 5px; }
-    .toggle-row-info .t-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .toggle-row-info {
+      flex: 1;
+    }
+
+    .toggle-row-info .t-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .toggle-row-info .t-desc {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
 
     .toggle {
       position: relative;
-      width: 44px; height: 24px;
+      width: 44px;
+      height: 24px;
       flex-shrink: 0;
     }
-    .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
     .toggle-track {
-      position: absolute; inset: 0;
+      position: absolute;
+      inset: 0;
       background: var(--border2);
       border-radius: 99px;
       cursor: pointer;
       transition: background .2s;
     }
-    .toggle input:checked + .toggle-track { background: var(--pink); }
-    .toggle input:checked + .toggle-track.gold { background: var(--gold); }
+
+    .toggle input:checked+.toggle-track {
+      background: var(--pink);
+    }
+
+    .toggle input:checked+.toggle-track.gold {
+      background: var(--gold);
+    }
+
     .toggle-thumb {
       position: absolute;
-      top: 3px; left: 3px;
-      width: 18px; height: 18px;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
       background: #fff;
       border-radius: 50%;
       transition: transform .2s;
       pointer-events: none;
     }
-    .toggle input:checked ~ .toggle-thumb { transform: translateX(20px); }
+
+    .toggle input:checked~.toggle-thumb {
+      transform: translateX(20px);
+    }
 
     .empty {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       padding: 52px 20px;
       gap: 12px;
       color: var(--muted);
     }
-    .empty svg { width: 44px; height: 44px; stroke: var(--border2); }
-    .empty p { font-size: 14px; }
-    .empty small { font-size: 12px; color: var(--muted); opacity: .7; }
+
+    .empty svg {
+      width: 44px;
+      height: 44px;
+      stroke: var(--border2);
+    }
+
+    .empty p {
+      font-size: 14px;
+    }
+
+    .empty small {
+      font-size: 12px;
+      color: var(--muted);
+      opacity: .7;
+    }
 
     .banner {
-      display: flex; align-items: flex-start; gap: 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
       padding: 12px 16px;
       border-radius: 10px;
       font-size: 13px;
       line-height: 1.5;
     }
-    .banner svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
-    .banner-error { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25); color: var(--red2); }
-    .banner-success { background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.25); color: var(--green2); }
-    .banner-info { background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.2); color: var(--blue2); }
+
+    .banner svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .banner-error {
+      background: rgba(239, 68, 68, .1);
+      border: 1px solid rgba(239, 68, 68, .25);
+      color: var(--red2);
+    }
+
+    .banner-success {
+      background: rgba(16, 185, 129, .1);
+      border: 1px solid rgba(16, 185, 129, .25);
+      color: var(--green2);
+    }
+
+    .banner-info {
+      background: rgba(59, 130, 246, .1);
+      border: 1px solid rgba(59, 130, 246, .2);
+      color: var(--blue2);
+    }
 
     .panel-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.5);
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .5);
       backdrop-filter: blur(3px);
       z-index: 90;
     }
+
     .side-panel {
-      position: fixed; top: 0; right: 0; bottom: 0;
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
       width: 380px;
       background: var(--card);
       border-left: 1px solid var(--border2);
       z-index: 91;
-      display: flex; flex-direction: column;
-      box-shadow: -20px 0 60px rgba(0,0,0,.5);
+      display: flex;
+      flex-direction: column;
+      box-shadow: -20px 0 60px rgba(0, 0, 0, .5);
     }
+
     .side-panel-header {
       padding: 20px 24px;
       border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    .side-panel-header h3 { flex: 1; font-size: 16px; font-weight: 700; }
-    .side-panel-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
-    .side-panel-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+
+    .side-panel-header h3 {
+      flex: 1;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .side-panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+    }
+
+    .side-panel-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
 
     .login-bg {
-      min-height: 100vh; width: 100%;
-      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       background: var(--bg);
       position: relative;
     }
+
     .login-bg::before {
       content: '';
-      position: fixed; inset: 0;
+      position: fixed;
+      inset: 0;
       background:
-        radial-gradient(ellipse 70% 70% at 20% 20%, rgba(244,63,135,.18) 0%, transparent 55%),
-        radial-gradient(ellipse 70% 60% at 80% 80%, rgba(59,130,246,.14) 0%, transparent 55%);
+        radial-gradient(ellipse 70% 70% at 20% 20%, rgba(244, 63, 135, .18) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 80% 80%, rgba(59, 130, 246, .14) 0%, transparent 55%);
       pointer-events: none;
     }
+
     .login-card {
       background: var(--card);
       border: 1px solid var(--border2);
       border-radius: 20px;
       padding: 44px 40px;
-      width: 100%; max-width: 400px;
+      width: 100%;
+      max-width: 400px;
       position: relative;
-      box-shadow: 0 30px 70px rgba(0,0,0,.6);
+      box-shadow: 0 30px 70px rgba(0, 0, 0, .6);
     }
+
     .login-logo {
-      display: flex; align-items: center; gap: 12px;
-      margin-bottom: 30px; justify-content: center;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 30px;
+      justify-content: center;
     }
+
     .login-logo .icon {
-      width: 52px; height: 52px; border-radius: 16px;
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
       background: linear-gradient(135deg, var(--pink), var(--purple));
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 30px rgba(244,63,135,.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 30px rgba(244, 63, 135, .5);
     }
-    .login-logo .icon svg { width: 28px; height: 28px; stroke: #fff; }
-    .login-logo .text { font-size: 24px; font-weight: 800; background: linear-gradient(90deg, var(--pink), var(--purple2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .login-sub { text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 28px; margin-top: -20px; }
 
-    .quick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .login-logo .icon svg {
+      width: 28px;
+      height: 28px;
+      stroke: #fff;
+    }
 
-    .result-block { margin-top: 16px; }
-    .result-msg { font-size: 12px; font-family: 'Fira Code', monospace; color: var(--muted2); padding: 10px 14px; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); }
+    .login-logo .text {
+      font-size: 24px;
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--pink), var(--purple2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .login-sub {
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 28px;
+      margin-top: -20px;
+    }
+
+    .quick-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .result-block {
+      margin-top: 16px;
+    }
+
+    .result-msg {
+      font-size: 12px;
+      font-family: 'Fira Code', monospace;
+      color: var(--muted2);
+      padding: 10px 14px;
+      background: var(--surface);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
 
     .history-item {
-      display: flex; align-items: center; gap: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
       padding: 9px 12px;
       border-radius: 8px;
       cursor: pointer;
       transition: background .15s;
       border: 1px solid transparent;
     }
-    .history-item:hover { background: rgba(255,255,255,.04); border-color: var(--border); }
-    .history-item code { font-family: 'Fira Code', monospace; font-size: 11px; color: var(--muted2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .history-item .h-time { font-size: 10px; color: var(--muted); flex-shrink: 0; }
-    .history-item .h-ok { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+    .history-item:hover {
+      background: rgba(255, 255, 255, .04);
+      border-color: var(--border);
+    }
+
+    .history-item code {
+      font-family: 'Fira Code', monospace;
+      font-size: 11px;
+      color: var(--muted2);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .history-item .h-time {
+      font-size: 10px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .history-item .h-ok {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
 
     .spinner {
-      width: 16px; height: 16px;
-      border: 2px solid rgba(255,255,255,.15);
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, .15);
       border-top-color: currentColor;
       border-radius: 50%;
       animation: spin .6s linear infinite;
       flex-shrink: 0;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
-    .table-list { display: flex; flex-direction: column; gap: 6px; }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .table-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
     .table-list-item {
-      display: flex; align-items: center; gap: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
       padding: 12px 16px;
       border-radius: 10px;
       background: var(--surface);
@@ -531,16 +1015,44 @@
       cursor: pointer;
       transition: all .18s;
     }
-    .table-list-item:hover { border-color: var(--pink); background: rgba(244,63,135,.06); }
-    .table-list-item.selected { border-color: var(--pink); background: rgba(244,63,135,.08); }
-    .table-list-item svg { width: 16px; height: 16px; stroke: var(--muted); }
-    .table-list-item:hover svg, .table-list-item.selected svg { stroke: var(--pink); }
-    .table-list-item span { font-size: 13px; font-weight: 600; flex: 1; }
 
-    .split { display: grid; grid-template-columns: 260px 1fr; gap: 20px; }
+    .table-list-item:hover {
+      border-color: var(--pink);
+      background: rgba(244, 63, 135, .06);
+    }
+
+    .table-list-item.selected {
+      border-color: var(--pink);
+      background: rgba(244, 63, 135, .08);
+    }
+
+    .table-list-item svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--muted);
+    }
+
+    .table-list-item:hover svg,
+    .table-list-item.selected svg {
+      stroke: var(--pink);
+    }
+
+    .table-list-item span {
+      font-size: 13px;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 20px;
+    }
 
     .user-row {
-      display: flex; align-items: center; gap: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
       padding: 13px 16px;
       border-radius: 10px;
       background: var(--surface);
@@ -549,1300 +1061,1426 @@
       transition: all .18s;
       margin-bottom: 6px;
     }
-    .user-row:hover { border-color: var(--border2); background: var(--card2); }
-    .user-row.selected { border-color: var(--pink); background: rgba(244,63,135,.07); }
+
+    .user-row:hover {
+      border-color: var(--border2);
+      background: var(--card2);
+    }
+
+    .user-row.selected {
+      border-color: var(--pink);
+      background: rgba(244, 63, 135, .07);
+    }
+
     .user-avatar-sm {
-      width: 38px; height: 38px; border-radius: 50%;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
       background: linear-gradient(135deg, var(--blue), var(--purple));
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 700; color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
       flex-shrink: 0;
     }
-    .user-avatar-sm.admin { background: linear-gradient(135deg, var(--gold), var(--pink)); }
-    .user-info { flex: 1; }
-    .user-name { font-size: 13px; font-weight: 600; }
-    .user-badges { display: flex; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
+
+    .user-avatar-sm.admin {
+      background: linear-gradient(135deg, var(--gold), var(--pink));
+    }
+
+    .user-info {
+      flex: 1;
+    }
+
+    .user-name {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .user-badges {
+      display: flex;
+      gap: 5px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
 
     .profile-avatar {
-      width: 80px; height: 80px; border-radius: 50%;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
       background: linear-gradient(135deg, var(--pink), var(--purple));
-      display: flex; align-items: center; justify-content: center;
-      font-size: 30px; font-weight: 700; color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      font-weight: 700;
+      color: #fff;
       margin-bottom: 16px;
-      box-shadow: 0 0 30px rgba(244,63,135,.4);
+      box-shadow: 0 0 30px rgba(244, 63, 135, .4);
     }
 
-    .w-full { width: 100%; }
-    .mb-3 { margin-bottom: 12px; }
-    .mb-4 { margin-bottom: 16px; }
-    .mt-3 { margin-top: 12px; }
-    .mt-4 { margin-top: 16px; }
-    .text-xs { font-size: 11px; }
-    .text-muted { color: var(--muted); }
-    .section-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-    .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
-    .null-val { color: var(--muted); font-style: italic; }
-    .font-mono { font-family: 'Fira Code', monospace; }
+    .w-full {
+      width: 100%;
+    }
+
+    .mb-3 {
+      margin-bottom: 12px;
+    }
+
+    .mb-4 {
+      margin-bottom: 16px;
+    }
+
+    .mt-3 {
+      margin-top: 12px;
+    }
+
+    .mt-4 {
+      margin-top: 16px;
+    }
+
+    .text-xs {
+      font-size: 11px;
+    }
+
+    .text-muted {
+      color: var(--muted);
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 16px 0;
+    }
+
+    .null-val {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .font-mono {
+      font-family: 'Fira Code', monospace;
+    }
   </style>
 </head>
+
 <body>
-<div id="root"></div>
+  <div id="root"></div>
 
-<script type="text/babel">
-const { useState, useEffect, useRef } = React;
-const { AnimatePresence, motion } = window["framer-motion"];
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+    const { AnimatePresence, motion } = window.Motion;
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-function b64(str) {
-  try { return btoa(unescape(encodeURIComponent(str))); } catch(e) { return btoa(str); }
-}
-
-function authHeader(creds) {
-  return { 'Authorization': 'Basic ' + b64(creds.username + ':' + creds.password) };
-}
-
-async function apiFetch(path, options, creds) {
-  options = options || {};
-  const headers = Object.assign({ 'Content-Type': 'application/json' }, authHeader(creds), options.headers || {});
-  try {
-    const res = await fetch(path, Object.assign({}, options, { headers }));
-    const data = await res.json().catch(() => ({}));
-    return { ok: res.ok, status: res.status, data };
-  } catch(e) {
-    return { ok: false, status: 0, data: { error: e.message } };
-  }
-}
-
-function fmt(v) {
-  if (v === null || v === undefined) return React.createElement('span', { className: 'null-val' }, 'NULL');
-  if (typeof v === 'object') return JSON.stringify(v);
-  return String(v);
-}
-
-function typeColor(t) {
-  if (!t) return 'gray';
-  const u = String(t).toUpperCase();
-  if (u.includes('INT')) return 'blue';
-  if (u.includes('FLOAT') || u.includes('DOUBLE') || u.includes('REAL')) return 'purple';
-  if (u.includes('VARCHAR') || u.includes('TEXT') || u.includes('CHAR')) return 'green';
-  if (u.includes('VECTOR') || u.includes('MATRIX') || u.includes('TENSOR')) return 'pink';
-  return 'gray';
-}
-
-function TypeBadge({ type }) {
-  const c = typeColor(type);
-  return React.createElement('span', { className: `badge badge-${c}` }, type || 'UNKNOWN');
-}
-
-function ago(ts) {
-  const d = Date.now() - ts;
-  if (d < 60000) return Math.floor(d/1000) + 's ago';
-  if (d < 3600000) return Math.floor(d/60000) + 'm ago';
-  return Math.floor(d/3600000) + 'h ago';
-}
-
-// ── Icon via lucide ───────────────────────────────────────────────────────────
-function Icon({ name, size, stroke, style }) {
-  size = size || 16;
-  const ref = useRef(null);
-  useEffect(() => {
-    if (!ref.current || !window.lucide) return;
-    ref.current.innerHTML = '';
-    try {
-      const iconData = window.lucide[name] || window.lucide['HelpCircle'];
-      if (!iconData) return;
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('width', String(size));
-      svg.setAttribute('height', String(size));
-      svg.setAttribute('viewBox', '0 0 24 24');
-      svg.setAttribute('fill', 'none');
-      svg.setAttribute('stroke', stroke || 'currentColor');
-      svg.setAttribute('stroke-width', '2');
-      svg.setAttribute('stroke-linecap', 'round');
-      svg.setAttribute('stroke-linejoin', 'round');
-      const children = Array.isArray(iconData) ? iconData[2] : [];
-      (children || []).forEach(function(child) {
-        if (!Array.isArray(child)) return;
-        const tag = child[0];
-        const attrs = child[1] || {};
-        const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
-        Object.entries(attrs).forEach(function(pair) { el.setAttribute(pair[0], pair[1]); });
-        svg.appendChild(el);
-      });
-      ref.current.appendChild(svg);
-    } catch(e) {}
-  }, [name, size, stroke]);
-  return React.createElement('span', {
-    ref,
-    style: Object.assign({ display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0, verticalAlign:'middle' }, style || {})
-  });
-}
-
-// ── Toggle ────────────────────────────────────────────────────────────────────
-function Toggle({ checked, onChange, gold }) {
-  return React.createElement('label', { className: 'toggle' },
-    React.createElement('input', { type: 'checkbox', checked: !!checked, onChange: function(e) { onChange(e.target.checked); } }),
-    React.createElement('span', { className: 'toggle-track' + (gold ? ' gold' : '') }),
-    React.createElement('span', { className: 'toggle-thumb' })
-  );
-}
-
-// ── Banner ────────────────────────────────────────────────────────────────────
-function Banner({ type, children }) {
-  type = type || 'error';
-  const map = { error: ['banner-error','XCircle'], success: ['banner-success','CheckCircle2'], info: ['banner-info','Info'] };
-  const pair = map[type] || map.error;
-  return React.createElement('div', { className: 'banner ' + pair[0] },
-    React.createElement(Icon, { name: pair[1], size: 16 }),
-    React.createElement('span', null, children)
-  );
-}
-
-// ── Spinner ───────────────────────────────────────────────────────────────────
-function Spinner() { return React.createElement('span', { className: 'spinner' }); }
-
-// ── Empty ─────────────────────────────────────────────────────────────────────
-function Empty({ icon, title, sub }) {
-  icon = icon || 'Inbox';
-  return React.createElement('div', { className: 'empty' },
-    React.createElement(Icon, { name: icon, size: 44 }),
-    React.createElement('p', null, title),
-    sub ? React.createElement('small', null, sub) : null
-  );
-}
-
-// ── StatCard ──────────────────────────────────────────────────────────────────
-function StatCard({ icon, label, value, sub, color }) {
-  color = color || 'pink';
-  const colorMap = {
-    pink:   { border: 'rgba(244,63,135,.2)',  icon: 'rgba(244,63,135,.18)',  stroke: 'var(--pink)' },
-    blue:   { border: 'rgba(59,130,246,.2)',   icon: 'rgba(59,130,246,.18)',   stroke: 'var(--blue2)' },
-    green:  { border: 'rgba(16,185,129,.2)',   icon: 'rgba(16,185,129,.18)',   stroke: 'var(--green2)' },
-    purple: { border: 'rgba(139,92,246,.2)',   icon: 'rgba(139,92,246,.18)',   stroke: 'var(--purple2)' },
-  };
-  const c = colorMap[color] || colorMap.pink;
-  return React.createElement(motion.div, {
-    className: 'stat-card',
-    style: { borderColor: c.border },
-    whileHover: { y: -3, boxShadow: '0 8px 32px rgba(0,0,0,.45)' },
-    transition: { type: 'spring', stiffness: 300, damping: 25 }
-  },
-    React.createElement('div', { className: 'stat-icon', style: { background: c.icon } },
-      React.createElement(Icon, { name: icon, size: 22, stroke: c.stroke })
-    ),
-    React.createElement('div', { className: 'stat-body' },
-      React.createElement('div', { className: 'stat-label' }, label),
-      React.createElement('div', { className: 'stat-value', style: { color: c.stroke } }, value),
-      sub ? React.createElement('div', { className: 'stat-sub' }, sub) : null
-    )
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PAGE: SQL Console
-// ─────────────────────────────────────────────────────────────────────────────
-const QUICK_ACTIONS = [
-  { label: 'SELECT *',     icon: 'Search',          q: 'SELECT * FROM your_table LIMIT 50;' },
-  { label: 'Show Tables',  icon: 'LayoutList',       q: 'SHOW TABLES;' },
-  { label: 'CREATE TABLE', icon: 'TableProperties',  q: 'CREATE TABLE example (\n  id INT,\n  name VARCHAR(255)\n);' },
-  { label: 'INSERT',       icon: 'RowsIcon',         q: "INSERT INTO example (id, name) VALUES (1, 'Alice');" },
-  { label: 'DROP TABLE',   icon: 'Trash2',           q: 'DROP TABLE example;' },
-];
-
-function SqlConsolePage({ creds, stats, setStats }) {
-  const [query, setQuery] = useState('SELECT * FROM users LIMIT 20;');
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState(null);
-  const [error, setError] = useState('');
-  const [history, setHistory] = useState([]);
-
-  const run = async function() {
-    if (!query.trim()) return;
-    setLoading(true); setError(''); setResults(null);
-    const ts = Date.now();
-    const { ok, data } = await apiFetch('/query', { method: 'POST', body: JSON.stringify({ query: query.trim() }) }, creds);
-    if (data && data.results) {
-      setResults(data.results);
-      setStats(function(s) { return Object.assign({}, s, { queries: (s.queries||0) + 1 }); });
-    } else if (data && data.error) {
-      setError(data.error);
-    } else if (!ok) {
-      setError('Query failed');
-    } else {
-      setError('Unexpected response');
+    // ── helpers ──────────────────────────────────────────────────────────────────
+    function b64(str) {
+      try { return btoa(unescape(encodeURIComponent(str))); } catch (e) { return btoa(str); }
     }
-    setHistory(function(h) { return [{ q: query.trim(), ts, ok: !!(data && data.results) }].concat(h.slice(0,29)); });
-    setLoading(false);
-  };
 
-  const handleKey = function(e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
-  };
+    function authHeader(creds) {
+      return { 'Authorization': 'Basic ' + b64(creds.username + ':' + creds.password) };
+    }
 
-  return React.createElement(motion.div, { initial:{opacity:0,y:16}, animate:{opacity:1,y:0}, exit:{opacity:0,y:-10}, transition:{duration:.3} },
-    // Stat cards
-    React.createElement('div', { className: 'stat-grid' },
-      React.createElement(StatCard, { icon:'Table', label:'Tables', value: stats.tables, sub:'in database', color:'blue' }),
-      React.createElement(StatCard, { icon:'Activity', label:'Server Status', value:'Online', sub:'all systems nominal', color:'green' }),
-      React.createElement(StatCard, { icon:'Terminal', label:'Queries Run', value: stats.queries||0, sub:'this session', color:'pink' }),
-      React.createElement(StatCard, { icon:'Users', label:'Active Users', value: stats.users||0, sub:'registered', color:'purple' })
-    ),
-    // Main grid
-    React.createElement('div', { style:{ display:'grid', gridTemplateColumns:'1fr 280px', gap:20 } },
-      // Console + results
-      React.createElement('div', null,
-        React.createElement('div', { className:'card mb-4' },
-          React.createElement('div', { className:'card-header' },
-            React.createElement(Icon, { name:'Terminal', size:16, stroke:'var(--pink)' }),
-            React.createElement('h3', null, 'SQL Console'),
-            React.createElement('span', { className:'text-xs text-muted' }, 'Ctrl+Enter to run')
-          ),
-          React.createElement('div', { className:'card-body' },
-            React.createElement('div', { className:'quick-actions' },
-              QUICK_ACTIONS.map(function(qa) {
-                return React.createElement('button', { key: qa.label, className:'btn btn-secondary btn-sm', onClick: function() { setQuery(qa.q); } },
-                  React.createElement(Icon, { name: qa.icon, size:13 }),
-                  qa.label
-                );
-              })
-            ),
-            React.createElement('textarea', {
-              className: 'input input-code',
-              value: query,
-              onChange: function(e) { setQuery(e.target.value); },
-              onKeyDown: handleKey,
-              spellCheck: false,
-              rows: 8,
-              placeholder: 'Enter SQL query…'
-            }),
-            React.createElement('div', { style:{ display:'flex', justifyContent:'flex-end', marginTop:10 } },
-              React.createElement('button', { className:'btn btn-primary', onClick: run, disabled: loading },
-                loading ? React.createElement(Spinner) : React.createElement(Icon, { name:'Play', size:15 }),
-                loading ? 'Running…' : 'Run Query'
-              )
-            )
-          )
+    async function apiFetch(path, options, creds) {
+      options = options || {};
+      const headers = Object.assign({ 'Content-Type': 'application/json' }, authHeader(creds), options.headers || {});
+      try {
+        const res = await fetch(path, Object.assign({}, options, { headers }));
+        const data = await res.json().catch(() => ({}));
+        return { ok: res.ok, status: res.status, data };
+      } catch (e) {
+        return { ok: false, status: 0, data: { error: e.message } };
+      }
+    }
+
+    function fmt(v) {
+      if (v === null || v === undefined) return React.createElement('span', { className: 'null-val' }, 'NULL');
+      if (typeof v === 'object') return JSON.stringify(v);
+      return String(v);
+    }
+
+    function typeColor(t) {
+      if (!t) return 'gray';
+      const u = String(t).toUpperCase();
+      if (u.includes('INT')) return 'blue';
+      if (u.includes('FLOAT') || u.includes('DOUBLE') || u.includes('REAL')) return 'purple';
+      if (u.includes('VARCHAR') || u.includes('TEXT') || u.includes('CHAR')) return 'green';
+      if (u.includes('VECTOR') || u.includes('MATRIX') || u.includes('TENSOR')) return 'pink';
+      return 'gray';
+    }
+
+    function TypeBadge({ type }) {
+      const c = typeColor(type);
+      return React.createElement('span', { className: `badge badge-${c}` }, type || 'UNKNOWN');
+    }
+
+    function ago(ts) {
+      const d = Date.now() - ts;
+      if (d < 60000) return Math.floor(d / 1000) + 's ago';
+      if (d < 3600000) return Math.floor(d / 60000) + 'm ago';
+      return Math.floor(d / 3600000) + 'h ago';
+    }
+
+    // ── Icon via lucide ───────────────────────────────────────────────────────────
+
+    // Improved parsing of kebab-case to PascalCase (handles edge cases better)
+    function toPascal(str) {
+      if (!str) return 'HelpCircle';
+      return str.split('-').map(function (part) {
+        return part.charAt(0).toUpperCase() + part.slice(1);
+      }).join('');
+    }
+
+    function Icon({ name, size, stroke, style }) {
+      size = size || 16;
+      const ref = useRef(null);
+
+      useEffect(() => {
+        if (!ref.current || !window.lucide || !window.lucide.icons) return;
+        ref.current.innerHTML = '';
+        try {
+          const pName = toPascal(name);
+
+          // Look up icon, considering potential renames in newer lucide versions
+          const iconData = window.lucide.icons[pName]
+            || window.lucide.icons[pName.replace('2', '')] // fallback 'CheckCircle2' -> 'CheckCircle'
+            || window.lucide.icons['CircleHelp']           // fallback for 'HelpCircle'
+            || window.lucide.icons['HelpCircle'];
+
+          if (!iconData) return;
+
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svg.setAttribute('width', String(size));
+          svg.setAttribute('height', String(size));
+          svg.setAttribute('viewBox', '0 0 24 24');
+          svg.setAttribute('fill', 'none');
+          svg.setAttribute('stroke', stroke || 'currentColor');
+          svg.setAttribute('stroke-width', '2');
+          svg.setAttribute('stroke-linecap', 'round');
+          svg.setAttribute('stroke-linejoin', 'round');
+
+          // The key fix: Lucide data structure changed over time. 
+          // It can be an array of children directy OR ['svg', attrs, children]
+          let children = [];
+          if (Array.isArray(iconData)) {
+            if (Array.isArray(iconData[0])) {
+              // Structure: [['path', {d: '...'}], ['circle', {cx: '...'}]]
+              children = iconData;
+            } else if (Array.isArray(iconData[2])) {
+              // Structure: ['svg', {xmlns: '...'}, [['path', {...}]]]
+              children = iconData[2];
+            }
+          }
+
+          children.forEach(function (child) {
+            if (!Array.isArray(child)) return;
+            const tag = child[0];
+            const attrs = child[1] || {};
+            const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+
+            // Apply attributes properly formatting camelCase -> kebab-case
+            Object.entries(attrs).forEach(function (pair) {
+              const attrName = pair[0].replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+              el.setAttribute(attrName, String(pair[1]));
+            });
+
+            svg.appendChild(el);
+          });
+          ref.current.appendChild(svg);
+        } catch (e) {
+          console.error('Icon error:', e);
+        }
+      }, [name, size, stroke]);
+
+      return React.createElement('span', {
+        ref,
+        style: Object.assign({ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, verticalAlign: 'middle' }, style || {})
+      });
+    }
+
+    // ── Toggle ────────────────────────────────────────────────────────────────────
+    function Toggle({ checked, onChange, gold }) {
+      return React.createElement('label', { className: 'toggle' },
+        React.createElement('input', { type: 'checkbox', checked: !!checked, onChange: function (e) { onChange(e.target.checked); } }),
+        React.createElement('span', { className: 'toggle-track' + (gold ? ' gold' : '') }),
+        React.createElement('span', { className: 'toggle-thumb' })
+      );
+    }
+
+    // ── Banner ────────────────────────────────────────────────────────────────────
+    function Banner({ type, children }) {
+      type = type || 'error';
+      const map = { error: ['banner-error', 'x-circle'], success: ['banner-success', 'check-circle'], info: ['banner-info', 'info'] };
+      const pair = map[type] || map.error;
+      return React.createElement('div', { className: 'banner ' + pair[0] },
+        React.createElement(Icon, { name: pair[1], size: 16 }),
+        React.createElement('span', null, children)
+      );
+    }
+
+    // ── Spinner ───────────────────────────────────────────────────────────────────
+    function Spinner() { return React.createElement('span', { className: 'spinner' }); }
+
+    // ── Empty ─────────────────────────────────────────────────────────────────────
+    function Empty({ icon, title, sub }) {
+      icon = icon || 'inbox';
+      return React.createElement('div', { className: 'empty' },
+        React.createElement(Icon, { name: icon, size: 44 }),
+        React.createElement('p', null, title),
+        sub ? React.createElement('small', null, sub) : null
+      );
+    }
+
+    // ── StatCard ──────────────────────────────────────────────────────────────────
+    function StatCard({ icon, label, value, sub, color }) {
+      color = color || 'pink';
+      const colorMap = {
+        pink: { border: 'rgba(244,63,135,.2)', icon: 'rgba(244,63,135,.18)', stroke: 'var(--pink)' },
+        blue: { border: 'rgba(59,130,246,.2)', icon: 'rgba(59,130,246,.18)', stroke: 'var(--blue2)' },
+        green: { border: 'rgba(16,185,129,.2)', icon: 'rgba(16,185,129,.18)', stroke: 'var(--green2)' },
+        purple: { border: 'rgba(139,92,246,.2)', icon: 'rgba(139,92,246,.18)', stroke: 'var(--purple2)' },
+      };
+      const c = colorMap[color] || colorMap.pink;
+      return React.createElement(motion.div, {
+        className: 'stat-card',
+        style: { borderColor: c.border },
+        whileHover: { y: -3, boxShadow: '0 8px 32px rgba(0,0,0,.45)' },
+        transition: { type: 'spring', stiffness: 300, damping: 25 }
+      },
+        React.createElement('div', { className: 'stat-icon', style: { background: c.icon } },
+          React.createElement(Icon, { name: icon, size: 22, stroke: c.stroke })
         ),
+        React.createElement('div', { className: 'stat-body' },
+          React.createElement('div', { className: 'stat-label' }, label),
+          React.createElement('div', { className: 'stat-value', style: { color: c.stroke } }, value),
+          sub ? React.createElement('div', { className: 'stat-sub' }, sub) : null
+        )
+      );
+    }
 
-        error ? React.createElement(motion.div, { initial:{opacity:0}, animate:{opacity:1}, className:'mb-4' },
-          React.createElement(Banner, { type:'error' }, error)
-        ) : null,
+    // ─────────────────────────────────────────────────────────────────────────────
+    // PAGE: SQL Console
+    // ─────────────────────────────────────────────────────────────────────────────
+    const QUICK_ACTIONS = [
+      { label: 'SELECT *', icon: 'search', q: 'SELECT * FROM your_table LIMIT 50;' },
+      { label: 'Show Tables', icon: 'layout-list', q: 'SHOW TABLES;' },
+      { label: 'CREATE TABLE', icon: 'table-properties', q: 'CREATE TABLE example (\n  id INT,\n  name VARCHAR(255)\n);' },
+      { label: 'INSERT', icon: 'rows', q: "INSERT INTO example (id, name) VALUES (1, 'Alice');" },
+      { label: 'DROP TABLE', icon: 'trash-2', q: 'DROP TABLE example;' },
+    ];
 
-        React.createElement(AnimatePresence, null,
-          results ? results.map(function(res, i) {
-            return React.createElement(motion.div, { key:i, initial:{opacity:0,y:10}, animate:{opacity:1,y:0}, className:'result-block' },
-              res.error
-                ? React.createElement(Banner, { type:'error' }, res.error)
-                : res.message
-                  ? React.createElement('div', { className:'result-msg' }, '✓ ' + res.message)
-                  : (res.columns && res.rows)
-                    ? React.createElement('div', { className:'card' },
-                        React.createElement('div', { className:'card-header' },
-                          React.createElement(Icon, { name:'Table2', size:15, stroke:'var(--blue2)' }),
-                          React.createElement('h3', null, 'Result Set'),
-                          React.createElement('span', { className:'badge badge-blue' }, res.rows.length + ' row' + (res.rows.length!==1?'s':'')),
-                          React.createElement('span', { className:'badge badge-gray' }, res.columns.length + ' col' + (res.columns.length!==1?'s':''))
-                        ),
-                        React.createElement('div', { className:'table-wrap', style:{borderRadius:0,border:'none',maxHeight:340,overflowY:'auto'} },
-                          React.createElement('table', null,
-                            React.createElement('thead', null, React.createElement('tr', null, res.columns.map(function(c){ return React.createElement('th',{key:c},c); }))),
-                            React.createElement('tbody', null,
-                              res.rows.length===0
-                                ? React.createElement('tr', null, React.createElement('td', { colSpan: res.columns.length }, React.createElement(Empty, { icon:'Inbox', title:'No rows returned' })))
-                                : res.rows.map(function(row,ri){ return React.createElement('tr',{key:ri}, row.map(function(v,ci){ return React.createElement('td',{key:ci},fmt(v)); })); })
+    function SqlConsolePage({ creds, stats, setStats }) {
+      const [query, setQuery] = useState('SELECT * FROM users LIMIT 20;');
+      const [loading, setLoading] = useState(false);
+      const [results, setResults] = useState(null);
+      const [error, setError] = useState('');
+      const [history, setHistory] = useState([]);
+
+      const run = async function () {
+        if (!query.trim()) return;
+        setLoading(true); setError(''); setResults(null);
+        const ts = Date.now();
+        const { ok, data } = await apiFetch('/query', { method: 'POST', body: JSON.stringify({ query: query.trim() }) }, creds);
+        if (data && data.results) {
+          setResults(data.results);
+          setStats(function (s) { return Object.assign({}, s, { queries: (s.queries || 0) + 1 }); });
+        } else if (data && data.error) {
+          setError(data.error);
+        } else if (!ok) {
+          setError('Query failed');
+        } else {
+          setError('Unexpected response');
+        }
+        setHistory(function (h) { return [{ q: query.trim(), ts, ok: !!(data && data.results) }].concat(h.slice(0, 29)); });
+        setLoading(false);
+      };
+
+      const handleKey = function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+      };
+
+      return React.createElement(motion.div, { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10 }, transition: { duration: .3 } },
+        // Stat cards
+        React.createElement('div', { className: 'stat-grid' },
+          React.createElement(StatCard, { icon: 'table', label: 'Tables', value: stats.tables, sub: 'in database', color: 'blue' }),
+          React.createElement(StatCard, { icon: 'activity', label: 'Server Status', value: 'Online', sub: 'all systems nominal', color: 'green' }),
+          React.createElement(StatCard, { icon: 'terminal', label: 'Queries Run', value: stats.queries || 0, sub: 'this session', color: 'pink' }),
+          React.createElement(StatCard, { icon: 'users', label: 'Active Users', value: stats.users || 0, sub: 'registered', color: 'purple' })
+        ),
+        // Main grid
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20 } },
+          // Console + results
+          React.createElement('div', null,
+            React.createElement('div', { className: 'card mb-4' },
+              React.createElement('div', { className: 'card-header' },
+                React.createElement(Icon, { name: 'terminal', size: 16, stroke: 'var(--pink)' }),
+                React.createElement('h3', null, 'SQL Console'),
+                React.createElement('span', { className: 'text-xs text-muted' }, 'Ctrl+Enter to run')
+              ),
+              React.createElement('div', { className: 'card-body' },
+                React.createElement('div', { className: 'quick-actions' },
+                  QUICK_ACTIONS.map(function (qa) {
+                    return React.createElement('button', { key: qa.label, className: 'btn btn-secondary btn-sm', onClick: function () { setQuery(qa.q); } },
+                      React.createElement(Icon, { name: qa.icon, size: 13 }),
+                      qa.label
+                    );
+                  })
+                ),
+                React.createElement('textarea', {
+                  className: 'input input-code',
+                  value: query,
+                  onChange: function (e) { setQuery(e.target.value); },
+                  onKeyDown: handleKey,
+                  spellCheck: false,
+                  rows: 8,
+                  placeholder: 'Enter SQL query…'
+                }),
+                React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginTop: 10 } },
+                  React.createElement('button', { className: 'btn btn-primary', onClick: run, disabled: loading },
+                    loading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'play', size: 15 }),
+                    loading ? 'Running…' : 'Run Query'
+                  )
+                )
+              )
+            ),
+
+            error ? React.createElement(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, className: 'mb-4' },
+              React.createElement(Banner, { type: 'error' }, error)
+            ) : null,
+
+            React.createElement(AnimatePresence, null,
+              results ? results.map(function (res, i) {
+                return React.createElement(motion.div, { key: i, initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, className: 'result-block' },
+                  res.error
+                    ? React.createElement(Banner, { type: 'error' }, res.error)
+                    : res.message
+                      ? React.createElement('div', { className: 'result-msg' }, '✓ ' + res.message)
+                      : (res.columns && res.rows)
+                        ? React.createElement('div', { className: 'card' },
+                          React.createElement('div', { className: 'card-header' },
+                            React.createElement(Icon, { name: 'table', size: 15, stroke: 'var(--blue2)' }),
+                            React.createElement('h3', null, 'Result Set'),
+                            React.createElement('span', { className: 'badge badge-blue' }, res.rows.length + ' row' + (res.rows.length !== 1 ? 's' : '')),
+                            React.createElement('span', { className: 'badge badge-gray' }, res.columns.length + ' col' + (res.columns.length !== 1 ? 's' : ''))
+                          ),
+                          React.createElement('div', { className: 'table-wrap', style: { borderRadius: 0, border: 'none', maxHeight: 340, overflowY: 'auto' } },
+                            React.createElement('table', null,
+                              React.createElement('thead', null, React.createElement('tr', null, res.columns.map(function (c) { return React.createElement('th', { key: c }, c); }))),
+                              React.createElement('tbody', null,
+                                res.rows.length === 0
+                                  ? React.createElement('tr', null, React.createElement('td', { colSpan: res.columns.length }, React.createElement(Empty, { icon: 'inbox', title: 'No rows returned' })))
+                                  : res.rows.map(function (row, ri) { return React.createElement('tr', { key: ri }, row.map(function (v, ci) { return React.createElement('td', { key: ci }, fmt(v)); })); })
+                              )
                             )
                           )
                         )
-                      )
-                    : null
-            );
-          }) : null
-        ),
+                        : null
+                );
+              }) : null
+            ),
 
-        !results && !error && !loading
-          ? React.createElement('div', { className:'card' },
-              React.createElement(Empty, { icon:'Terminal', title:'Run a query to see results', sub:'Press Ctrl+Enter or click Run Query' })
-            )
-          : null
-      ),
-
-      // History
-      React.createElement('div', null,
-        React.createElement('div', { className:'card' },
-          React.createElement('div', { className:'card-header' },
-            React.createElement(Icon, { name:'History', size:15, stroke:'var(--purple2)' }),
-            React.createElement('h3', null, 'Query History'),
-            history.length > 0
-              ? React.createElement('button', { className:'btn btn-secondary btn-sm btn-icon', onClick: function(){ setHistory([]); } },
-                  React.createElement(Icon, { name:'X', size:13 })
-                )
+            !results && !error && !loading
+              ? React.createElement('div', { className: 'card' },
+                React.createElement(Empty, { icon: 'terminal', title: 'Run a query to see results', sub: 'Press Ctrl+Enter or click Run Query' })
+              )
               : null
           ),
-          React.createElement('div', { style:{ maxHeight:500, overflowY:'auto' } },
-            history.length === 0
-              ? React.createElement(Empty, { icon:'Clock', title:'No history yet' })
-              : history.map(function(h,i) {
-                  return React.createElement('div', { key:i, className:'history-item', onClick: function(){ setQuery(h.q); } },
-                    React.createElement('span', { className:'h-ok', style:{ background: h.ok ? 'var(--green)' : 'var(--red)' } }),
-                    React.createElement('code', null, h.q.replace(/\s+/g,' ').slice(0,60) + (h.q.length>60?'…':'')),
-                    React.createElement('span', { className:'h-time' }, ago(h.ts))
-                  );
-                })
-          )
-        )
-      )
-    )
-  );
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PAGE: Table Browser
-// ─────────────────────────────────────────────────────────────────────────────
-function TableBrowserPage({ creds }) {
-  const [tables, setTables] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [selected, setSelected] = useState(null);
-  const [schema, setSchema] = useState(null);
-  const [schemaLoading, setSchemaLoading] = useState(false);
-  const [preview, setPreview] = useState(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
-
-  useEffect(function() {
-    (async function() {
-      setLoading(true);
-      const { ok, data } = await apiFetch('/api/tables', {}, creds);
-      if (ok && data.tables) setTables(data.tables);
-      else setError(data.error || 'Failed to load tables');
-      setLoading(false);
-    })();
-  }, []);
-
-  const selectTable = async function(t) {
-    setSelected(t); setSchema(null); setPreview(null);
-    setSchemaLoading(true);
-    const { ok, data } = await apiFetch('/api/describe?table=' + encodeURIComponent(t), {}, creds);
-    if (ok && data.columns) setSchema(data.columns);
-    setSchemaLoading(false);
-
-    setPreviewLoading(true);
-    const r = await apiFetch('/query', { method:'POST', body: JSON.stringify({ query: 'SELECT * FROM ' + t + ' LIMIT 20;' }) }, creds);
-    if (r.ok && r.data.results && r.data.results[0]) setPreview(r.data.results[0]);
-    setPreviewLoading(false);
-  };
-
-  return React.createElement(motion.div, { initial:{opacity:0,y:16}, animate:{opacity:1,y:0}, exit:{opacity:0,y:-10}, transition:{duration:.3} },
-    error ? React.createElement('div', { className:'mb-4' }, React.createElement(Banner, { type:'error' }, error)) : null,
-    React.createElement('div', { className:'split' },
-      // Table list
-      React.createElement('div', null,
-        React.createElement('div', { className:'card' },
-          React.createElement('div', { className:'card-header' },
-            React.createElement(Icon, { name:'Database', size:15, stroke:'var(--blue2)' }),
-            React.createElement('h3', null, 'Tables'),
-            React.createElement('span', { className:'badge badge-blue' }, tables.length)
-          ),
-          React.createElement('div', { style:{ padding:12, maxHeight:620, overflowY:'auto' } },
-            loading
-              ? React.createElement(Empty, { icon:'Loader', title:'Loading…' })
-              : tables.length === 0
-                ? React.createElement(Empty, { icon:'Database', title:'No tables found', sub:'Create a table using SQL Console' })
-                : React.createElement('div', { className:'table-list' },
-                    tables.map(function(t) {
-                      return React.createElement(motion.div, {
-                        key: t,
-                        className: 'table-list-item' + (selected===t?' selected':''),
-                        onClick: function(){ selectTable(t); },
-                        whileHover: { x: 2 },
-                        transition: { type:'spring', stiffness:400, damping:30 }
-                      },
-                        React.createElement(Icon, { name:'Table2', size:16 }),
-                        React.createElement('span', null, t),
-                        React.createElement(Icon, { name:'ChevronRight', size:14, style:{ color:'var(--muted)' } })
-                      );
-                    })
+          // History
+          React.createElement('div', null,
+            React.createElement('div', { className: 'card' },
+              React.createElement('div', { className: 'card-header' },
+                React.createElement(Icon, { name: 'history', size: 15, stroke: 'var(--purple2)' }),
+                React.createElement('h3', null, 'Query History'),
+                history.length > 0
+                  ? React.createElement('button', { className: 'btn btn-secondary btn-sm btn-icon', onClick: function () { setHistory([]); } },
+                    React.createElement(Icon, { name: 'x', size: 13 })
                   )
+                  : null
+              ),
+              React.createElement('div', { style: { maxHeight: 500, overflowY: 'auto' } },
+                history.length === 0
+                  ? React.createElement(Empty, { icon: 'clock', title: 'No history yet' })
+                  : history.map(function (h, i) {
+                    return React.createElement('div', { key: i, className: 'history-item', onClick: function () { setQuery(h.q); } },
+                      React.createElement('span', { className: 'h-ok', style: { background: h.ok ? 'var(--green)' : 'var(--red)' } }),
+                      React.createElement('code', null, h.q.replace(/\s+/g, ' ').slice(0, 60) + (h.q.length > 60 ? '…' : '')),
+                      React.createElement('span', { className: 'h-time' }, ago(h.ts))
+                    );
+                  })
+              )
+            )
           )
         )
-      ),
-      // Detail
-      React.createElement('div', null,
-        !selected
-          ? React.createElement('div', { className:'card' }, React.createElement(Empty, { icon:'Table', title:'Select a table', sub:'Click a table on the left to view its schema and data' }))
-          : React.createElement('div', null,
-              // Schema
-              React.createElement('div', { className:'card mb-4' },
-                React.createElement('div', { className:'card-header' },
-                  React.createElement(Icon, { name:'Layers', size:15, stroke:'var(--purple2)' }),
-                  React.createElement('h3', null, 'Schema — ', React.createElement('span', { style:{color:'var(--pink)'} }, selected))
-                ),
-                schemaLoading
-                  ? React.createElement(Empty, { icon:'Loader', title:'Loading schema…' })
-                  : schema
-                    ? React.createElement('div', { className:'table-wrap', style:{borderRadius:0,border:'none'} },
+      );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // PAGE: Table Browser
+    // ─────────────────────────────────────────────────────────────────────────────
+    function TableBrowserPage({ creds }) {
+      const [tables, setTables] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [selected, setSelected] = useState(null);
+      const [schema, setSchema] = useState(null);
+      const [schemaLoading, setSchemaLoading] = useState(false);
+      const [preview, setPreview] = useState(null);
+      const [previewLoading, setPreviewLoading] = useState(false);
+
+      useEffect(function () {
+        (async function () {
+          setLoading(true);
+          const { ok, data } = await apiFetch('/api/tables', {}, creds);
+          if (ok && data.tables) setTables(data.tables);
+          else setError(data.error || 'Failed to load tables');
+          setLoading(false);
+        })();
+      }, []);
+
+      const selectTable = async function (t) {
+        setSelected(t); setSchema(null); setPreview(null);
+        setSchemaLoading(true);
+        const { ok, data } = await apiFetch('/api/describe?table=' + encodeURIComponent(t), {}, creds);
+        if (ok && data.columns) setSchema(data.columns);
+        setSchemaLoading(false);
+
+        setPreviewLoading(true);
+        const r = await apiFetch('/query', { method: 'POST', body: JSON.stringify({ query: 'SELECT * FROM ' + t + ' LIMIT 20;' }) }, creds);
+        if (r.ok && r.data.results && r.data.results[0]) setPreview(r.data.results[0]);
+        setPreviewLoading(false);
+      };
+
+      return React.createElement(motion.div, { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10 }, transition: { duration: .3 } },
+        error ? React.createElement('div', { className: 'mb-4' }, React.createElement(Banner, { type: 'error' }, error)) : null,
+        React.createElement('div', { className: 'split' },
+          // Table list
+          React.createElement('div', null,
+            React.createElement('div', { className: 'card' },
+              React.createElement('div', { className: 'card-header' },
+                React.createElement(Icon, { name: 'database', size: 15, stroke: 'var(--blue2)' }),
+                React.createElement('h3', null, 'Tables'),
+                React.createElement('span', { className: 'badge badge-blue' }, tables.length)
+              ),
+              React.createElement('div', { style: { padding: 12, maxHeight: 620, overflowY: 'auto' } },
+                loading
+                  ? React.createElement(Empty, { icon: 'loader', title: 'Loading…' })
+                  : tables.length === 0
+                    ? React.createElement(Empty, { icon: 'database', title: 'No tables found', sub: 'Create a table using SQL Console' })
+                    : React.createElement('div', { className: 'table-list' },
+                      tables.map(function (t) {
+                        return React.createElement(motion.div, {
+                          key: t,
+                          className: 'table-list-item' + (selected === t ? ' selected' : ''),
+                          onClick: function () { selectTable(t); },
+                          whileHover: { x: 2 },
+                          transition: { type: 'spring', stiffness: 400, damping: 30 }
+                        },
+                          React.createElement(Icon, { name: 'table', size: 16 }),
+                          React.createElement('span', null, t),
+                          React.createElement(Icon, { name: 'chevron-right', size: 14, style: { color: 'var(--muted)' } })
+                        );
+                      })
+                    )
+              )
+            )
+          ),
+          // Detail
+          React.createElement('div', null,
+            !selected
+              ? React.createElement('div', { className: 'card' }, React.createElement(Empty, { icon: 'table', title: 'Select a table', sub: 'Click a table on the left to view its schema and data' }))
+              : React.createElement('div', null,
+                // Schema
+                React.createElement('div', { className: 'card mb-4' },
+                  React.createElement('div', { className: 'card-header' },
+                    React.createElement(Icon, { name: 'layers', size: 15, stroke: 'var(--purple2)' }),
+                    React.createElement('h3', null, 'Schema — ', React.createElement('span', { style: { color: 'var(--pink)' } }, selected))
+                  ),
+                  schemaLoading
+                    ? React.createElement(Empty, { icon: 'loader', title: 'Loading schema…' })
+                    : schema
+                      ? React.createElement('div', { className: 'table-wrap', style: { borderRadius: 0, border: 'none' } },
                         React.createElement('table', null,
-                          React.createElement('thead', null, React.createElement('tr', null, React.createElement('th',null,'#'), React.createElement('th',null,'Column'), React.createElement('th',null,'Type'))),
+                          React.createElement('thead', null, React.createElement('tr', null, React.createElement('th', null, '#'), React.createElement('th', null, 'Column'), React.createElement('th', null, 'Type'))),
                           React.createElement('tbody', null,
-                            schema.map(function(col,i) {
-                              return React.createElement('tr', {key:i},
-                                React.createElement('td', { style:{color:'var(--muted)',width:40} }, i+1),
-                                React.createElement('td', { style:{color:'var(--text)',fontWeight:600} }, col.name),
+                            schema.map(function (col, i) {
+                              return React.createElement('tr', { key: i },
+                                React.createElement('td', { style: { color: 'var(--muted)', width: 40 } }, i + 1),
+                                React.createElement('td', { style: { color: 'var(--text)', fontWeight: 600 } }, col.name),
                                 React.createElement('td', null, React.createElement(TypeBadge, { type: col.type_id || col.type }))
                               );
                             })
                           )
                         )
                       )
-                    : React.createElement(Empty, { icon:'AlertCircle', title:'Could not load schema' })
-              ),
-              // Preview
-              React.createElement('div', { className:'card' },
-                React.createElement('div', { className:'card-header' },
-                  React.createElement(Icon, { name:'Eye', size:15, stroke:'var(--green2)' }),
-                  React.createElement('h3', null, 'Data Preview'),
-                  React.createElement('span', { className:'text-xs text-muted' }, 'First 20 rows')
+                      : React.createElement(Empty, { icon: 'alert-circle', title: 'Could not load schema' })
                 ),
-                previewLoading
-                  ? React.createElement(Empty, { icon:'Loader', title:'Loading data…' })
-                  : preview
-                    ? preview.error
-                      ? React.createElement('div', { style:{padding:16} }, React.createElement(Banner, { type:'error' }, preview.error))
-                      : preview.columns
-                        ? React.createElement('div', { className:'table-wrap', style:{borderRadius:0,border:'none',maxHeight:380,overflowY:'auto'} },
+                // Preview
+                React.createElement('div', { className: 'card' },
+                  React.createElement('div', { className: 'card-header' },
+                    React.createElement(Icon, { name: 'eye', size: 15, stroke: 'var(--green2)' }),
+                    React.createElement('h3', null, 'Data Preview'),
+                    React.createElement('span', { className: 'text-xs text-muted' }, 'First 20 rows')
+                  ),
+                  previewLoading
+                    ? React.createElement(Empty, { icon: 'loader', title: 'Loading data…' })
+                    : preview
+                      ? preview.error
+                        ? React.createElement('div', { style: { padding: 16 } }, React.createElement(Banner, { type: 'error' }, preview.error))
+                        : preview.columns
+                          ? React.createElement('div', { className: 'table-wrap', style: { borderRadius: 0, border: 'none', maxHeight: 380, overflowY: 'auto' } },
                             React.createElement('table', null,
-                              React.createElement('thead', null, React.createElement('tr', null, preview.columns.map(function(c){ return React.createElement('th',{key:c},c); }))),
+                              React.createElement('thead', null, React.createElement('tr', null, preview.columns.map(function (c) { return React.createElement('th', { key: c }, c); }))),
                               React.createElement('tbody', null,
-                                (!preview.rows || preview.rows.length===0)
-                                  ? React.createElement('tr', null, React.createElement('td', { colSpan: preview.columns.length }, React.createElement(Empty, { icon:'Inbox', title:'Table is empty' })))
-                                  : preview.rows.map(function(row,ri){ return React.createElement('tr',{key:ri}, row.map(function(v,ci){ return React.createElement('td',{key:ci},fmt(v)); })); })
+                                (!preview.rows || preview.rows.length === 0)
+                                  ? React.createElement('tr', null, React.createElement('td', { colSpan: preview.columns.length }, React.createElement(Empty, { icon: 'inbox', title: 'Table is empty' })))
+                                  : preview.rows.map(function (row, ri) { return React.createElement('tr', { key: ri }, row.map(function (v, ci) { return React.createElement('td', { key: ci }, fmt(v)); })); })
                               )
                             )
                           )
-                        : React.createElement('div', { style:{padding:16} }, React.createElement('div', { className:'result-msg' }, preview.message || ''))
-                    : React.createElement(Empty, { icon:'Database', title:'No preview available' })
+                          : React.createElement('div', { style: { padding: 16 } }, React.createElement('div', { className: 'result-msg' }, preview.message || ''))
+                      : React.createElement(Empty, { icon: 'database', title: 'No preview available' })
+                )
               )
-            )
-      )
-    )
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PAGE: Users & Policies
-// ─────────────────────────────────────────────────────────────────────────────
-const POLICY_FIELDS = [
-  { key: 'can_select', label: 'Can SELECT',       desc: 'Read data from tables',          icon: 'Search' },
-  { key: 'can_insert', label: 'Can INSERT',       desc: 'Add new records',                icon: 'Plus' },
-  { key: 'can_update', label: 'Can UPDATE',       desc: 'Modify existing records',        icon: 'Pencil' },
-  { key: 'can_delete', label: 'Can DELETE',       desc: 'Remove records',                 icon: 'Trash2' },
-  { key: 'can_create', label: 'Can CREATE TABLE', desc: 'Create new tables',              icon: 'FolderPlus' },
-  { key: 'can_drop',   label: 'Can DROP TABLE',   desc: 'Delete tables permanently',      icon: 'FolderMinus' },
-];
-
-function UsersPage({ creds }) {
-  const [users, setUsers] = useState([]);
-  const [policies, setPolicies] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  
-  // Side panel state for selected user
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [panel, setPanel] = useState(false);
-  const [editAdmin, setEditAdmin] = useState(false);
-  const [editPolicyName, setEditPolicyName] = useState('');
-  const [editCustomPolicy, setEditCustomPolicy] = useState({});
-  const [saveLoading, setSaveLoading] = useState(false);
-  const [saveMsg, setSaveMsg] = useState('');
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  
-  // Form state for creating user
-  const [newUser, setNewUser] = useState({ username: '', password: '', is_admin: false, policy_name: '' });
-  const [createLoading, setCreateLoading] = useState(false);
-  const [createMsg, setCreateMsg] = useState('');
-
-  const loadData = async function() {
-    setLoading(true); setError('');
-    const [resUsers, resPolicies] = await Promise.all([
-      apiFetch('/api/users', {}, creds),
-      apiFetch('/api/policies', {}, creds)
-    ]);
-    
-    if (resUsers.ok && resUsers.data.users) {
-      setUsers(resUsers.data.users);
-    } else {
-      setError(resUsers.data.error || 'Failed to load users');
-    }
-    
-    if (resPolicies.ok && resPolicies.data.policies) {
-      setPolicies(resPolicies.data.policies);
-      if (resPolicies.data.policies.length > 0 && !newUser.policy_name) {
-        setNewUser(function(u){ return Object.assign({}, u, { policy_name: resPolicies.data.policies[0].name }); });
-      }
-    }
-    setLoading(false);
-  };
-
-  useEffect(function() { loadData(); }, []);
-
-  const openPanel = function(u) {
-    setSelectedUser(u);
-    setEditAdmin(!!u.is_admin);
-    setEditPolicyName(u.policy_name || (u.is_admin ? 'Admin' : 'Custom'));
-    setEditCustomPolicy(Object.assign({}, u.policy || {}));
-    setSaveMsg(''); setDeleteLoading(false); setSaveLoading(false);
-    setPanel(true);
-  };
-
-  const savePolicy = async function() {
-    setSaveLoading(true); setSaveMsg('');
-    
-    let resolvedPolicy = {};
-    if (editAdmin) {
-      resolvedPolicy = { can_select: true, can_insert: true, can_update: true, can_delete: true, can_create: true, can_drop: true };
-    } else if (editPolicyName && editPolicyName !== 'Custom') {
-      const np = policies.find(function(p){ return p.name === editPolicyName; });
-      if (np) {
-        resolvedPolicy = {
-          can_select: !!np.can_select,
-          can_insert: !!np.can_insert,
-          can_update: !!np.can_update,
-          can_delete: !!np.can_delete,
-          can_create: !!np.can_create,
-          can_drop: !!np.can_drop
-        };
-      }
-    } else {
-      resolvedPolicy = editCustomPolicy;
-    }
-    
-    const body = {
-      is_admin: editAdmin,
-      policy_name: editAdmin ? 'Admin' : editPolicyName,
-      policy: resolvedPolicy
-    };
-    
-    const { ok, data } = await apiFetch('/api/users/' + encodeURIComponent(selectedUser.username) + '/policy', { method:'PUT', body: JSON.stringify(body) }, creds);
-    setSaveMsg(ok ? 'success' : (data.error || 'Failed to save'));
-    setSaveLoading(false);
-    if (ok) await loadData();
-  };
-
-  const deleteUser = async function() {
-    if (!confirm('Delete user "' + selectedUser.username + '"?')) return;
-    setDeleteLoading(true);
-    await apiFetch('/api/users/' + encodeURIComponent(selectedUser.username), { method:'DELETE' }, creds);
-    setDeleteLoading(false);
-    setPanel(false); setSelectedUser(null);
-    await loadData();
-  };
-
-  const createUser = async function() {
-    if (!newUser.username || !newUser.password) { setCreateMsg('error:Username and password required'); return; }
-    setCreateLoading(true); setCreateMsg('');
-    
-    let resolvedPolicy = {};
-    if (newUser.is_admin) {
-      resolvedPolicy = { can_select: true, can_insert: true, can_update: true, can_delete: true, can_create: true, can_drop: true };
-    } else if (newUser.policy_name && newUser.policy_name !== 'Custom') {
-      const np = policies.find(function(p){ return p.name === newUser.policy_name; });
-      if (np) {
-        resolvedPolicy = {
-          can_select: !!np.can_select,
-          can_insert: !!np.can_insert,
-          can_update: !!np.can_update,
-          can_delete: !!np.can_delete,
-          can_create: !!np.can_create,
-          can_drop: !!np.can_drop
-        };
-      }
-    }
-    
-    const body = {
-      username: newUser.username,
-      password: newUser.password,
-      is_admin: newUser.is_admin,
-      policy_name: newUser.is_admin ? 'Admin' : newUser.policy_name,
-      policy: resolvedPolicy
-    };
-    
-    const { ok, data } = await apiFetch('/api/users', { method:'POST', body: JSON.stringify(body) }, creds);
-    if (ok) {
-      setCreateMsg('success');
-      setNewUser({ username:'', password:'', is_admin:false, policy_name: policies.length > 0 ? policies[0].name : '' });
-      await loadData();
-    } else {
-      setCreateMsg('error:' + (data.error || 'Failed to create user'));
-    }
-    setCreateLoading(false);
-  };
-
-  const policyBadges = function(u) {
-    if (u.is_admin) return [{ label:'Admin', cls:'badge-gold' }];
-    if (u.policy_name && u.policy_name !== 'Custom' && u.policy_name !== 'Admin') {
-      return [{ label: u.policy_name, cls:'badge-purple' }];
-    }
-    const p = u.policy || {};
-    const tags = [];
-    if (p.can_select) tags.push({ label:'SELECT', cls:'badge-blue' });
-    if (p.can_insert) tags.push({ label:'INSERT', cls:'badge-green' });
-    if (p.can_update) tags.push({ label:'UPDATE', cls:'badge-purple' });
-    if (p.can_delete) tags.push({ label:'DELETE', cls:'badge-pink' });
-    if (p.can_create) tags.push({ label:'CREATE', cls:'badge-gray' });
-    if (p.can_drop)   tags.push({ label:'DROP',   cls:'badge-gray' });
-    return tags;
-  };
-
-  return React.createElement(motion.div, { initial:{opacity:0,y:16}, animate:{opacity:1,y:0}, exit:{opacity:0,y:-10}, transition:{duration:.3} },
-    error ? React.createElement('div', { className:'mb-4' }, React.createElement(Banner, { type:'error' }, error)) : null,
-    React.createElement('div', { style:{ display:'grid', gridTemplateColumns:'1fr 340px', gap:20 } },
-      // User list
-      React.createElement('div', null,
-        React.createElement('div', { className:'card' },
-          React.createElement('div', { className:'card-header' },
-            React.createElement(Icon, { name:'Users', size:15, stroke:'var(--purple2)' }),
-            React.createElement('h3', null, 'Users'),
-            React.createElement('span', { className:'badge badge-purple' }, users.length),
-            React.createElement('button', { className:'btn btn-primary btn-sm', onClick: function(){ setNewUser({username:'',password:'',is_admin:false,policy_name:policies.length>0?policies[0].name:''}); setCreateMsg(''); } },
-              React.createElement(Icon, { name:'UserPlus', size:13 }),
-              'New User'
-            )
-          ),
-          React.createElement('div', { style:{padding:12} },
-            loading
-              ? React.createElement(Empty, { icon:'Loader', title:'Loading users…' })
-              : users.length===0
-                ? React.createElement(Empty, { icon:'Users', title:'No users found' })
-                : users.map(function(u) {
-                    return React.createElement(motion.div, {
-                      key: u.username,
-                      className: 'user-row' + (selectedUser && selectedUser.username===u.username ? ' selected' : ''),
-                      onClick: function(){ openPanel(u); },
-                      whileHover: { x: 2 },
-                      transition: { type:'spring', stiffness:400, damping:30 }
-                    },
-                      React.createElement('div', { className:'user-avatar-sm' + (u.is_admin?' admin':'') }, u.username[0].toUpperCase()),
-                      React.createElement('div', { className:'user-info' },
-                        React.createElement('div', { className:'user-name' }, u.username),
-                        React.createElement('div', { className:'user-badges' },
-                          policyBadges(u).length === 0
-                            ? React.createElement('span', { className:'text-xs text-muted' }, 'No permissions')
-                            : policyBadges(u).map(function(b) { return React.createElement('span', { key:b.label, className:'badge '+b.cls }, b.label); })
-                        )
-                      ),
-                      React.createElement(Icon, { name:'ChevronRight', size:15 })
-                    );
-                  })
           )
         )
-      ),
-      // Create user
-      React.createElement('div', null,
-        React.createElement('div', { className:'card' },
-          React.createElement('div', { className:'card-header' },
-            React.createElement(Icon, { name:'UserPlus', size:15, stroke:'var(--green2)' }),
-            React.createElement('h3', null, 'Create User')
-          ),
-          React.createElement('div', { className:'card-body' },
-            React.createElement('div', { className:'field' },
-              React.createElement('label', { className:'label' }, 'Username'),
-              React.createElement('input', { className:'input', value:newUser.username, onChange:function(e){setNewUser(function(u){return Object.assign({},u,{username:e.target.value});});}, placeholder:'e.g. alice', autoComplete:'off' })
-            ),
-            React.createElement('div', { className:'field' },
-              React.createElement('label', { className:'label' }, 'Password'),
-              React.createElement('input', { className:'input', type:'password', value:newUser.password, onChange:function(e){setNewUser(function(u){return Object.assign({},u,{password:e.target.value});});}, placeholder:'Secure password' })
-            ),
-            React.createElement('div', { className:'toggle-row', style:{marginBottom:16} },
-              React.createElement('div', { className:'toggle-row-info' },
-                React.createElement('div', { className:'t-label' }, 'Admin'),
-                React.createElement('div', { className:'t-desc' }, 'All permissions granted')
-              ),
-              React.createElement(Toggle, { checked: newUser.is_admin, onChange: function(v){setNewUser(function(u){return Object.assign({},u,{is_admin:v, policy_name: v ? 'Admin' : (policies.length > 0 ? policies[0].name : '') });});}, gold: newUser.is_admin })
-            ),
-            
-            !newUser.is_admin ? React.createElement('div', { className:'field' },
-              React.createElement('label', { className:'label' }, 'Assign Policy'),
-              React.createElement('select', {
-                className:'input',
-                value: newUser.policy_name,
-                onChange: function(e){ setNewUser(function(u){return Object.assign({}, u, {policy_name: e.target.value});}); }
-              },
-                policies.map(function(p){ return React.createElement('option', { key:p.name, value:p.name }, p.name); })
-              )
-            ) : null,
+      );
+    }
 
-            createMsg ? React.createElement('div', { className:'mb-3' },
-              createMsg === 'success'
-                ? React.createElement(Banner, { type:'success' }, 'User created successfully!')
-                : React.createElement(Banner, { type:'error' }, createMsg.replace('error:',''))
-            ) : null,
-            React.createElement('button', { className:'btn btn-primary w-full', onClick:createUser, disabled:createLoading },
-              createLoading ? React.createElement(Spinner) : React.createElement(Icon, { name:'Plus', size:15 }),
-              createLoading ? 'Creating…' : 'Create User'
-            )
-          )
-        )
-      )
-    ),
+    // ─────────────────────────────────────────────────────────────────────────────
+    // PAGE: Users & Policies
+    // ─────────────────────────────────────────────────────────────────────────────
+    const POLICY_FIELDS = [
+      { key: 'can_select', label: 'Can SELECT', desc: 'Read data from tables', icon: 'search' },
+      { key: 'can_insert', label: 'Can INSERT', desc: 'Add new records', icon: 'plus' },
+      { key: 'can_update', label: 'Can UPDATE', desc: 'Modify existing records', icon: 'pencil' },
+      { key: 'can_delete', label: 'Can DELETE', desc: 'Remove records', icon: 'trash-2' },
+      { key: 'can_create', label: 'Can CREATE TABLE', desc: 'Create new tables', icon: 'folder-plus' },
+      { key: 'can_drop', label: 'Can DROP TABLE', desc: 'Delete tables permanently', icon: 'folder-minus' },
+    ];
 
-    // Side panel
-    React.createElement(AnimatePresence, null,
-      panel && selectedUser
-        ? React.createElement(React.Fragment, { key:'panel' },
-            React.createElement(motion.div, { className:'panel-overlay', initial:{opacity:0}, animate:{opacity:1}, exit:{opacity:0}, onClick:function(){setPanel(false);} }),
-            React.createElement(motion.div, { className:'side-panel', initial:{x:'100%'}, animate:{x:0}, exit:{x:'100%'}, transition:{type:'spring',stiffness:300,damping:30} },
-              React.createElement('div', { className:'side-panel-header' },
-                React.createElement('div', { className:'user-avatar-sm' + (selectedUser.is_admin?' admin':'') }, selectedUser.username[0].toUpperCase()),
-                React.createElement('div', { style:{flex:1} },
-                  React.createElement('h3', { style:{fontSize:15} }, selectedUser.username),
-                  React.createElement('div', { style:{fontSize:11,color:'var(--muted)'} }, 'Edit permissions')
-                ),
-                React.createElement('button', { className:'btn btn-secondary btn-sm btn-icon', onClick:function(){setPanel(false);} },
-                  React.createElement(Icon, { name:'X', size:15 })
+    function UsersPage({ creds }) {
+      const [users, setUsers] = useState([]);
+      const [policies, setPolicies] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+
+      // Side panel state for selected user
+      const [selectedUser, setSelectedUser] = useState(null);
+      const [panel, setPanel] = useState(false);
+      const [editAdmin, setEditAdmin] = useState(false);
+      const [editPolicyName, setEditPolicyName] = useState('');
+      const [editCustomPolicy, setEditCustomPolicy] = useState({});
+      const [saveLoading, setSaveLoading] = useState(false);
+      const [saveMsg, setSaveMsg] = useState('');
+      const [deleteLoading, setDeleteLoading] = useState(false);
+
+      // Form state for creating user
+      const [newUser, setNewUser] = useState({ username: '', password: '', is_admin: false, policy_name: '' });
+      const [createLoading, setCreateLoading] = useState(false);
+      const [createMsg, setCreateMsg] = useState('');
+
+      const loadData = async function () {
+        setLoading(true); setError('');
+        const [resUsers, resPolicies] = await Promise.all([
+          apiFetch('/api/users', {}, creds),
+          apiFetch('/api/policies', {}, creds)
+        ]);
+
+        if (resUsers.ok && resUsers.data.users) {
+          setUsers(resUsers.data.users);
+        } else {
+          setError(resUsers.data.error || 'Failed to load users');
+        }
+
+        if (resPolicies.ok && resPolicies.data.policies) {
+          setPolicies(resPolicies.data.policies);
+          if (resPolicies.data.policies.length > 0 && !newUser.policy_name) {
+            setNewUser(function (u) { return Object.assign({}, u, { policy_name: resPolicies.data.policies[0].name }); });
+          }
+        }
+        setLoading(false);
+      };
+
+      useEffect(function () { loadData(); }, []);
+
+      const openPanel = function (u) {
+        setSelectedUser(u);
+        setEditAdmin(!!u.is_admin);
+        setEditPolicyName(u.policy_name || (u.is_admin ? 'Admin' : 'Custom'));
+        setEditCustomPolicy(Object.assign({}, u.policy || {}));
+        setSaveMsg(''); setDeleteLoading(false); setSaveLoading(false);
+        setPanel(true);
+      };
+
+      const savePolicy = async function () {
+        setSaveLoading(true); setSaveMsg('');
+
+        let resolvedPolicy = {};
+        if (editAdmin) {
+          resolvedPolicy = { can_select: true, can_insert: true, can_update: true, can_delete: true, can_create: true, can_drop: true };
+        } else if (editPolicyName && editPolicyName !== 'Custom') {
+          const np = policies.find(function (p) { return p.name === editPolicyName; });
+          if (np) {
+            resolvedPolicy = {
+              can_select: !!np.can_select,
+              can_insert: !!np.can_insert,
+              can_update: !!np.can_update,
+              can_delete: !!np.can_delete,
+              can_create: !!np.can_create,
+              can_drop: !!np.can_drop
+            };
+          }
+        } else {
+          resolvedPolicy = editCustomPolicy;
+        }
+
+        const body = {
+          is_admin: editAdmin,
+          policy_name: editAdmin ? 'Admin' : editPolicyName,
+          policy: resolvedPolicy
+        };
+
+        const { ok, data } = await apiFetch('/api/users/' + encodeURIComponent(selectedUser.username) + '/policy', { method: 'PUT', body: JSON.stringify(body) }, creds);
+        setSaveMsg(ok ? 'success' : (data.error || 'Failed to save'));
+        setSaveLoading(false);
+        if (ok) await loadData();
+      };
+
+      // Modified to adhere to prompt constraints: No `confirm()` blocks
+      const deleteUser = async function () {
+        setDeleteLoading(true);
+        await apiFetch('/api/users/' + encodeURIComponent(selectedUser.username), { method: 'DELETE' }, creds);
+        setDeleteLoading(false);
+        setPanel(false); setSelectedUser(null);
+        await loadData();
+      };
+
+      const createUser = async function () {
+        if (!newUser.username || !newUser.password) { setCreateMsg('error:Username and password required'); return; }
+        setCreateLoading(true); setCreateMsg('');
+
+        let resolvedPolicy = {};
+        if (newUser.is_admin) {
+          resolvedPolicy = { can_select: true, can_insert: true, can_update: true, can_delete: true, can_create: true, can_drop: true };
+        } else if (newUser.policy_name && newUser.policy_name !== 'Custom') {
+          const np = policies.find(function (p) { return p.name === newUser.policy_name; });
+          if (np) {
+            resolvedPolicy = {
+              can_select: !!np.can_select,
+              can_insert: !!np.can_insert,
+              can_update: !!np.can_update,
+              can_delete: !!np.can_delete,
+              can_create: !!np.can_create,
+              can_drop: !!np.can_drop
+            };
+          }
+        }
+
+        const body = {
+          username: newUser.username,
+          password: newUser.password,
+          is_admin: newUser.is_admin,
+          policy_name: newUser.is_admin ? 'Admin' : newUser.policy_name,
+          policy: resolvedPolicy
+        };
+
+        const { ok, data } = await apiFetch('/api/users', { method: 'POST', body: JSON.stringify(body) }, creds);
+        if (ok) {
+          setCreateMsg('success');
+          setNewUser({ username: '', password: '', is_admin: false, policy_name: policies.length > 0 ? policies[0].name : '' });
+          await loadData();
+        } else {
+          setCreateMsg('error:' + (data.error || 'Failed to create user'));
+        }
+        setCreateLoading(false);
+      };
+
+      const policyBadges = function (u) {
+        if (u.is_admin) return [{ label: 'Admin', cls: 'badge-gold' }];
+        if (u.policy_name && u.policy_name !== 'Custom' && u.policy_name !== 'Admin') {
+          return [{ label: u.policy_name, cls: 'badge-purple' }];
+        }
+        const p = u.policy || {};
+        const tags = [];
+        if (p.can_select) tags.push({ label: 'SELECT', cls: 'badge-blue' });
+        if (p.can_insert) tags.push({ label: 'INSERT', cls: 'badge-green' });
+        if (p.can_update) tags.push({ label: 'UPDATE', cls: 'badge-purple' });
+        if (p.can_delete) tags.push({ label: 'DELETE', cls: 'badge-pink' });
+        if (p.can_create) tags.push({ label: 'CREATE', cls: 'badge-gray' });
+        if (p.can_drop) tags.push({ label: 'DROP', cls: 'badge-gray' });
+        return tags;
+      };
+
+      return React.createElement(motion.div, { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10 }, transition: { duration: .3 } },
+        error ? React.createElement('div', { className: 'mb-4' }, React.createElement(Banner, { type: 'error' }, error)) : null,
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 } },
+          // User list
+          React.createElement('div', null,
+            React.createElement('div', { className: 'card' },
+              React.createElement('div', { className: 'card-header' },
+                React.createElement(Icon, { name: 'users', size: 15, stroke: 'var(--purple2)' }),
+                React.createElement('h3', null, 'Users'),
+                React.createElement('span', { className: 'badge badge-purple' }, users.length),
+                React.createElement('button', { className: 'btn btn-primary btn-sm', onClick: function () { setNewUser({ username: '', password: '', is_admin: false, policy_name: policies.length > 0 ? policies[0].name : '' }); setCreateMsg(''); } },
+                  React.createElement(Icon, { name: 'user-plus', size: 13 }),
+                  'New User'
                 )
               ),
-              React.createElement('div', { className:'side-panel-body' },
-                // Admin toggle
-                React.createElement('div', { className:'toggle-row', style:{
-                  borderColor: editAdmin ? 'rgba(245,158,11,.4)' : 'var(--border)',
-                  background: editAdmin ? 'rgba(245,158,11,.06)' : 'var(--surface)'
-                } },
-                  React.createElement('div', { className:'toggle-row-info' },
-                    React.createElement('div', { className:'t-label', style:{color: editAdmin ? 'var(--gold2)' : 'var(--text)'} },
-                      React.createElement(Icon, { name:'Shield', size:14, stroke: editAdmin ? 'var(--gold)' : 'currentColor' }),
-                      ' Is Admin'
-                    ),
-                    React.createElement('div', { className:'t-desc' }, 'All permissions granted (superuser)')
-                  ),
-                  React.createElement(Toggle, { checked: editAdmin, onChange: function(v){
-                    setEditAdmin(v);
-                    if (v) setEditPolicyName('Admin');
-                    else setEditPolicyName(policies.length > 0 ? policies[0].name : 'Custom');
-                  }, gold: editAdmin })
+              React.createElement('div', { style: { padding: 12 } },
+                loading
+                  ? React.createElement(Empty, { icon: 'loader', title: 'Loading users…' })
+                  : users.length === 0
+                    ? React.createElement(Empty, { icon: 'users', title: 'No users found' })
+                    : users.map(function (u) {
+                      return React.createElement(motion.div, {
+                        key: u.username,
+                        className: 'user-row' + (selectedUser && selectedUser.username === u.username ? ' selected' : ''),
+                        onClick: function () { openPanel(u); },
+                        whileHover: { x: 2 },
+                        transition: { type: 'spring', stiffness: 400, damping: 30 }
+                      },
+                        React.createElement('div', { className: 'user-avatar-sm' + (u.is_admin ? ' admin' : '') }, u.username[0].toUpperCase()),
+                        React.createElement('div', { className: 'user-info' },
+                          React.createElement('div', { className: 'user-name' }, u.username),
+                          React.createElement('div', { className: 'user-badges' },
+                            policyBadges(u).length === 0
+                              ? React.createElement('span', { className: 'text-xs text-muted' }, 'No permissions')
+                              : policyBadges(u).map(function (b) { return React.createElement('span', { key: b.label, className: 'badge ' + b.cls }, b.label); })
+                          )
+                        ),
+                        React.createElement(Icon, { name: 'chevron-right', size: 15 })
+                      );
+                    })
+              )
+            )
+          ),
+          // Create user
+          React.createElement('div', null,
+            React.createElement('div', { className: 'card' },
+              React.createElement('div', { className: 'card-header' },
+                React.createElement(Icon, { name: 'user-plus', size: 15, stroke: 'var(--green2)' }),
+                React.createElement('h3', null, 'Create User')
+              ),
+              React.createElement('div', { className: 'card-body' },
+                React.createElement('div', { className: 'field' },
+                  React.createElement('label', { className: 'label' }, 'Username'),
+                  React.createElement('input', { className: 'input', value: newUser.username, onChange: function (e) { setNewUser(function (u) { return Object.assign({}, u, { username: e.target.value }); }); }, placeholder: 'e.g. alice', autoComplete: 'off' })
                 ),
-                
-                !editAdmin ? React.createElement('div', { className:'field mt-4' },
-                  React.createElement('label', { className:'label' }, 'Assigned Policy'),
+                React.createElement('div', { className: 'field' },
+                  React.createElement('label', { className: 'label' }, 'Password'),
+                  React.createElement('input', { className: 'input', type: 'password', value: newUser.password, onChange: function (e) { setNewUser(function (u) { return Object.assign({}, u, { password: e.target.value }); }); }, placeholder: 'Secure password' })
+                ),
+                React.createElement('div', { className: 'toggle-row', style: { marginBottom: 16 } },
+                  React.createElement('div', { className: 'toggle-row-info' },
+                    React.createElement('div', { className: 't-label' }, 'Admin'),
+                    React.createElement('div', { className: 't-desc' }, 'All permissions granted')
+                  ),
+                  React.createElement(Toggle, { checked: newUser.is_admin, onChange: function (v) { setNewUser(function (u) { return Object.assign({}, u, { is_admin: v, policy_name: v ? 'Admin' : (policies.length > 0 ? policies[0].name : '') }); }); }, gold: newUser.is_admin })
+                ),
+
+                !newUser.is_admin ? React.createElement('div', { className: 'field' },
+                  React.createElement('label', { className: 'label' }, 'Assign Policy'),
                   React.createElement('select', {
-                    className:'input',
-                    value: editPolicyName,
-                    onChange: function(e){
-                      setEditPolicyName(e.target.value);
-                      if (e.target.value !== 'Custom') {
-                        const np = policies.find(function(p){ return p.name === e.target.value; });
-                        if (np) {
-                          setEditCustomPolicy({
-                            can_select: !!np.can_select,
-                            can_insert: !!np.can_insert,
-                            can_update: !!np.can_update,
-                            can_delete: !!np.can_delete,
-                            can_create: !!np.can_create,
-                            can_drop: !!np.can_drop
-                          });
-                        }
-                      }
-                    }
+                    className: 'input',
+                    value: newUser.policy_name,
+                    onChange: function (e) { setNewUser(function (u) { return Object.assign({}, u, { policy_name: e.target.value }); }); }
                   },
-                    policies.map(function(p){ return React.createElement('option', { key:p.name, value:p.name }, p.name); }),
-                    React.createElement('option', { value:'Custom' }, 'Custom (Define below)')
+                    policies.map(function (p) { return React.createElement('option', { key: p.name, value: p.name }, p.name); })
                   )
                 ) : null,
-                
-                React.createElement('hr', { className:'divider' }),
-                
-                // Show policy details
-                POLICY_FIELDS.map(function(f) {
-                  const isReadOnly = editAdmin || (editPolicyName !== 'Custom');
-                  let checkedVal = false;
-                  if (editAdmin) {
-                    checkedVal = true;
-                  } else if (editPolicyName !== 'Custom') {
-                    const np = policies.find(function(p){ return p.name === editPolicyName; });
-                    checkedVal = np ? !!np[f.key] : false;
-                  } else {
-                    checkedVal = !!editCustomPolicy[f.key];
-                  }
 
-                  return React.createElement('div', { key:f.key, className:'toggle-row', style:{opacity: isReadOnly ? .6 : 1} },
-                    React.createElement('div', { className:'toggle-row-info' },
-                      React.createElement('div', { className:'t-label' },
-                        React.createElement(Icon, { name:f.icon, size:13 }),
-                        ' ' + f.label
-                      ),
-                      React.createElement('div', { className:'t-desc' }, f.desc)
-                    ),
-                    React.createElement(Toggle, {
-                      checked: checkedVal,
-                      onChange: function(v){
-                        if (!isReadOnly) {
-                          setEditCustomPolicy(function(p){
-                            const n = Object.assign({}, p);
-                            n[f.key] = v;
-                            return n;
-                          });
-                        }
-                      }
-                    })
-                  );
-                }),
-                
-                saveMsg ? React.createElement('div', { className:'mt-3' },
-                  saveMsg === 'success'
-                    ? React.createElement(Banner, { type:'success' }, 'Permissions saved!')
-                    : React.createElement(Banner, { type:'error' }, saveMsg)
-                ) : null
-              ),
-              React.createElement('div', { className:'side-panel-footer' },
-                React.createElement('button', { className:'btn btn-primary', onClick:savePolicy, disabled:saveLoading },
-                  saveLoading ? React.createElement(Spinner) : React.createElement(Icon, { name:'Save', size:15 }),
-                  saveLoading ? 'Saving…' : 'Save Permissions'
-                ),
-                React.createElement('button', { className:'btn btn-red', onClick:deleteUser, disabled:deleteLoading },
-                  deleteLoading ? React.createElement(Spinner) : React.createElement(Icon, { name:'Trash2', size:15 }),
-                  deleteLoading ? 'Deleting…' : 'Delete User'
+                createMsg ? React.createElement('div', { className: 'mb-3' },
+                  createMsg === 'success'
+                    ? React.createElement(Banner, { type: 'success' }, 'User created successfully!')
+                    : React.createElement(Banner, { type: 'error' }, createMsg.replace('error:', ''))
+                ) : null,
+                React.createElement('button', { className: 'btn btn-primary w-full', onClick: createUser, disabled: createLoading },
+                  createLoading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'plus', size: 15 }),
+                  createLoading ? 'Creating…' : 'Create User'
                 )
               )
             )
           )
-        : null
-    )
-  );
-}
+        ),
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PAGE: Settings
-// ─────────────────────────────────────────────────────────────────────────────
-function SettingsPage({ creds }) {
-  const [policies, setPolicies] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [newPolicy, setNewPolicy] = useState({ name: '', can_select: false, can_insert: false, can_update: false, can_delete: false, can_create: false, can_drop: false });
-  const [createLoading, setCreateLoading] = useState(false);
-  const [createMsg, setCreateMsg] = useState('');
+        // Side panel
+        React.createElement(AnimatePresence, null,
+          panel && selectedUser
+            ? React.createElement(React.Fragment, { key: 'panel' },
+              React.createElement(motion.div, { className: 'panel-overlay', initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, onClick: function () { setPanel(false); } }),
+              React.createElement(motion.div, { className: 'side-panel', initial: { x: '100%' }, animate: { x: 0 }, exit: { x: '100%' }, transition: { type: 'spring', stiffness: 300, damping: 30 } },
+                React.createElement('div', { className: 'side-panel-header' },
+                  React.createElement('div', { className: 'user-avatar-sm' + (selectedUser.is_admin ? ' admin' : '') }, selectedUser.username[0].toUpperCase()),
+                  React.createElement('div', { style: { flex: 1 } },
+                    React.createElement('h3', { style: { fontSize: 15 } }, selectedUser.username),
+                    React.createElement('div', { style: { fontSize: 11, color: 'var(--muted)' } }, 'Edit permissions')
+                  ),
+                  React.createElement('button', { className: 'btn btn-secondary btn-sm btn-icon', onClick: function () { setPanel(false); } },
+                    React.createElement(Icon, { name: 'x', size: 15 })
+                  )
+                ),
+                React.createElement('div', { className: 'side-panel-body' },
+                  // Admin toggle
+                  React.createElement('div', {
+                    className: 'toggle-row', style: {
+                      borderColor: editAdmin ? 'rgba(245,158,11,.4)' : 'var(--border)',
+                      background: editAdmin ? 'rgba(245,158,11,.06)' : 'var(--surface)'
+                    }
+                  },
+                    React.createElement('div', { className: 'toggle-row-info' },
+                      React.createElement('div', { className: 't-label', style: { color: editAdmin ? 'var(--gold2)' : 'var(--text)' } },
+                        React.createElement(Icon, { name: 'shield', size: 14, stroke: editAdmin ? 'var(--gold)' : 'currentColor' }),
+                        ' Is Admin'
+                      ),
+                      React.createElement('div', { className: 't-desc' }, 'All permissions granted (superuser)')
+                    ),
+                    React.createElement(Toggle, {
+                      checked: editAdmin, onChange: function (v) {
+                        setEditAdmin(v);
+                        if (v) setEditPolicyName('Admin');
+                        else setEditPolicyName(policies.length > 0 ? policies[0].name : 'Custom');
+                      }, gold: editAdmin
+                    })
+                  ),
 
-  const loadPolicies = async function() {
-    setLoading(true); setError('');
-    const { ok, data } = await apiFetch('/api/policies', {}, creds);
-    if (ok && data.policies) {
-      setPolicies(data.policies);
-    } else {
-      setError(data.error || 'Failed to load policies');
+                  !editAdmin ? React.createElement('div', { className: 'field mt-4' },
+                    React.createElement('label', { className: 'label' }, 'Assigned Policy'),
+                    React.createElement('select', {
+                      className: 'input',
+                      value: editPolicyName,
+                      onChange: function (e) {
+                        setEditPolicyName(e.target.value);
+                        if (e.target.value !== 'Custom') {
+                          const np = policies.find(function (p) { return p.name === e.target.value; });
+                          if (np) {
+                            setEditCustomPolicy({
+                              can_select: !!np.can_select,
+                              can_insert: !!np.can_insert,
+                              can_update: !!np.can_update,
+                              can_delete: !!np.can_delete,
+                              can_create: !!np.can_create,
+                              can_drop: !!np.can_drop
+                            });
+                          }
+                        }
+                      }
+                    },
+                      policies.map(function (p) { return React.createElement('option', { key: p.name, value: p.name }, p.name); }),
+                      React.createElement('option', { value: 'Custom' }, 'Custom (Define below)')
+                    )
+                  ) : null,
+
+                  React.createElement('hr', { className: 'divider' }),
+
+                  // Show policy details
+                  POLICY_FIELDS.map(function (f) {
+                    const isReadOnly = editAdmin || (editPolicyName !== 'Custom');
+                    let checkedVal = false;
+                    if (editAdmin) {
+                      checkedVal = true;
+                    } else if (editPolicyName !== 'Custom') {
+                      const np = policies.find(function (p) { return p.name === editPolicyName; });
+                      checkedVal = np ? !!np[f.key] : false;
+                    } else {
+                      checkedVal = !!editCustomPolicy[f.key];
+                    }
+
+                    return React.createElement('div', { key: f.key, className: 'toggle-row', style: { opacity: isReadOnly ? .6 : 1 } },
+                      React.createElement('div', { className: 'toggle-row-info' },
+                        React.createElement('div', { className: 't-label' },
+                          React.createElement(Icon, { name: f.icon, size: 13 }),
+                          ' ' + f.label
+                        ),
+                        React.createElement('div', { className: 't-desc' }, f.desc)
+                      ),
+                      React.createElement(Toggle, {
+                        checked: checkedVal,
+                        onChange: function (v) {
+                          if (!isReadOnly) {
+                            setEditCustomPolicy(function (p) {
+                              const n = Object.assign({}, p);
+                              n[f.key] = v;
+                              return n;
+                            });
+                          }
+                        }
+                      })
+                    );
+                  }),
+
+                  saveMsg ? React.createElement('div', { className: 'mt-3' },
+                    saveMsg === 'success'
+                      ? React.createElement(Banner, { type: 'success' }, 'Permissions saved!')
+                      : React.createElement(Banner, { type: 'error' }, saveMsg)
+                  ) : null
+                ),
+                React.createElement('div', { className: 'side-panel-footer' },
+                  React.createElement('button', { className: 'btn btn-primary', onClick: savePolicy, disabled: saveLoading },
+                    saveLoading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'save', size: 15 }),
+                    saveLoading ? 'Saving…' : 'Save Permissions'
+                  ),
+                  React.createElement('button', { className: 'btn btn-red', onClick: deleteUser, disabled: deleteLoading },
+                    deleteLoading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'trash-2', size: 15 }),
+                    deleteLoading ? 'Deleting…' : 'Delete User'
+                  )
+                )
+              )
+            )
+            : null
+        )
+      );
     }
-    setLoading(false);
-  };
 
-  useEffect(function() {
-    loadPolicies();
-  }, []);
+    // ─────────────────────────────────────────────────────────────────────────────
+    // PAGE: Settings
+    // ─────────────────────────────────────────────────────────────────────────────
+    function SettingsPage({ creds }) {
+      const [policies, setPolicies] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [newPolicy, setNewPolicy] = useState({ name: '', can_select: false, can_insert: false, can_update: false, can_delete: false, can_create: false, can_drop: false });
+      const [createLoading, setCreateLoading] = useState(false);
+      const [createMsg, setCreateMsg] = useState('');
 
-  const createPolicy = async function() {
-    if (!newPolicy.name) { setCreateMsg('error:Policy name required'); return; }
-    setCreateLoading(true); setCreateMsg('');
-    const { ok, data } = await apiFetch('/api/policies', { method: 'POST', body: JSON.stringify(newPolicy) }, creds);
-    if (ok) {
-      setCreateMsg('success');
-      setNewPolicy({ name: '', can_select: false, can_insert: false, can_update: false, can_delete: false, can_create: false, can_drop: false });
-      loadPolicies();
-    } else {
-      setCreateMsg('error:' + (data.error || 'Failed to create policy'));
-    }
-    setCreateLoading(false);
-  };
+      const loadPolicies = async function () {
+        setLoading(true); setError('');
+        const { ok, data } = await apiFetch('/api/policies', {}, creds);
+        if (ok && data.policies) {
+          setPolicies(data.policies);
+        } else {
+          setError(data.error || 'Failed to load policies');
+        }
+        setLoading(false);
+      };
 
-  const deletePolicy = async function(name) {
-    if (!confirm('Are you sure you want to delete policy "' + name + '"?')) return;
-    const { ok, data } = await apiFetch('/api/policies/' + encodeURIComponent(name), { method: 'DELETE' }, creds);
-    if (ok) {
-      loadPolicies();
-    } else {
-      alert(data.error || 'Failed to delete policy');
-    }
-  };
+      useEffect(function () {
+        loadPolicies();
+      }, []);
 
-  return React.createElement(motion.div, { initial:{opacity:0,y:16}, animate:{opacity:1,y:0}, exit:{opacity:0,y:-10}, transition:{duration:.3} },
-    error ? React.createElement('div', { className:'mb-4' }, React.createElement(Banner, { type:'error' }, error)) : null,
-    React.createElement('div', { style:{ display:'grid', gridTemplateColumns:'1fr 340px', gap:20 } },
-      // Policies List
-      React.createElement('div', null,
-        React.createElement('div', { className:'card' },
-          React.createElement('div', { className:'card-header' },
-            React.createElement(Icon, { name:'Settings', size:15, stroke:'var(--purple2)' }),
-            React.createElement('h3', null, 'System Policies'),
-            React.createElement('span', { className:'badge badge-purple' }, policies.length)
-          ),
-          React.createElement('div', { style:{padding:12} },
-            loading
-              ? React.createElement(Empty, { icon:'Loader', title:'Loading policies…' })
-              : policies.length === 0
-                ? React.createElement(Empty, { icon:'Shield', title:'No policies defined' })
-                : React.createElement('div', { style:{display:'flex', flexDirection:'column', gap:6} },
-                    policies.map(function(p) {
-                      const tags = [];
-                      if (p.can_select) tags.push('SELECT');
-                      if (p.can_insert) tags.push('INSERT');
-                      if (p.can_update) tags.push('UPDATE');
-                      if (p.can_delete) tags.push('DELETE');
-                      if (p.can_create) tags.push('CREATE');
-                      if (p.can_drop)   tags.push('DROP');
-                      
-                      return React.createElement('div', { key: p.name, className:'user-row', style:{cursor:'default'} },
-                        React.createElement('div', { className:'user-info' },
-                          React.createElement('div', { className:'user-name', style:{fontSize:13, fontWeight:600} }, p.name),
-                          React.createElement('div', { className:'user-badges', style:{marginTop:4} },
-                            tags.length === 0
-                              ? React.createElement('span', { className:'text-xs text-muted' }, 'No permissions')
-                              : tags.map(function(t) {
+      const createPolicy = async function () {
+        if (!newPolicy.name) { setCreateMsg('error:Policy name required'); return; }
+        setCreateLoading(true); setCreateMsg('');
+        const { ok, data } = await apiFetch('/api/policies', { method: 'POST', body: JSON.stringify(newPolicy) }, creds);
+        if (ok) {
+          setCreateMsg('success');
+          setNewPolicy({ name: '', can_select: false, can_insert: false, can_update: false, can_delete: false, can_create: false, can_drop: false });
+          loadPolicies();
+        } else {
+          setCreateMsg('error:' + (data.error || 'Failed to create policy'));
+        }
+        setCreateLoading(false);
+      };
+
+      // Modified to adhere to prompt constraints: No `confirm()` blocks
+      const deletePolicy = async function (name) {
+        const { ok, data } = await apiFetch('/api/policies/' + encodeURIComponent(name), { method: 'DELETE' }, creds);
+        if (ok) {
+          loadPolicies();
+        } else {
+          setError(data.error || 'Failed to delete policy');
+        }
+      };
+
+      return React.createElement(motion.div, { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10 }, transition: { duration: .3 } },
+        error ? React.createElement('div', { className: 'mb-4' }, React.createElement(Banner, { type: 'error' }, error)) : null,
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 } },
+          // Policies List
+          React.createElement('div', null,
+            React.createElement('div', { className: 'card' },
+              React.createElement('div', { className: 'card-header' },
+                React.createElement(Icon, { name: 'settings', size: 15, stroke: 'var(--purple2)' }),
+                React.createElement('h3', null, 'System Policies'),
+                React.createElement('span', { className: 'badge badge-purple' }, policies.length)
+              ),
+              React.createElement('div', { style: { padding: 12 } },
+                loading
+                  ? React.createElement(Empty, { icon: 'loader', title: 'Loading policies…' })
+                  : policies.length === 0
+                    ? React.createElement(Empty, { icon: 'shield', title: 'No policies defined' })
+                    : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+                      policies.map(function (p) {
+                        const tags = [];
+                        if (p.can_select) tags.push('SELECT');
+                        if (p.can_insert) tags.push('INSERT');
+                        if (p.can_update) tags.push('UPDATE');
+                        if (p.can_delete) tags.push('DELETE');
+                        if (p.can_create) tags.push('CREATE');
+                        if (p.can_drop) tags.push('DROP');
+
+                        return React.createElement('div', { key: p.name, className: 'user-row', style: { cursor: 'default' } },
+                          React.createElement('div', { className: 'user-info' },
+                            React.createElement('div', { className: 'user-name', style: { fontSize: 13, fontWeight: 600 } }, p.name),
+                            React.createElement('div', { className: 'user-badges', style: { marginTop: 4 } },
+                              tags.length === 0
+                                ? React.createElement('span', { className: 'text-xs text-muted' }, 'No permissions')
+                                : tags.map(function (t) {
                                   let cls = 'badge-gray';
                                   if (t === 'SELECT') cls = 'badge-blue';
                                   if (t === 'INSERT') cls = 'badge-green';
                                   if (t === 'UPDATE') cls = 'badge-purple';
                                   if (t === 'DELETE') cls = 'badge-pink';
-                                  return React.createElement('span', { key:t, className:'badge ' + cls }, t);
+                                  return React.createElement('span', { key: t, className: 'badge ' + cls }, t);
                                 })
+                            )
+                          ),
+                          React.createElement('button', { className: 'btn btn-red btn-sm btn-icon', onClick: function () { deletePolicy(p.name); } },
+                            React.createElement(Icon, { name: 'trash-2', size: 14 })
                           )
-                        ),
-                        React.createElement('button', { className:'btn btn-red btn-sm btn-icon', onClick: function(){ deletePolicy(p.name); } },
-                          React.createElement(Icon, { name:'Trash2', size:14 })
-                        )
-                      );
-                    })
-                  )
-          )
-        )
-      ),
-
-      // Create Named Policy
-      React.createElement('div', null,
-        React.createElement('div', { className:'card' },
-          React.createElement('div', { className:'card-header' },
-            React.createElement(Icon, { name:'ShieldAlert', size:15, stroke:'var(--green2)' }),
-            React.createElement('h3', null, 'Create Policy')
+                        );
+                      })
+                    )
+              )
+            )
           ),
-          React.createElement('div', { className:'card-body' },
-            React.createElement('div', { className:'field' },
-              React.createElement('label', { className:'label' }, 'Policy Name'),
-              React.createElement('input', { className:'input', value:newPolicy.name, onChange:function(e){setNewPolicy(function(p){return Object.assign({},p,{name:e.target.value});});}, placeholder:'e.g. WriterOnly', autoComplete:'off' })
-            ),
-            React.createElement('hr', { className:'divider' }),
-            POLICY_FIELDS.map(function(f) {
-              return React.createElement('div', { key:f.key, className:'toggle-row' },
-                React.createElement('div', { className:'toggle-row-info' },
-                  React.createElement('div', { className:'t-label' },
-                    React.createElement(Icon, { name:f.icon, size:13 }),
-                    ' ' + f.label
-                  ),
-                  React.createElement('div', { className:'t-desc' }, f.desc)
+
+          // Create Named Policy
+          React.createElement('div', null,
+            React.createElement('div', { className: 'card' },
+              React.createElement('div', { className: 'card-header' },
+                React.createElement(Icon, { name: 'shield-alert', size: 15, stroke: 'var(--green2)' }),
+                React.createElement('h3', null, 'Create Policy')
+              ),
+              React.createElement('div', { className: 'card-body' },
+                React.createElement('div', { className: 'field' },
+                  React.createElement('label', { className: 'label' }, 'Policy Name'),
+                  React.createElement('input', { className: 'input', value: newPolicy.name, onChange: function (e) { setNewPolicy(function (p) { return Object.assign({}, p, { name: e.target.value }); }); }, placeholder: 'e.g. WriterOnly', autoComplete: 'off' })
                 ),
-                React.createElement(Toggle, {
-                  checked: !!newPolicy[f.key],
-                  onChange: function(v){ setNewPolicy(function(p){ const n = Object.assign({},p); n[f.key]=v; return n; }); }
-                })
-              );
-            }),
-            createMsg ? React.createElement('div', { className:'mb-3 mt-3' },
-              createMsg === 'success'
-                ? React.createElement(Banner, { type:'success' }, 'Policy created successfully!')
-                : React.createElement(Banner, { type:'error' }, createMsg.replace('error:',''))
-            ) : null,
-            React.createElement('button', { className:'btn btn-primary w-full mt-3', onClick:createPolicy, disabled:createLoading },
-              createLoading ? React.createElement(Spinner) : React.createElement(Icon, { name:'Plus', size:15 }),
-              createLoading ? 'Creating…' : 'Create Policy'
+                React.createElement('hr', { className: 'divider' }),
+                POLICY_FIELDS.map(function (f) {
+                  return React.createElement('div', { key: f.key, className: 'toggle-row' },
+                    React.createElement('div', { className: 'toggle-row-info' },
+                      React.createElement('div', { className: 't-label' },
+                        React.createElement(Icon, { name: f.icon, size: 13 }),
+                        ' ' + f.label
+                      ),
+                      React.createElement('div', { className: 't-desc' }, f.desc)
+                    ),
+                    React.createElement(Toggle, {
+                      checked: !!newPolicy[f.key],
+                      onChange: function (v) { setNewPolicy(function (p) { const n = Object.assign({}, p); n[f.key] = v; return n; }); }
+                    })
+                  );
+                }),
+                createMsg ? React.createElement('div', { className: 'mb-3 mt-3' },
+                  createMsg === 'success'
+                    ? React.createElement(Banner, { type: 'success' }, 'Policy created successfully!')
+                    : React.createElement(Banner, { type: 'error' }, createMsg.replace('error:', ''))
+                ) : null,
+                React.createElement('button', { className: 'btn btn-primary w-full mt-3', onClick: createPolicy, disabled: createLoading },
+                  createLoading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'plus', size: 15 }),
+                  createLoading ? 'Creating…' : 'Create Policy'
+                )
+              )
             )
           )
         )
-      )
-    )
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PAGE: My Profile
-// ─────────────────────────────────────────────────────────────────────────────
-function ProfilePage({ creds, setCreds }) {
-  const [newPass, setNewPass] = useState('');
-  const [confirmPass, setConfirmPass] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState('');
-  const [userInfo, setUserInfo] = useState(null);
-
-  useEffect(function() {
-    (async function() {
-      const { ok, data } = await apiFetch('/api/users', {}, creds);
-      if (ok && data.users) {
-        const me = data.users.find(function(u){ return u.username === creds.username; });
-        setUserInfo(me || null);
-      }
-    })();
-  }, []);
-
-  const changePass = async function() {
-    if (!newPass) { setMsg('error:New password required'); return; }
-    if (newPass !== confirmPass) { setMsg('error:Passwords do not match'); return; }
-    setLoading(true); setMsg('');
-    const { ok, data } = await apiFetch('/api/me/password', { method:'PUT', body: JSON.stringify({ new_password: newPass }) }, creds);
-    if (ok) {
-      setMsg('success');
-      setCreds(function(c){ return Object.assign({},c,{password:newPass}); });
-      setNewPass(''); setConfirmPass('');
-    } else {
-      setMsg('error:' + (data.error || 'Failed to change password'));
+      );
     }
-    setLoading(false);
-  };
 
-  const policy = (userInfo && userInfo.policy) ? userInfo.policy : {};
-  const isAdmin = userInfo && userInfo.is_admin;
+    // ─────────────────────────────────────────────────────────────────────────────
+    // PAGE: My Profile
+    // ─────────────────────────────────────────────────────────────────────────────
+    function ProfilePage({ creds, setCreds }) {
+      const [newPass, setNewPass] = useState('');
+      const [confirmPass, setConfirmPass] = useState('');
+      const [loading, setLoading] = useState(false);
+      const [msg, setMsg] = useState('');
+      const [userInfo, setUserInfo] = useState(null);
 
-  return React.createElement(motion.div, { initial:{opacity:0,y:16}, animate:{opacity:1,y:0}, exit:{opacity:0,y:-10}, transition:{duration:.3} },
-    React.createElement('div', { style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,maxWidth:860} },
-      // Profile info
-      React.createElement('div', { className:'card' },
-        React.createElement('div', { className:'card-header' },
-          React.createElement(Icon, { name:'User', size:15, stroke:'var(--pink)' }),
-          React.createElement('h3', null, 'Profile')
-        ),
-        React.createElement('div', { className:'card-body', style:{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:28} },
-          React.createElement('div', { className:'profile-avatar' }, creds.username[0].toUpperCase()),
-          React.createElement('div', { style:{fontSize:20,fontWeight:700,marginBottom:8} }, creds.username),
-          isAdmin
-            ? React.createElement('span', { className:'badge badge-gold' }, React.createElement(Icon,{name:'Shield',size:11}), ' Administrator')
-            : React.createElement('span', { className:'badge badge-gray' }, 'Standard User'),
-          React.createElement('hr', { className:'divider', style:{width:'100%'} }),
-          React.createElement('div', { style:{width:'100%'} },
-            React.createElement('div', { className:'section-title' },
-              React.createElement(Icon, { name:'Lock', size:14 }),
-              'Permissions'
+      useEffect(function () {
+        (async function () {
+          const { ok, data } = await apiFetch('/api/users', {}, creds);
+          if (ok && data.users) {
+            const me = data.users.find(function (u) { return u.username === creds.username; });
+            setUserInfo(me || null);
+          }
+        })();
+      }, []);
+
+      const changePass = async function () {
+        if (!newPass) { setMsg('error:New password required'); return; }
+        if (newPass !== confirmPass) { setMsg('error:Passwords do not match'); return; }
+        setLoading(true); setMsg('');
+        const { ok, data } = await apiFetch('/api/me/password', { method: 'PUT', body: JSON.stringify({ new_password: newPass }) }, creds);
+        if (ok) {
+          setMsg('success');
+          setCreds(function (c) { return Object.assign({}, c, { password: newPass }); });
+          setNewPass(''); setConfirmPass('');
+        } else {
+          setMsg('error:' + (data.error || 'Failed to change password'));
+        }
+        setLoading(false);
+      };
+
+      const policy = (userInfo && userInfo.policy) ? userInfo.policy : {};
+      const isAdmin = userInfo && userInfo.is_admin;
+
+      return React.createElement(motion.div, { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10 }, transition: { duration: .3 } },
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, maxWidth: 860 } },
+          // Profile info
+          React.createElement('div', { className: 'card' },
+            React.createElement('div', { className: 'card-header' },
+              React.createElement(Icon, { name: 'user', size: 15, stroke: 'var(--pink)' }),
+              React.createElement('h3', null, 'Profile')
             ),
-            isAdmin
-              ? React.createElement(Banner, { type:'info' }, 'You have full administrator access to all operations.')
-              : React.createElement('div', { style:{display:'flex',flexWrap:'wrap',gap:6} },
-                  POLICY_FIELDS.map(function(f) {
-                    return React.createElement('span', { key:f.key, className:'badge '+(policy[f.key]?'badge-green':'badge-gray'), style:{opacity:policy[f.key]?1:.4} }, f.label);
-                  })
-                )
+            React.createElement('div', { className: 'card-body', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 28 } },
+              React.createElement('div', { className: 'profile-avatar' }, creds.username[0].toUpperCase()),
+              React.createElement('div', { style: { fontSize: 20, fontWeight: 700, marginBottom: 8 } }, creds.username),
+              isAdmin
+                ? React.createElement('span', { className: 'badge badge-gold' }, React.createElement(Icon, { name: 'shield', size: 11 }), ' Administrator')
+                : React.createElement('span', { className: 'badge badge-gray' }, 'Standard User'),
+              React.createElement('hr', { className: 'divider', style: { width: '100%' } }),
+              React.createElement('div', { style: { width: '100%' } },
+                React.createElement('div', { className: 'section-title' },
+                  React.createElement(Icon, { name: 'lock', size: 14 }),
+                  'Permissions'
+                ),
+                isAdmin
+                  ? React.createElement(Banner, { type: 'info' }, 'You have full administrator access to all operations.')
+                  : React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
+                    POLICY_FIELDS.map(function (f) {
+                      return React.createElement('span', { key: f.key, className: 'badge ' + (policy[f.key] ? 'badge-green' : 'badge-gray'), style: { opacity: policy[f.key] ? 1 : .4 } }, f.label);
+                    })
+                  )
+              )
+            )
+          ),
+          // Change password
+          React.createElement('div', { className: 'card' },
+            React.createElement('div', { className: 'card-header' },
+              React.createElement(Icon, { name: 'key-round', size: 15, stroke: 'var(--blue2)' }),
+              React.createElement('h3', null, 'Change Password')
+            ),
+            React.createElement('div', { className: 'card-body' },
+              React.createElement('div', { className: 'field' },
+                React.createElement('label', { className: 'label' }, 'New Password'),
+                React.createElement('input', { className: 'input', type: 'password', value: newPass, onChange: function (e) { setNewPass(e.target.value); }, placeholder: 'Enter new password', autoComplete: 'new-password' })
+              ),
+              React.createElement('div', { className: 'field' },
+                React.createElement('label', { className: 'label' }, 'Confirm Password'),
+                React.createElement('input', { className: 'input', type: 'password', value: confirmPass, onChange: function (e) { setConfirmPass(e.target.value); }, placeholder: 'Repeat new password', autoComplete: 'new-password' })
+              ),
+              msg ? React.createElement('div', { className: 'mb-3' },
+                msg === 'success'
+                  ? React.createElement(Banner, { type: 'success' }, 'Password changed successfully!')
+                  : React.createElement(Banner, { type: 'error' }, msg.replace('error:', ''))
+              ) : null,
+              React.createElement('button', { className: 'btn btn-primary w-full', onClick: changePass, disabled: loading },
+                loading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'check', size: 15 }),
+                loading ? 'Updating…' : 'Update Password'
+              ),
+              React.createElement('hr', { className: 'divider' }),
+              React.createElement('div', { className: 'section-title text-muted', style: { fontSize: 12 } },
+                React.createElement(Icon, { name: 'info', size: 13 }),
+                'Session Info'
+              ),
+              React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+                [['Username', creds.username], ['Session', 'Active'], ['Auth', 'HTTP Basic']].map(function (pair) {
+                  return React.createElement('div', { key: pair[0], style: { display: 'flex', justifyContent: 'space-between', fontSize: 12 } },
+                    React.createElement('span', { style: { color: 'var(--muted)' } }, pair[0]),
+                    React.createElement('span', { style: { fontFamily: "'Fira Code',monospace", color: 'var(--text)' } }, pair[1])
+                  );
+                })
+              )
+            )
           )
         )
-      ),
-      // Change password
-      React.createElement('div', { className:'card' },
-        React.createElement('div', { className:'card-header' },
-          React.createElement(Icon, { name:'KeyRound', size:15, stroke:'var(--blue2)' }),
-          React.createElement('h3', null, 'Change Password')
-        ),
-        React.createElement('div', { className:'card-body' },
-          React.createElement('div', { className:'field' },
-            React.createElement('label', { className:'label' }, 'New Password'),
-            React.createElement('input', { className:'input', type:'password', value:newPass, onChange:function(e){setNewPass(e.target.value);}, placeholder:'Enter new password', autoComplete:'new-password' })
+      );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Login
+    // ─────────────────────────────────────────────────────────────────────────────
+    function LoginPage({ onLogin }) {
+      const [username, setUsername] = useState('');
+      const [password, setPassword] = useState('');
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState('');
+
+      const login = async function () {
+        if (!username || !password) { setError('Username and password are required'); return; }
+        setLoading(true); setError('');
+        const { ok, data } = await apiFetch('/api/tables', {}, { username, password });
+        if (ok) {
+          onLogin({ username, password }, data.tables || []);
+        } else {
+          setError(data.error || 'Invalid credentials or connection refused');
+        }
+        setLoading(false);
+      };
+
+      const handleKey = function (e) { if (e.key === 'Enter') login(); };
+
+      return React.createElement(motion.div, { className: 'login-bg', initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: .5 } },
+        React.createElement(motion.div, { className: 'login-card', initial: { opacity: 0, y: 30, scale: .97 }, animate: { opacity: 1, y: 0, scale: 1 }, transition: { duration: .4, delay: .1 } },
+          React.createElement('div', { className: 'login-logo' },
+            React.createElement('div', { className: 'icon' }, React.createElement(Icon, { name: 'database-zap', size: 28 })),
+            React.createElement('span', { className: 'text' }, 'FlamingoDB')
           ),
-          React.createElement('div', { className:'field' },
-            React.createElement('label', { className:'label' }, 'Confirm Password'),
-            React.createElement('input', { className:'input', type:'password', value:confirmPass, onChange:function(e){setConfirmPass(e.target.value);}, placeholder:'Repeat new password', autoComplete:'new-password' })
+          React.createElement('p', { className: 'login-sub' }, 'Admin Dashboard — Connect to your database'),
+          React.createElement('div', { className: 'field' },
+            React.createElement('label', { className: 'label' }, 'Username'),
+            React.createElement('input', { className: 'input', value: username, onChange: function (e) { setUsername(e.target.value); }, onKeyDown: handleKey, placeholder: 'admin', autoFocus: true, autoComplete: 'username' })
           ),
-          msg ? React.createElement('div', { className:'mb-3' },
-            msg==='success'
-              ? React.createElement(Banner, { type:'success' }, 'Password changed successfully!')
-              : React.createElement(Banner, { type:'error' }, msg.replace('error:',''))
-          ) : null,
-          React.createElement('button', { className:'btn btn-primary w-full', onClick:changePass, disabled:loading },
-            loading ? React.createElement(Spinner) : React.createElement(Icon, { name:'Check', size:15 }),
-            loading ? 'Updating…' : 'Update Password'
+          React.createElement('div', { className: 'field' },
+            React.createElement('label', { className: 'label' }, 'Password'),
+            React.createElement('input', { className: 'input', type: 'password', value: password, onChange: function (e) { setPassword(e.target.value); }, onKeyDown: handleKey, placeholder: '••••••••', autoComplete: 'current-password' })
           ),
-          React.createElement('hr', { className:'divider' }),
-          React.createElement('div', { className:'section-title text-muted', style:{fontSize:12} },
-            React.createElement(Icon, { name:'Info', size:13 }),
-            'Session Info'
+          error ? React.createElement('div', { className: 'mb-3' }, React.createElement(Banner, { type: 'error' }, error)) : null,
+          React.createElement('button', { className: 'btn btn-primary w-full', onClick: login, disabled: loading, style: { height: 44, fontSize: 14, justifyContent: 'center' } },
+            loading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'plug', size: 16 }),
+            loading ? ' Connecting…' : ' Connect'
           ),
-          React.createElement('div', { style:{display:'flex',flexDirection:'column',gap:6} },
-            [['Username', creds.username], ['Session','Active'], ['Auth','HTTP Basic']].map(function(pair) {
-              return React.createElement('div', { key:pair[0], style:{display:'flex',justifyContent:'space-between',fontSize:12} },
-                React.createElement('span', { style:{color:'var(--muted)'} }, pair[0]),
-                React.createElement('span', { style:{fontFamily:"'Fira Code',monospace",color:'var(--text)'} }, pair[1])
+          React.createElement('div', { style: { marginTop: 20, textAlign: 'center', fontSize: 11, color: 'var(--muted)' } }, 'Secure connection via HTTP Basic Auth')
+        )
+      );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // App Shell
+    // ─────────────────────────────────────────────────────────────────────────────
+    const PAGES = [
+      { id: 'console', label: 'SQL Console', icon: 'terminal' },
+      { id: 'tables', label: 'Table Browser', icon: 'database' },
+      { id: 'users', label: 'Users', icon: 'users' },
+      { id: 'settings', label: 'Settings', icon: 'settings' },
+      { id: 'profile', label: 'My Profile', icon: 'user' },
+    ];
+
+    function App() {
+      const [creds, setCreds] = useState(null);
+      const [page, setPage] = useState('console');
+      const [stats, setStats] = useState({ tables: 0, queries: 0, users: 0 });
+      const [online, setOnline] = useState(true);
+
+      useEffect(function () {
+        try {
+          const saved = sessionStorage.getItem('flamingo_creds');
+          if (saved) setCreds(JSON.parse(saved));
+        } catch (e) { }
+      }, []);
+
+      const handleLogin = function (c, tables) {
+        setCreds(c);
+        setStats(function (s) { return Object.assign({}, s, { tables: tables.length }); });
+        sessionStorage.setItem('flamingo_creds', JSON.stringify(c));
+        apiFetch('/api/users', {}, c).then(function (r) { if (r.ok && r.data.users) setStats(function (s) { return Object.assign({}, s, { users: r.data.users.length }); }); });
+      };
+
+      const logout = function () {
+        setCreds(null);
+        sessionStorage.removeItem('flamingo_creds');
+      };
+
+      useEffect(function () {
+        if (!creds) return;
+        const check = function () {
+          apiFetch('/api/tables', {}, creds).then(function (r) { setOnline(r.ok); }).catch(function () { setOnline(false); });
+        };
+        check();
+        const iv = setInterval(check, 30000);
+        return function () { clearInterval(iv); };
+      }, [creds]);
+
+      useEffect(function () {
+        if (!creds) return;
+        apiFetch('/api/tables', {}, creds).then(function (r) { if (r.ok && r.data.tables) setStats(function (s) { return Object.assign({}, s, { tables: r.data.tables.length }); }); });
+        apiFetch('/api/users', {}, creds).then(function (r) { if (r.ok && r.data.users) setStats(function (s) { return Object.assign({}, s, { users: r.data.users.length }); }); });
+      }, [page, creds]);
+
+      if (!creds) {
+        return React.createElement(LoginPage, { onLogin: handleLogin });
+      }
+
+      const currentPage = PAGES.find(function (p) { return p.id === page; }) || PAGES[0];
+
+      return React.createElement('div', { className: 'app-shell' },
+        // Sidebar
+        React.createElement('nav', { className: 'sidebar' },
+          React.createElement('div', { className: 'sidebar-logo' },
+            React.createElement('div', { className: 'logo-icon' }, React.createElement(Icon, { name: 'database-zap', size: 20 })),
+            React.createElement('span', { className: 'logo-text' }, 'FlamingoDB')
+          ),
+          React.createElement('div', { className: 'sidebar-nav' },
+            React.createElement('div', { className: 'nav-label' }, 'Navigation'),
+            PAGES.map(function (p) {
+              return React.createElement(motion.div, {
+                key: p.id,
+                className: 'nav-item' + (page === p.id ? ' active' : ''),
+                onClick: function () { setPage(p.id); },
+                whileHover: { x: 2 },
+                transition: { type: 'spring', stiffness: 400, damping: 30 }
+              },
+                React.createElement(Icon, { name: p.icon, size: 17 }),
+                p.label,
+                page === p.id ? React.createElement('span', { className: 'nav-dot' }) : null
               );
             })
+          ),
+          React.createElement('div', { className: 'sidebar-footer' },
+            React.createElement('div', { className: 'conn-pill' + (online ? '' : ' offline'), style: { marginBottom: 8 } },
+              React.createElement('span', { className: 'dot' }),
+              React.createElement('span', { style: { flex: 1 } }, online ? 'Connected' : 'Offline')
+            ),
+            React.createElement('div', {
+              className: 'nav-item',
+              onClick: logout,
+              style: { margin: '4px 0 0 0' }
+            },
+              React.createElement(Icon, { name: 'log-out', size: 16 }),
+              'Disconnect'
+            ),
+            React.createElement('div', { style: { marginTop: 12, fontSize: 11, color: 'var(--muted)', textAlign: 'center' } },
+              'Signed in as ',
+              React.createElement('span', { style: { color: 'var(--text)', fontWeight: 600 } }, creds.username)
+            )
+          )
+        ),
+        // Main
+        React.createElement('div', { className: 'main-area' },
+          // Top bar
+          React.createElement('header', { className: 'topbar' },
+            React.createElement('div', { className: 'topbar-title' },
+              currentPage.label,
+              React.createElement('span', null, '/ FlamingoDB')
+            ),
+            React.createElement('div', { className: 'topbar-actions' },
+              React.createElement('span', { className: 'badge badge-green', style: { fontSize: 11 } },
+                React.createElement('span', { style: { width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', display: 'inline-block', marginRight: 3 } }),
+                stats.tables + ' table' + (stats.tables !== 1 ? 's' : '')
+              ),
+              React.createElement('div', { className: 'avatar', onClick: function () { setPage('profile'); }, title: 'Profile: ' + creds.username }, creds.username[0].toUpperCase())
+            )
+          ),
+          // Page content
+          React.createElement('div', { className: 'page-content' },
+            React.createElement(AnimatePresence, { mode: 'wait' },
+              page === 'console' ? React.createElement(SqlConsolePage, { key: 'console', creds: creds, stats: stats, setStats: setStats }) :
+                page === 'tables' ? React.createElement(TableBrowserPage, { key: 'tables', creds: creds }) :
+                  page === 'users' ? React.createElement(UsersPage, { key: 'users', creds: creds }) :
+                    page === 'settings' ? React.createElement(SettingsPage, { key: 'settings', creds: creds }) :
+                      page === 'profile' ? React.createElement(ProfilePage, { key: 'profile', creds: creds, setCreds: setCreds }) :
+                        null
+            )
           )
         )
-      )
-    )
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Login
-// ─────────────────────────────────────────────────────────────────────────────
-function LoginPage({ onLogin }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const login = async function() {
-    if (!username || !password) { setError('Username and password are required'); return; }
-    setLoading(true); setError('');
-    const { ok, data } = await apiFetch('/api/tables', {}, { username, password });
-    if (ok) {
-      onLogin({ username, password }, data.tables || []);
-    } else {
-      setError(data.error || 'Invalid credentials or connection refused');
+      );
     }
-    setLoading(false);
-  };
 
-  const handleKey = function(e) { if (e.key==='Enter') login(); };
-
-  return React.createElement(motion.div, { className:'login-bg', initial:{opacity:0}, animate:{opacity:1}, transition:{duration:.5} },
-    React.createElement(motion.div, { className:'login-card', initial:{opacity:0,y:30,scale:.97}, animate:{opacity:1,y:0,scale:1}, transition:{duration:.4,delay:.1} },
-      React.createElement('div', { className:'login-logo' },
-        React.createElement('div', { className:'icon' }, React.createElement(Icon, { name:'DatabaseZap', size:28 })),
-        React.createElement('span', { className:'text' }, 'FlamingoDB')
-      ),
-      React.createElement('p', { className:'login-sub' }, 'Admin Dashboard — Connect to your database'),
-      React.createElement('div', { className:'field' },
-        React.createElement('label', { className:'label' }, 'Username'),
-        React.createElement('input', { className:'input', value:username, onChange:function(e){setUsername(e.target.value);}, onKeyDown:handleKey, placeholder:'admin', autoFocus:true, autoComplete:'username' })
-      ),
-      React.createElement('div', { className:'field' },
-        React.createElement('label', { className:'label' }, 'Password'),
-        React.createElement('input', { className:'input', type:'password', value:password, onChange:function(e){setPassword(e.target.value);}, onKeyDown:handleKey, placeholder:'••••••••', autoComplete:'current-password' })
-      ),
-      error ? React.createElement('div', { className:'mb-3' }, React.createElement(Banner, { type:'error' }, error)) : null,
-      React.createElement('button', { className:'btn btn-primary w-full', onClick:login, disabled:loading, style:{height:44,fontSize:14,justifyContent:'center'} },
-        loading ? React.createElement(Spinner) : React.createElement(Icon, { name:'Plug', size:16 }),
-        loading ? ' Connecting…' : ' Connect'
-      ),
-      React.createElement('div', { style:{marginTop:20,textAlign:'center',fontSize:11,color:'var(--muted)'} }, 'Secure connection via HTTP Basic Auth')
-    )
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// App Shell
-// ─────────────────────────────────────────────────────────────────────────────
-const PAGES = [
-  { id:'console',  label:'SQL Console',     icon:'Terminal' },
-  { id:'tables',   label:'Table Browser',   icon:'Database' },
-  { id:'users',    label:'Users',           icon:'Users' },
-  { id:'settings', label:'Settings',        icon:'Settings' },
-  { id:'profile',  label:'My Profile',      icon:'User' },
-];
-
-function App() {
-  const [creds, setCreds] = useState(null);
-  const [page, setPage] = useState('console');
-  const [stats, setStats] = useState({ tables:0, queries:0, users:0 });
-  const [online, setOnline] = useState(true);
-
-  useEffect(function() {
-    try {
-      const saved = sessionStorage.getItem('flamingo_creds');
-      if (saved) setCreds(JSON.parse(saved));
-    } catch(e){}
-  }, []);
-
-  const handleLogin = function(c, tables) {
-    setCreds(c);
-    setStats(function(s){ return Object.assign({},s,{tables:tables.length}); });
-    sessionStorage.setItem('flamingo_creds', JSON.stringify(c));
-    apiFetch('/api/users',{},c).then(function(r){ if(r.ok && r.data.users) setStats(function(s){return Object.assign({},s,{users:r.data.users.length});}); });
-  };
-
-  const logout = function() {
-    setCreds(null);
-    sessionStorage.removeItem('flamingo_creds');
-  };
-
-  useEffect(function() {
-    if (!creds) return;
-    const check = function() {
-      apiFetch('/api/tables',{},creds).then(function(r){ setOnline(r.ok); }).catch(function(){ setOnline(false); });
-    };
-    check();
-    const iv = setInterval(check, 30000);
-    return function(){ clearInterval(iv); };
-  }, [creds]);
-
-  useEffect(function() {
-    if (!creds) return;
-    apiFetch('/api/tables',{},creds).then(function(r){ if(r.ok && r.data.tables) setStats(function(s){return Object.assign({},s,{tables:r.data.tables.length});}); });
-    apiFetch('/api/users',{},creds).then(function(r){ if(r.ok && r.data.users) setStats(function(s){return Object.assign({},s,{users:r.data.users.length});}); });
-  }, [page, creds]);
-
-  if (!creds) {
-    return React.createElement(LoginPage, { onLogin: handleLogin });
-  }
-
-  const currentPage = PAGES.find(function(p){ return p.id===page; }) || PAGES[0];
-
-  return React.createElement('div', { className:'app-shell' },
-    // Sidebar
-    React.createElement('nav', { className:'sidebar' },
-      React.createElement('div', { className:'sidebar-logo' },
-        React.createElement('div', { className:'logo-icon' }, React.createElement(Icon, { name:'DatabaseZap', size:20 })),
-        React.createElement('span', { className:'logo-text' }, 'FlamingoDB')
-      ),
-      React.createElement('div', { className:'sidebar-nav' },
-        React.createElement('div', { className:'nav-label' }, 'Navigation'),
-        PAGES.map(function(p) {
-          return React.createElement(motion.div, {
-            key: p.id,
-            className: 'nav-item' + (page===p.id?' active':''),
-            onClick: function(){ setPage(p.id); },
-            whileHover: { x: 2 },
-            transition: { type:'spring', stiffness:400, damping:30 }
-          },
-            React.createElement(Icon, { name:p.icon, size:17 }),
-            p.label,
-            page===p.id ? React.createElement('span', { className:'nav-dot' }) : null
-          );
-        })
-      ),
-      React.createElement('div', { className:'sidebar-footer' },
-        React.createElement('div', { className:'conn-pill' + (online?'':' offline') },
-          React.createElement('span', { className:'dot' }),
-          React.createElement('span', { style:{flex:1} }, online ? 'Connected' : 'Offline'),
-          React.createElement('button', {
-            onClick: logout,
-            title: 'Disconnect',
-            style:{background:'none',border:'none',cursor:'pointer',color:'inherit',padding:0,display:'flex',alignItems:'center'}
-          }, React.createElement(Icon, { name:'LogOut', size:13 }))
-        ),
-        React.createElement('div', { style:{marginTop:10,fontSize:11,color:'var(--muted)',textAlign:'center'} },
-          'Signed in as ',
-          React.createElement('span', { style:{color:'var(--text)',fontWeight:600} }, creds.username)
-        )
-      )
-    ),
-    // Main
-    React.createElement('div', { className:'main-area' },
-      // Top bar
-      React.createElement('header', { className:'topbar' },
-        React.createElement('div', { className:'topbar-title' },
-          currentPage.label,
-          React.createElement('span', null, '/ FlamingoDB')
-        ),
-        React.createElement('div', { className:'topbar-actions' },
-          React.createElement('span', { className:'badge badge-green', style:{fontSize:11} },
-            React.createElement('span', { style:{width:6,height:6,borderRadius:'50%',background:'var(--green)',display:'inline-block',marginRight:3} }),
-            stats.tables + ' table' + (stats.tables!==1?'s':'')
-          ),
-          React.createElement('div', { className:'avatar', onClick:function(){setPage('profile');}, title:'Profile: '+creds.username }, creds.username[0].toUpperCase())
-        )
-      ),
-      // Page content
-      React.createElement('div', { className:'page-content' },
-        React.createElement(AnimatePresence, { mode:'wait' },
-          page==='console'  ? React.createElement(SqlConsolePage, { key:'console', creds:creds, stats:stats, setStats:setStats }) :
-          page==='tables'   ? React.createElement(TableBrowserPage, { key:'tables', creds:creds }) :
-          page==='users'    ? React.createElement(UsersPage, { key:'users', creds:creds }) :
-          page==='settings' ? React.createElement(SettingsPage, { key:'settings', creds:creds }) :
-          page==='profile'  ? React.createElement(ProfilePage, { key:'profile', creds:creds, setCreds:setCreds }) :
-          null
-        )
-      )
-    )
-  );
-}
-
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(React.createElement(App));
-</script>
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
 </body>
+
 </html>

@@ -1,0 +1,30 @@
+[
+  {
+    "username": "admin",
+    "password": "adminpass",
+    "is_admin": true,
+    "policy_name": "Admin",
+    "policy": {
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": true,
+      "can_create": true,
+      "can_drop": true
+    }
+  },
+  {
+    "username": "",
+    "password": "",
+    "is_admin": true,
+    "policy_name": "Admin",
+    "policy": {
+      "can_select": true,
+      "can_insert": true,
+      "can_update": true,
+      "can_delete": true,
+      "can_create": true,
+      "can_drop": true
+    }
+  }
+]
