@@ -1,6 +1,8 @@
 package network
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"sync"
@@ -62,12 +64,20 @@ func NewUserStore(filePath string, adminUsername, adminPassword string) (*UserSt
 		filePath: filePath,
 	}
 
+	needsSave := false
+
 	// Try loading from disk
 	if data, err := os.ReadFile(filePath); err == nil {
 		var users []*DBUser
 		if err := json.Unmarshal(data, &users); err == nil {
 			for _, u := range users {
-				us.users[u.Username] = u
+				if u.Username != "" {
+					if !isHashed(u.Password) && u.Password != "" {
+						u.Password = hashPassword(u.Password)
+						needsSave = true
+					}
+					us.users[u.Username] = u
+				}
 			}
 		}
 	}
@@ -76,11 +86,15 @@ func NewUserStore(filePath string, adminUsername, adminPassword string) (*UserSt
 	if _, exists := us.users[adminUsername]; !exists {
 		us.users[adminUsername] = &DBUser{
 			Username:   adminUsername,
-			Password:   adminPassword,
+			Password:   hashPassword(adminPassword),
 			IsAdmin:    true,
 			PolicyName: "Admin",
 			Policy:     AdminPolicy(),
 		}
+		needsSave = true
+	}
+
+	if needsSave {
 		_ = us.save()
 	}
 
@@ -92,7 +106,7 @@ func (us *UserStore) Authenticate(username, password string) (*DBUser, bool) {
 	us.mu.RLock()
 	defer us.mu.RUnlock()
 	u, ok := us.users[username]
-	if !ok || u.Password != password {
+	if !ok || u.Password != hashPassword(password) {
 		return nil, false
 	}
 	return u, true
@@ -132,7 +146,7 @@ func (us *UserStore) CreateUser(username, password string, isAdmin bool, policyN
 	}
 	us.users[username] = &DBUser{
 		Username:   username,
-		Password:   password,
+		Password:   hashPassword(password),
 		IsAdmin:    isAdmin,
 		PolicyName: policyName,
 		Policy:     policy,
@@ -191,7 +205,7 @@ func (us *UserStore) UpdatePassword(username, newPassword string) error {
 	if !ok {
 		return &userError{"user not found: " + username}
 	}
-	u.Password = newPassword
+	u.Password = hashPassword(newPassword)
 	return us.save()
 }
 
@@ -318,3 +332,24 @@ func (ps *PolicyStore) save() error {
 type userError struct{ msg string }
 
 func (e *userError) Error() string { return e.msg }
+
+func hashPassword(password string) string {
+	if password == "" {
+		return ""
+	}
+	hash := sha256.Sum256([]byte(password))
+	return hex.EncodeToString(hash[:])
+}
+
+func isHashed(password string) bool {
+	if len(password) != 64 {
+		return false
+	}
+	for i := 0; i < len(password); i++ {
+		c := password[i]
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			return false
+		}
+	}
+	return true
+}

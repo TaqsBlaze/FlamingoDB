@@ -15,6 +15,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/framer-motion@10.16.4/dist/framer-motion.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+  
   <style>
     *,
     *::before,
@@ -250,7 +251,6 @@
     }
 
     @keyframes pulse-green {
-
       0%,
       100% {
         opacity: 1;
@@ -849,6 +849,73 @@
       gap: 10px;
     }
 
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 16, 0.8);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-card {
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+      z-index: 101;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes modalFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.97);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-header h3 {
+      font-size: 15px;
+      font-weight: 700;
+      flex: 1;
+    }
+
+    .modal-body {
+      padding: 20px;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.01);
+    }
+
     .login-bg {
       min-height: 100vh;
       width: 100%;
@@ -1233,7 +1300,6 @@
 
     // ── Icon via lucide ───────────────────────────────────────────────────────────
 
-    // Improved parsing of kebab-case to PascalCase (handles edge cases better)
     function toPascal(str) {
       if (!str) return 'HelpCircle';
       return str.split('-').map(function (part) {
@@ -1251,10 +1317,9 @@
         try {
           const pName = toPascal(name);
 
-          // Look up icon, considering potential renames in newer lucide versions
           const iconData = window.lucide.icons[pName]
-            || window.lucide.icons[pName.replace('2', '')] // fallback 'CheckCircle2' -> 'CheckCircle'
-            || window.lucide.icons['CircleHelp']           // fallback for 'HelpCircle'
+            || window.lucide.icons[pName.replace('2', '')]
+            || window.lucide.icons['CircleHelp']
             || window.lucide.icons['HelpCircle'];
 
           if (!iconData) return;
@@ -1269,15 +1334,11 @@
           svg.setAttribute('stroke-linecap', 'round');
           svg.setAttribute('stroke-linejoin', 'round');
 
-          // The key fix: Lucide data structure changed over time. 
-          // It can be an array of children directy OR ['svg', attrs, children]
           let children = [];
           if (Array.isArray(iconData)) {
             if (Array.isArray(iconData[0])) {
-              // Structure: [['path', {d: '...'}], ['circle', {cx: '...'}]]
               children = iconData;
             } else if (Array.isArray(iconData[2])) {
-              // Structure: ['svg', {xmlns: '...'}, [['path', {...}]]]
               children = iconData[2];
             }
           }
@@ -1288,7 +1349,6 @@
             const attrs = child[1] || {};
             const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
 
-            // Apply attributes properly formatting camelCase -> kebab-case
             Object.entries(attrs).forEach(function (pair) {
               const attrName = pair[0].replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
               el.setAttribute(attrName, String(pair[1]));
@@ -1410,16 +1470,13 @@
       };
 
       return React.createElement(motion.div, { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10 }, transition: { duration: .3 } },
-        // Stat cards
         React.createElement('div', { className: 'stat-grid' },
           React.createElement(StatCard, { icon: 'table', label: 'Tables', value: stats.tables, sub: 'in database', color: 'blue' }),
           React.createElement(StatCard, { icon: 'activity', label: 'Server Status', value: 'Online', sub: 'all systems nominal', color: 'green' }),
           React.createElement(StatCard, { icon: 'terminal', label: 'Queries Run', value: stats.queries || 0, sub: 'this session', color: 'pink' }),
           React.createElement(StatCard, { icon: 'users', label: 'Active Users', value: stats.users || 0, sub: 'registered', color: 'purple' })
         ),
-        // Main grid
         React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20 } },
-          // Console + results
           React.createElement('div', null,
             React.createElement('div', { className: 'card mb-4' },
               React.createElement('div', { className: 'card-header' },
@@ -1496,7 +1553,6 @@
               : null
           ),
 
-          // History
           React.createElement('div', null,
             React.createElement('div', { className: 'card' },
               React.createElement('div', { className: 'card-header' },
@@ -1564,7 +1620,6 @@
       return React.createElement(motion.div, { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10 }, transition: { duration: .3 } },
         error ? React.createElement('div', { className: 'mb-4' }, React.createElement(Banner, { type: 'error' }, error)) : null,
         React.createElement('div', { className: 'split' },
-          // Table list
           React.createElement('div', null,
             React.createElement('div', { className: 'card' },
               React.createElement('div', { className: 'card-header' },
@@ -1595,12 +1650,10 @@
               )
             )
           ),
-          // Detail
           React.createElement('div', null,
             !selected
               ? React.createElement('div', { className: 'card' }, React.createElement(Empty, { icon: 'table', title: 'Select a table', sub: 'Click a table on the left to view its schema and data' }))
               : React.createElement('div', null,
-                // Schema
                 React.createElement('div', { className: 'card mb-4' },
                   React.createElement('div', { className: 'card-header' },
                     React.createElement(Icon, { name: 'layers', size: 15, stroke: 'var(--purple2)' }),
@@ -1625,7 +1678,6 @@
                       )
                       : React.createElement(Empty, { icon: 'alert-circle', title: 'Could not load schema' })
                 ),
-                // Preview
                 React.createElement('div', { className: 'card' },
                   React.createElement('div', { className: 'card-header' },
                     React.createElement(Icon, { name: 'eye', size: 15, stroke: 'var(--green2)' }),
@@ -1675,7 +1727,7 @@
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState('');
 
-      // Side panel state for selected user
+      // Side panel state for selected user details
       const [selectedUser, setSelectedUser] = useState(null);
       const [panel, setPanel] = useState(false);
       const [editAdmin, setEditAdmin] = useState(false);
@@ -1685,7 +1737,8 @@
       const [saveMsg, setSaveMsg] = useState('');
       const [deleteLoading, setDeleteLoading] = useState(false);
 
-      // Form state for creating user
+      // Form state for modal user creation
+      const [showCreateModal, setShowCreateModal] = useState(false);
       const [newUser, setNewUser] = useState({ username: '', password: '', is_admin: false, policy_name: '' });
       const [createLoading, setCreateLoading] = useState(false);
       const [createMsg, setCreateMsg] = useState('');
@@ -1757,7 +1810,6 @@
         if (ok) await loadData();
       };
 
-      // Modified to adhere to prompt constraints: No `confirm()` blocks
       const deleteUser = async function () {
         setDeleteLoading(true);
         await apiFetch('/api/users/' + encodeURIComponent(selectedUser.username), { method: 'DELETE' }, creds);
@@ -1800,6 +1852,10 @@
           setCreateMsg('success');
           setNewUser({ username: '', password: '', is_admin: false, policy_name: policies.length > 0 ? policies[0].name : '' });
           await loadData();
+          setTimeout(function () {
+            setShowCreateModal(false);
+            setCreateMsg('');
+          }, 1000);
         } else {
           setCreateMsg('error:' + (data.error || 'Failed to create user'));
         }
@@ -1824,97 +1880,138 @@
 
       return React.createElement(motion.div, { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10 }, transition: { duration: .3 } },
         error ? React.createElement('div', { className: 'mb-4' }, React.createElement(Banner, { type: 'error' }, error)) : null,
-        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 } },
-          // User list
-          React.createElement('div', null,
-            React.createElement('div', { className: 'card' },
-              React.createElement('div', { className: 'card-header' },
-                React.createElement(Icon, { name: 'users', size: 15, stroke: 'var(--purple2)' }),
-                React.createElement('h3', null, 'Users'),
-                React.createElement('span', { className: 'badge badge-purple' }, users.length),
-                React.createElement('button', { className: 'btn btn-primary btn-sm', onClick: function () { setNewUser({ username: '', password: '', is_admin: false, policy_name: policies.length > 0 ? policies[0].name : '' }); setCreateMsg(''); } },
-                  React.createElement(Icon, { name: 'user-plus', size: 13 }),
-                  'New User'
-                )
-              ),
-              React.createElement('div', { style: { padding: 12 } },
-                loading
-                  ? React.createElement(Empty, { icon: 'loader', title: 'Loading users…' })
-                  : users.length === 0
-                    ? React.createElement(Empty, { icon: 'users', title: 'No users found' })
-                    : users.map(function (u) {
-                      return React.createElement(motion.div, {
-                        key: u.username,
-                        className: 'user-row' + (selectedUser && selectedUser.username === u.username ? ' selected' : ''),
-                        onClick: function () { openPanel(u); },
-                        whileHover: { x: 2 },
-                        transition: { type: 'spring', stiffness: 400, damping: 30 }
-                      },
-                        React.createElement('div', { className: 'user-avatar-sm' + (u.is_admin ? ' admin' : '') }, u.username[0].toUpperCase()),
-                        React.createElement('div', { className: 'user-info' },
-                          React.createElement('div', { className: 'user-name' }, u.username),
-                          React.createElement('div', { className: 'user-badges' },
-                            policyBadges(u).length === 0
-                              ? React.createElement('span', { className: 'text-xs text-muted' }, 'No permissions')
-                              : policyBadges(u).map(function (b) { return React.createElement('span', { key: b.label, className: 'badge ' + b.cls }, b.label); })
-                          )
-                        ),
-                        React.createElement(Icon, { name: 'chevron-right', size: 15 })
-                      );
-                    })
+        React.createElement('div', { style: { maxWidth: '100%' } },
+          React.createElement('div', { className: 'card' },
+            React.createElement('div', { className: 'card-header' },
+              React.createElement(Icon, { name: 'users', size: 15, stroke: 'var(--purple2)' }),
+              React.createElement('h3', null, 'Users'),
+              React.createElement('span', { className: 'badge badge-purple' }, users.length),
+              React.createElement('button', {
+                className: 'btn btn-primary btn-sm',
+                onClick: function () {
+                  setNewUser({ username: '', password: '', is_admin: false, policy_name: policies.length > 0 ? policies[0].name : '' });
+                  setCreateMsg('');
+                  setShowCreateModal(true);
+                }
+              },
+                React.createElement(Icon, { name: 'user-plus', size: 13 }),
+                'New User'
               )
-            )
-          ),
-          // Create user
-          React.createElement('div', null,
-            React.createElement('div', { className: 'card' },
-              React.createElement('div', { className: 'card-header' },
-                React.createElement(Icon, { name: 'user-plus', size: 15, stroke: 'var(--green2)' }),
-                React.createElement('h3', null, 'Create User')
-              ),
-              React.createElement('div', { className: 'card-body' },
-                React.createElement('div', { className: 'field' },
-                  React.createElement('label', { className: 'label' }, 'Username'),
-                  React.createElement('input', { className: 'input', value: newUser.username, onChange: function (e) { setNewUser(function (u) { return Object.assign({}, u, { username: e.target.value }); }); }, placeholder: 'e.g. alice', autoComplete: 'off' })
-                ),
-                React.createElement('div', { className: 'field' },
-                  React.createElement('label', { className: 'label' }, 'Password'),
-                  React.createElement('input', { className: 'input', type: 'password', value: newUser.password, onChange: function (e) { setNewUser(function (u) { return Object.assign({}, u, { password: e.target.value }); }); }, placeholder: 'Secure password' })
-                ),
-                React.createElement('div', { className: 'toggle-row', style: { marginBottom: 16 } },
-                  React.createElement('div', { className: 'toggle-row-info' },
-                    React.createElement('div', { className: 't-label' }, 'Admin'),
-                    React.createElement('div', { className: 't-desc' }, 'All permissions granted')
-                  ),
-                  React.createElement(Toggle, { checked: newUser.is_admin, onChange: function (v) { setNewUser(function (u) { return Object.assign({}, u, { is_admin: v, policy_name: v ? 'Admin' : (policies.length > 0 ? policies[0].name : '') }); }); }, gold: newUser.is_admin })
-                ),
-
-                !newUser.is_admin ? React.createElement('div', { className: 'field' },
-                  React.createElement('label', { className: 'label' }, 'Assign Policy'),
-                  React.createElement('select', {
-                    className: 'input',
-                    value: newUser.policy_name,
-                    onChange: function (e) { setNewUser(function (u) { return Object.assign({}, u, { policy_name: e.target.value }); }); }
-                  },
-                    policies.map(function (p) { return React.createElement('option', { key: p.name, value: p.name }, p.name); })
-                  )
-                ) : null,
-
-                createMsg ? React.createElement('div', { className: 'mb-3' },
-                  createMsg === 'success'
-                    ? React.createElement(Banner, { type: 'success' }, 'User created successfully!')
-                    : React.createElement(Banner, { type: 'error' }, createMsg.replace('error:', ''))
-                ) : null,
-                React.createElement('button', { className: 'btn btn-primary w-full', onClick: createUser, disabled: createLoading },
-                  createLoading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'plus', size: 15 }),
-                  createLoading ? 'Creating…' : 'Create User'
-                )
-              )
+            ),
+            React.createElement('div', { style: { padding: 12 } },
+              loading
+                ? React.createElement(Empty, { icon: 'loader', title: 'Loading users…' })
+                : users.length === 0
+                  ? React.createElement(Empty, { icon: 'users', title: 'No users found' })
+                  : users.map(function (u) {
+                    return React.createElement(motion.div, {
+                      key: u.username,
+                      className: 'user-row' + (selectedUser && selectedUser.username === u.username ? ' selected' : ''),
+                      onClick: function () { openPanel(u); },
+                      whileHover: { x: 2 },
+                      transition: { type: 'spring', stiffness: 400, damping: 30 }
+                    },
+                      React.createElement('div', { className: 'user-avatar-sm' + (u.is_admin ? ' admin' : '') }, u.username[0].toUpperCase()),
+                      React.createElement('div', { className: 'user-info' },
+                        React.createElement('div', { className: 'user-name' }, u.username),
+                        React.createElement('div', { className: 'user-badges' },
+                          policyBadges(u).length === 0
+                            ? React.createElement('span', { className: 'text-xs text-muted' }, 'No permissions')
+                            : policyBadges(u).map(function (b) { return React.createElement('span', { key: b.label, className: 'badge ' + b.cls }, b.label); })
+                        )
+                      ),
+                      React.createElement(Icon, { name: 'chevron-right', size: 15 })
+                    );
+                  })
             )
           )
         ),
 
-        // Side panel
+        React.createElement(AnimatePresence, null,
+          showCreateModal ? React.createElement(React.Fragment, null,
+            React.createElement(motion.div, {
+              className: 'modal-overlay',
+              initial: { opacity: 0 },
+              animate: { opacity: 1 },
+              exit: { opacity: 0 },
+              onClick: function () { setShowCreateModal(false); }
+            },
+              React.createElement(motion.div, {
+                className: 'modal-card',
+                initial: { y: 20, opacity: 0 },
+                animate: { y: 0, opacity: 1 },
+                exit: { y: 20, opacity: 0 },
+                onClick: function (e) { e.stopPropagation(); }
+              },
+                React.createElement('div', { className: 'modal-header' },
+                  React.createElement(Icon, { name: 'user-plus', size: 16, stroke: 'var(--green2)' }),
+                  React.createElement('h3', null, 'Create User'),
+                  React.createElement('button', { className: 'btn btn-secondary btn-sm btn-icon', onClick: function () { setShowCreateModal(false); } },
+                    React.createElement(Icon, { name: 'x', size: 14 })
+                  )
+                ),
+                React.createElement('div', { className: 'modal-body' },
+                  React.createElement('div', { className: 'field' },
+                    React.createElement('label', { className: 'label' }, 'Username'),
+                    React.createElement('input', {
+                      className: 'input',
+                      value: newUser.username,
+                      onChange: function (e) { setNewUser(function (u) { return Object.assign({}, u, { username: e.target.value }); }); },
+                      placeholder: 'e.g. alice',
+                      autoComplete: 'off'
+                    })
+                  ),
+                  React.createElement('div', { className: 'field' },
+                    React.createElement('label', { className: 'label' }, 'Password'),
+                    React.createElement('input', {
+                      className: 'input',
+                      type: 'password',
+                      value: newUser.password,
+                      onChange: function (e) { setNewUser(function (u) { return Object.assign({}, u, { password: e.target.value }); }); },
+                      placeholder: 'Secure password'
+                    })
+                  ),
+                  React.createElement('div', { className: 'toggle-row', style: { marginBottom: 16 } },
+                    React.createElement('div', { className: 'toggle-row-info' },
+                      React.createElement('div', { className: 't-label' }, 'Admin'),
+                      React.createElement('div', { className: 't-desc' }, 'All permissions granted')
+                    ),
+                    React.createElement(Toggle, {
+                      checked: newUser.is_admin,
+                      onChange: function (v) { setNewUser(function (u) { return Object.assign({}, u, { is_admin: v, policy_name: v ? 'Admin' : (policies.length > 0 ? policies[0].name : '') }); }); },
+                      gold: newUser.is_admin
+                    })
+                  ),
+
+                  !newUser.is_admin ? React.createElement('div', { className: 'field' },
+                    React.createElement('label', { className: 'label' }, 'Assign Policy'),
+                    React.createElement('select', {
+                      className: 'input',
+                      value: newUser.policy_name,
+                      onChange: function (e) { setNewUser(function (u) { return Object.assign({}, u, { policy_name: e.target.value }); }); }
+                    },
+                      policies.map(function (p) { return React.createElement('option', { key: p.name, value: p.name }, p.name); })
+                    )
+                  ) : null,
+
+                  createMsg ? React.createElement('div', { className: 'mb-3' },
+                    createMsg === 'success'
+                      ? React.createElement(Banner, { type: 'success' }, 'User created successfully!')
+                      : React.createElement(Banner, { type: 'error' }, createMsg.replace('error:', ''))
+                  ) : null
+                ),
+                React.createElement('div', { className: 'modal-footer' },
+                  React.createElement('button', { className: 'btn btn-secondary btn-sm', onClick: function () { setShowCreateModal(false); } }, 'Cancel'),
+                  React.createElement('button', { className: 'btn btn-primary btn-sm', onClick: createUser, disabled: createLoading },
+                    createLoading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'plus', size: 15 }),
+                    createLoading ? 'Creating…' : 'Create User'
+                  )
+                )
+              )
+            )
+          ) : null
+        ),
+
         React.createElement(AnimatePresence, null,
           panel && selectedUser
             ? React.createElement(React.Fragment, { key: 'panel' },
@@ -1931,7 +2028,6 @@
                   )
                 ),
                 React.createElement('div', { className: 'side-panel-body' },
-                  // Admin toggle
                   React.createElement('div', {
                     className: 'toggle-row', style: {
                       borderColor: editAdmin ? 'rgba(245,158,11,.4)' : 'var(--border)',
@@ -1983,7 +2079,6 @@
 
                   React.createElement('hr', { className: 'divider' }),
 
-                  // Show policy details
                   POLICY_FIELDS.map(function (f) {
                     const isReadOnly = editAdmin || (editPolicyName !== 'Custom');
                     let checkedVal = false;
@@ -2043,12 +2138,15 @@
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
-    // PAGE: Settings
+    // PAGE: Settings (Named Policies Configuration)
     // ─────────────────────────────────────────────────────────────────────────────
     function SettingsPage({ creds }) {
       const [policies, setPolicies] = useState([]);
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState('');
+
+      // Modal state for creating a policy
+      const [showCreateModal, setShowCreateModal] = useState(false);
       const [newPolicy, setNewPolicy] = useState({ name: '', can_select: false, can_insert: false, can_update: false, can_delete: false, can_create: false, can_drop: false });
       const [createLoading, setCreateLoading] = useState(false);
       const [createMsg, setCreateMsg] = useState('');
@@ -2075,14 +2173,17 @@
         if (ok) {
           setCreateMsg('success');
           setNewPolicy({ name: '', can_select: false, can_insert: false, can_update: false, can_delete: false, can_create: false, can_drop: false });
-          loadPolicies();
+          await loadPolicies();
+          setTimeout(function () {
+            setShowCreateModal(false);
+            setCreateMsg('');
+          }, 1000);
         } else {
           setCreateMsg('error:' + (data.error || 'Failed to create policy'));
         }
         setCreateLoading(false);
       };
 
-      // Modified to adhere to prompt constraints: No `confirm()` blocks
       const deletePolicy = async function (name) {
         const { ok, data } = await apiFetch('/api/policies/' + encodeURIComponent(name), { method: 'DELETE' }, creds);
         if (ok) {
@@ -2094,96 +2195,131 @@
 
       return React.createElement(motion.div, { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10 }, transition: { duration: .3 } },
         error ? React.createElement('div', { className: 'mb-4' }, React.createElement(Banner, { type: 'error' }, error)) : null,
-        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 } },
-          // Policies List
-          React.createElement('div', null,
-            React.createElement('div', { className: 'card' },
-              React.createElement('div', { className: 'card-header' },
-                React.createElement(Icon, { name: 'settings', size: 15, stroke: 'var(--purple2)' }),
-                React.createElement('h3', null, 'System Policies'),
-                React.createElement('span', { className: 'badge badge-purple' }, policies.length)
-              ),
-              React.createElement('div', { style: { padding: 12 } },
-                loading
-                  ? React.createElement(Empty, { icon: 'loader', title: 'Loading policies…' })
-                  : policies.length === 0
-                    ? React.createElement(Empty, { icon: 'shield', title: 'No policies defined' })
-                    : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
-                      policies.map(function (p) {
-                        const tags = [];
-                        if (p.can_select) tags.push('SELECT');
-                        if (p.can_insert) tags.push('INSERT');
-                        if (p.can_update) tags.push('UPDATE');
-                        if (p.can_delete) tags.push('DELETE');
-                        if (p.can_create) tags.push('CREATE');
-                        if (p.can_drop) tags.push('DROP');
-
-                        return React.createElement('div', { key: p.name, className: 'user-row', style: { cursor: 'default' } },
-                          React.createElement('div', { className: 'user-info' },
-                            React.createElement('div', { className: 'user-name', style: { fontSize: 13, fontWeight: 600 } }, p.name),
-                            React.createElement('div', { className: 'user-badges', style: { marginTop: 4 } },
-                              tags.length === 0
-                                ? React.createElement('span', { className: 'text-xs text-muted' }, 'No permissions')
-                                : tags.map(function (t) {
-                                  let cls = 'badge-gray';
-                                  if (t === 'SELECT') cls = 'badge-blue';
-                                  if (t === 'INSERT') cls = 'badge-green';
-                                  if (t === 'UPDATE') cls = 'badge-purple';
-                                  if (t === 'DELETE') cls = 'badge-pink';
-                                  return React.createElement('span', { key: t, className: 'badge ' + cls }, t);
-                                })
-                            )
-                          ),
-                          React.createElement('button', { className: 'btn btn-red btn-sm btn-icon', onClick: function () { deletePolicy(p.name); } },
-                            React.createElement(Icon, { name: 'trash-2', size: 14 })
-                          )
-                        );
-                      })
-                    )
+        React.createElement('div', { style: { maxWidth: '100%' } },
+          React.createElement('div', { className: 'card' },
+            React.createElement('div', { className: 'card-header' },
+              React.createElement(Icon, { name: 'settings', size: 15, stroke: 'var(--purple2)' }),
+              React.createElement('h3', null, 'System Policies'),
+              React.createElement('span', { className: 'badge badge-purple' }, policies.length),
+              React.createElement('button', {
+                className: 'btn btn-primary btn-sm',
+                onClick: function () {
+                  setNewPolicy({ name: '', can_select: false, can_insert: false, can_update: false, can_delete: false, can_create: false, can_drop: false });
+                  setCreateMsg('');
+                  setShowCreateModal(true);
+                }
+              },
+                React.createElement(Icon, { name: 'plus', size: 13 }),
+                'New Policy'
               )
-            )
-          ),
+            ),
+            React.createElement('div', { style: { padding: 12 } },
+              loading
+                ? React.createElement(Empty, { icon: 'loader', title: 'Loading policies…' })
+                : policies.length === 0
+                  ? React.createElement(Empty, { icon: 'shield', title: 'No policies defined' })
+                  : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+                    policies.map(function (p) {
+                      const tags = [];
+                      if (p.can_select) tags.push('SELECT');
+                      if (p.can_insert) tags.push('INSERT');
+                      if (p.can_update) tags.push('UPDATE');
+                      if (p.can_delete) tags.push('DELETE');
+                      if (p.can_create) tags.push('CREATE');
+                      if (p.can_drop) tags.push('DROP');
 
-          // Create Named Policy
-          React.createElement('div', null,
-            React.createElement('div', { className: 'card' },
-              React.createElement('div', { className: 'card-header' },
-                React.createElement(Icon, { name: 'shield-alert', size: 15, stroke: 'var(--green2)' }),
-                React.createElement('h3', null, 'Create Policy')
-              ),
-              React.createElement('div', { className: 'card-body' },
-                React.createElement('div', { className: 'field' },
-                  React.createElement('label', { className: 'label' }, 'Policy Name'),
-                  React.createElement('input', { className: 'input', value: newPolicy.name, onChange: function (e) { setNewPolicy(function (p) { return Object.assign({}, p, { name: e.target.value }); }); }, placeholder: 'e.g. WriterOnly', autoComplete: 'off' })
-                ),
-                React.createElement('hr', { className: 'divider' }),
-                POLICY_FIELDS.map(function (f) {
-                  return React.createElement('div', { key: f.key, className: 'toggle-row' },
-                    React.createElement('div', { className: 'toggle-row-info' },
-                      React.createElement('div', { className: 't-label' },
-                        React.createElement(Icon, { name: f.icon, size: 13 }),
-                        ' ' + f.label
-                      ),
-                      React.createElement('div', { className: 't-desc' }, f.desc)
-                    ),
-                    React.createElement(Toggle, {
-                      checked: !!newPolicy[f.key],
-                      onChange: function (v) { setNewPolicy(function (p) { const n = Object.assign({}, p); n[f.key] = v; return n; }); }
+                      return React.createElement('div', { key: p.name, className: 'user-row', style: { cursor: 'default' } },
+                        React.createElement('div', { className: 'user-info' },
+                          React.createElement('div', { className: 'user-name', style: { fontSize: 13, fontWeight: 600 } }, p.name),
+                          React.createElement('div', { className: 'user-badges', style: { marginTop: 4 } },
+                            tags.length === 0
+                              ? React.createElement('span', { className: 'text-xs text-muted' }, 'No permissions')
+                              : tags.map(function (t) {
+                                let cls = 'badge-gray';
+                                if (t === 'SELECT') cls = 'badge-blue';
+                                if (t === 'INSERT') cls = 'badge-green';
+                                if (t === 'UPDATE') cls = 'badge-purple';
+                                if (t === 'DELETE') cls = 'badge-pink';
+                                return React.createElement('span', { key: t, className: 'badge ' + cls }, t);
+                              })
+                          )
+                        ),
+                        React.createElement('button', { className: 'btn btn-red btn-sm btn-icon', onClick: function () { deletePolicy(p.name); } },
+                          React.createElement(Icon, { name: 'trash-2', size: 14 })
+                        )
+                      );
                     })
-                  );
-                }),
-                createMsg ? React.createElement('div', { className: 'mb-3 mt-3' },
-                  createMsg === 'success'
-                    ? React.createElement(Banner, { type: 'success' }, 'Policy created successfully!')
-                    : React.createElement(Banner, { type: 'error' }, createMsg.replace('error:', ''))
-                ) : null,
-                React.createElement('button', { className: 'btn btn-primary w-full mt-3', onClick: createPolicy, disabled: createLoading },
-                  createLoading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'plus', size: 15 }),
-                  createLoading ? 'Creating…' : 'Create Policy'
+                  )
+            )
+          )
+        ),
+
+        React.createElement(AnimatePresence, null,
+          showCreateModal ? React.createElement(React.Fragment, null,
+            React.createElement(motion.div, {
+              className: 'modal-overlay',
+              initial: { opacity: 0 },
+              animate: { opacity: 1 },
+              exit: { opacity: 0 },
+              onClick: function () { setShowCreateModal(false); }
+            },
+              React.createElement(motion.div, {
+                className: 'modal-card',
+                initial: { y: 20, opacity: 0 },
+                animate: { y: 0, opacity: 1 },
+                exit: { y: 20, opacity: 0 },
+                onClick: function (e) { e.stopPropagation(); }
+              },
+                React.createElement('div', { className: 'modal-header' },
+                  React.createElement(Icon, { name: 'shield-alert', size: 16, stroke: 'var(--green2)' }),
+                  React.createElement('h3', null, 'Create Policy'),
+                  React.createElement('button', { className: 'btn btn-secondary btn-sm btn-icon', onClick: function () { setShowCreateModal(false); } },
+                    React.createElement(Icon, { name: 'x', size: 14 })
+                  )
+                ),
+                React.createElement('div', { className: 'modal-body' },
+                  React.createElement('div', { className: 'field' },
+                    React.createElement('label', { className: 'label' }, 'Policy Name'),
+                    React.createElement('input', {
+                      className: 'input',
+                      value: newPolicy.name,
+                      onChange: function (e) { setNewPolicy(function (p) { return Object.assign({}, p, { name: e.target.value }); }); },
+                      placeholder: 'e.g. WriterOnly',
+                      autoComplete: 'off'
+                    })
+                  ),
+                  React.createElement('hr', { className: 'divider' }),
+                  POLICY_FIELDS.map(function (f) {
+                    return React.createElement('div', { key: f.key, className: 'toggle-row' },
+                      React.createElement('div', { className: 'toggle-row-info' },
+                        React.createElement('div', { className: 't-label' },
+                          React.createElement(Icon, { name: f.icon, size: 13 }),
+                          ' ' + f.label
+                        ),
+                        React.createElement('div', { className: 't-desc' }, f.desc)
+                      ),
+                      React.createElement(Toggle, {
+                        checked: !!newPolicy[f.key],
+                        onChange: function (v) { setNewPolicy(function (p) { const n = Object.assign({}, p); n[f.key] = v; return n; }); }
+                      })
+                    );
+                  }),
+                  createMsg ? React.createElement('div', { className: 'mb-3 mt-3' },
+                    createMsg === 'success'
+                      ? React.createElement(Banner, { type: 'success' }, 'Policy created successfully!')
+                      : React.createElement(Banner, { type: 'error' }, createMsg.replace('error:', ''))
+                  ) : null
+                ),
+                React.createElement('div', { className: 'modal-footer' },
+                  React.createElement('button', { className: 'btn btn-secondary btn-sm', onClick: function () { setShowCreateModal(false); } }, 'Cancel'),
+                  React.createElement('button', { className: 'btn btn-primary btn-sm', onClick: createPolicy, disabled: createLoading },
+                    createLoading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'plus', size: 15 }),
+                    createLoading ? 'Creating…' : 'Create Policy'
+                  )
                 )
               )
             )
-          )
+          ) : null
         )
       );
     }
@@ -2198,15 +2334,59 @@
       const [msg, setMsg] = useState('');
       const [userInfo, setUserInfo] = useState(null);
 
+      const [assignedPolicy, setAssignedPolicy] = useState({
+        can_select: false,
+        can_insert: false,
+        can_update: false,
+        can_delete: false,
+        can_create: false,
+        can_drop: false
+      });
+      const [policyName, setPolicyName] = useState('Custom');
+      const [isAdmin, setIsAdmin] = useState(false);
+      const [policyLoading, setPolicyLoading] = useState(false);
+      const [policyMsg, setPolicyMsg] = useState('');
+
       useEffect(function () {
         (async function () {
           const { ok, data } = await apiFetch('/api/users', {}, creds);
           if (ok && data.users) {
             const me = data.users.find(function (u) { return u.username === creds.username; });
             setUserInfo(me || null);
+            if (me) {
+              setAssignedPolicy(Object.assign({
+                can_select: false,
+                can_insert: false,
+                can_update: false,
+                can_delete: false,
+                can_create: false,
+                can_drop: false
+              }, me.policy || {}));
+              setPolicyName(me.policy_name || 'Custom');
+              setIsAdmin(!!me.is_admin);
+            }
           }
         })();
-      }, []);
+      }, [creds]);
+
+      const saveUserPolicy = async function () {
+        setPolicyLoading(true); setPolicyMsg('');
+        const body = {
+          is_admin: isAdmin,
+          policy_name: isAdmin ? 'Admin' : 'Custom',
+          policy: assignedPolicy
+        };
+        const { ok, data } = await apiFetch('/api/users/' + encodeURIComponent(creds.username) + '/policy', { method: 'PUT', body: JSON.stringify(body) }, creds);
+        if (ok) {
+          setPolicyMsg('success');
+          setUserInfo(function (prev) {
+            return Object.assign({}, prev, { policy: assignedPolicy, is_admin: isAdmin, policy_name: isAdmin ? 'Admin' : 'Custom' });
+          });
+        } else {
+          setPolicyMsg('error:' + (data.error || 'Failed to update policy'));
+        }
+        setPolicyLoading(false);
+      };
 
       const changePass = async function () {
         if (!newPass) { setMsg('error:New password required'); return; }
@@ -2223,75 +2403,109 @@
         setLoading(false);
       };
 
-      const policy = (userInfo && userInfo.policy) ? userInfo.policy : {};
-      const isAdmin = userInfo && userInfo.is_admin;
-
       return React.createElement(motion.div, { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10 }, transition: { duration: .3 } },
-        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, maxWidth: 860 } },
-          // Profile info
-          React.createElement('div', { className: 'card' },
-            React.createElement('div', { className: 'card-header' },
-              React.createElement(Icon, { name: 'user', size: 15, stroke: 'var(--pink)' }),
-              React.createElement('h3', null, 'Profile')
-            ),
-            React.createElement('div', { className: 'card-body', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 28 } },
-              React.createElement('div', { className: 'profile-avatar' }, creds.username[0].toUpperCase()),
-              React.createElement('div', { style: { fontSize: 20, fontWeight: 700, marginBottom: 8 } }, creds.username),
-              isAdmin
-                ? React.createElement('span', { className: 'badge badge-gold' }, React.createElement(Icon, { name: 'shield', size: 11 }), ' Administrator')
-                : React.createElement('span', { className: 'badge badge-gray' }, 'Standard User'),
-              React.createElement('hr', { className: 'divider', style: { width: '100%' } }),
-              React.createElement('div', { style: { width: '100%' } },
-                React.createElement('div', { className: 'section-title' },
-                  React.createElement(Icon, { name: 'lock', size: 14 }),
-                  'Permissions'
-                ),
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'minmax(280px, 340px) 1fr', gap: 20, maxWidth: 1000 } },
+          // Left column (Overview card)
+          React.createElement('div', null,
+            React.createElement('div', { className: 'card' },
+              React.createElement('div', { className: 'card-header' },
+                React.createElement(Icon, { name: 'user', size: 15, stroke: 'var(--pink)' }),
+                React.createElement('h3', null, 'Profile Overview')
+              ),
+              React.createElement('div', { className: 'card-body', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 28 } },
+                React.createElement('div', { className: 'profile-avatar' }, creds.username[0].toUpperCase()),
+                React.createElement('div', { style: { fontSize: 20, fontWeight: 700, marginBottom: 8 } }, creds.username),
                 isAdmin
-                  ? React.createElement(Banner, { type: 'info' }, 'You have full administrator access to all operations.')
-                  : React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
-                    POLICY_FIELDS.map(function (f) {
-                      return React.createElement('span', { key: f.key, className: 'badge ' + (policy[f.key] ? 'badge-green' : 'badge-gray'), style: { opacity: policy[f.key] ? 1 : .4 } }, f.label);
-                    })
-                  )
+                  ? React.createElement('span', { className: 'badge badge-gold' }, React.createElement(Icon, { name: 'shield', size: 11 }), ' Administrator')
+                  : React.createElement('span', { className: 'badge badge-gray' }, 'Standard User'),
+                React.createElement('hr', { className: 'divider', style: { width: '100%' } }),
+                React.createElement('div', { style: { width: '100%', display: 'flex', flexDirection: 'column', gap: 6 } },
+                  [['Username', creds.username], ['Role', isAdmin ? 'Superuser' : 'Limited Account'], ['Auth Type', 'HTTP Basic']].map(function (pair) {
+                    return React.createElement('div', { key: pair[0], style: { display: 'flex', justifyContent: 'space-between', fontSize: 12 } },
+                      React.createElement('span', { style: { color: 'var(--muted)' } }, pair[0]),
+                      React.createElement('span', { style: { fontFamily: "'Fira Code',monospace", color: 'var(--text)' } }, pair[1])
+                    );
+                  })
+                )
               )
             )
           ),
-          // Change password
-          React.createElement('div', { className: 'card' },
-            React.createElement('div', { className: 'card-header' },
-              React.createElement(Icon, { name: 'key-round', size: 15, stroke: 'var(--blue2)' }),
-              React.createElement('h3', null, 'Change Password')
+
+          // Right Column (Stacked forms)
+          React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 20 } },
+            React.createElement('div', { className: 'card' },
+              React.createElement('div', { className: 'card-header' },
+                React.createElement(Icon, { name: 'lock', size: 15, stroke: 'var(--purple2)' }),
+                React.createElement('h3', null, 'Assigned Security Policies'),
+                React.createElement('span', { className: 'badge badge-purple' }, policyName)
+              ),
+              React.createElement('div', { className: 'card-body' },
+                isAdmin ? React.createElement('div', { className: 'mb-4' },
+                  React.createElement(Banner, { type: 'info' }, 'Note: You are currently flagged as an administrator. You may modify individual safety overrides below, but Administrative privilege bypasses these constraints.')
+                ) : null,
+
+                React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 } },
+                  POLICY_FIELDS.map(function (f) {
+                    return React.createElement('div', { key: f.key, className: 'toggle-row', style: { margin: 0 } },
+                      React.createElement('div', { className: 'toggle-row-info' },
+                        React.createElement('div', { className: 't-label', style: { fontSize: 12 } },
+                          React.createElement(Icon, { name: f.icon, size: 13, stroke: assignedPolicy[f.key] ? 'var(--pink)' : 'var(--muted)' }),
+                          ' ' + f.label
+                        ),
+                        React.createElement('div', { className: 't-desc', style: { fontSize: 10 } }, f.desc)
+                      ),
+                      React.createElement(Toggle, {
+                        checked: !!assignedPolicy[f.key],
+                        onChange: function (v) {
+                          setAssignedPolicy(function (p) {
+                            const n = Object.assign({}, p);
+                            n[f.key] = v;
+                            return n;
+                          });
+                        }
+                      })
+                    );
+                  })
+                ),
+
+                policyMsg ? React.createElement('div', { className: 'mt-3' },
+                  policyMsg === 'success'
+                    ? React.createElement(Banner, { type: 'success' }, 'Policies updated and saved locally!')
+                    : React.createElement(Banner, { type: 'error' }, policyMsg.replace('error:', ''))
+                ) : null,
+
+                React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginTop: 16 } },
+                  React.createElement('button', { className: 'btn btn-primary', onClick: saveUserPolicy, disabled: policyLoading },
+                    policyLoading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'save', size: 14 }),
+                    policyLoading ? 'Saving changes…' : 'Save Policy Overrides'
+                  )
+                )
+              )
             ),
-            React.createElement('div', { className: 'card-body' },
-              React.createElement('div', { className: 'field' },
-                React.createElement('label', { className: 'label' }, 'New Password'),
-                React.createElement('input', { className: 'input', type: 'password', value: newPass, onChange: function (e) { setNewPass(e.target.value); }, placeholder: 'Enter new password', autoComplete: 'new-password' })
+
+            React.createElement('div', { className: 'card' },
+              React.createElement('div', { className: 'card-header' },
+                React.createElement(Icon, { name: 'key-round', size: 15, stroke: 'var(--blue2)' }),
+                React.createElement('h3', null, 'Update Password')
               ),
-              React.createElement('div', { className: 'field' },
-                React.createElement('label', { className: 'label' }, 'Confirm Password'),
-                React.createElement('input', { className: 'input', type: 'password', value: confirmPass, onChange: function (e) { setConfirmPass(e.target.value); }, placeholder: 'Repeat new password', autoComplete: 'new-password' })
-              ),
-              msg ? React.createElement('div', { className: 'mb-3' },
-                msg === 'success'
-                  ? React.createElement(Banner, { type: 'success' }, 'Password changed successfully!')
-                  : React.createElement(Banner, { type: 'error' }, msg.replace('error:', ''))
-              ) : null,
-              React.createElement('button', { className: 'btn btn-primary w-full', onClick: changePass, disabled: loading },
-                loading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'check', size: 15 }),
-                loading ? 'Updating…' : 'Update Password'
-              ),
-              React.createElement('hr', { className: 'divider' }),
-              React.createElement('div', { className: 'section-title text-muted', style: { fontSize: 12 } },
-                React.createElement(Icon, { name: 'info', size: 13 }),
-                'Session Info'
-              ),
-              React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
-                [['Username', creds.username], ['Session', 'Active'], ['Auth', 'HTTP Basic']].map(function (pair) {
-                  return React.createElement('div', { key: pair[0], style: { display: 'flex', justifyContent: 'space-between', fontSize: 12 } },
-                    React.createElement('span', { style: { color: 'var(--muted)' } }, pair[0]),
-                    React.createElement('span', { style: { fontFamily: "'Fira Code',monospace", color: 'var(--text)' } }, pair[1])
-                  );
-                })
+              React.createElement('div', { className: 'card-body' },
+                React.createElement('div', { className: 'field' },
+                  React.createElement('label', { className: 'label' }, 'New Password'),
+                  React.createElement('input', { className: 'input', type: 'password', value: newPass, onChange: function (e) { setNewPass(e.target.value); }, placeholder: 'Enter new password', autoComplete: 'new-password' })
+                ),
+                React.createElement('div', { className: 'field' },
+                  React.createElement('label', { className: 'label' }, 'Confirm Password'),
+                  React.createElement('input', { className: 'input', type: 'password', value: confirmPass, onChange: function (e) { setConfirmPass(e.target.value); }, placeholder: 'Repeat new password', autoComplete: 'new-password' })
+                ),
+                msg ? React.createElement('div', { className: 'mb-3' },
+                  msg === 'success'
+                    ? React.createElement(Banner, { type: 'success' }, 'Password changed successfully!')
+                    : React.createElement(Banner, { type: 'error' }, msg.replace('error:', ''))
+                ) : null,
+                React.createElement('button', { className: 'btn btn-blue w-full', onClick: changePass, disabled: loading },
+                  loading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'check', size: 15 }),
+                  loading ? 'Updating…' : 'Update Password'
+                )
               )
             )
           )
@@ -2406,7 +2620,6 @@
       const currentPage = PAGES.find(function (p) { return p.id === page; }) || PAGES[0];
 
       return React.createElement('div', { className: 'app-shell' },
-        // Sidebar
         React.createElement('nav', { className: 'sidebar' },
           React.createElement('div', { className: 'sidebar-logo' },
             React.createElement('div', { className: 'logo-icon' }, React.createElement(Icon, { name: 'database-zap', size: 20 })),
@@ -2447,9 +2660,7 @@
             )
           )
         ),
-        // Main
         React.createElement('div', { className: 'main-area' },
-          // Top bar
           React.createElement('header', { className: 'topbar' },
             React.createElement('div', { className: 'topbar-title' },
               currentPage.label,
@@ -2463,7 +2674,6 @@
               React.createElement('div', { className: 'avatar', onClick: function () { setPage('profile'); }, title: 'Profile: ' + creds.username }, creds.username[0].toUpperCase())
             )
           ),
-          // Page content
           React.createElement('div', { className: 'page-content' },
             React.createElement(AnimatePresence, { mode: 'wait' },
               page === 'console' ? React.createElement(SqlConsolePage, { key: 'console', creds: creds, stats: stats, setStats: setStats }) :

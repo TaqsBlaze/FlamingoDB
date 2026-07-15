@@ -1,7 +1,7 @@
 [
   {
     "username": "admin",
-    "password": "adminpass",
+    "password": "713bfda78870bf9d1b261f565286f85e97ee614efe5f0faf7c34e7ca4f65baca",
     "is_admin": true,
     "policy_name": "Admin",
     "policy": {
