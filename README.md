@@ -447,6 +447,30 @@ curl -u admin:password123 -X POST http://localhost:8080/query \
 
 ---
 
+### 4. Web Administration Dashboard
+
+FlamingoDB embeds a beautiful, rich web-based administration dashboard directly into the database server daemon. It provides an intuitive interface for visualising database statistics, managing security policies, administering user accounts, and running queries in a visual SQL console.
+
+#### Accessing the Dashboard
+Once the `flamingodbd` daemon is running (e.g. on port `8080`), open your web browser and navigate to:
+```
+http://localhost:8080/
+```
+Or specifically to the subpath:
+```
+http://localhost:8080/ui
+```
+*Note: The dashboard requires HTTP Basic Authentication matching the username and password flags specified when starting the daemon (default credentials: `admin` / `admin`).*
+
+#### Key Features
+- 🖥️ **SQL Console**: Execute custom SQL statements directly in the browser and view nicely-formatted result tables.
+- 📦 **Table Browser**: Inspect table structures, columns, types, and schemas stored in the catalog.
+- 👥 **User Management**: Add new database users, delete existing accounts, and update passwords.
+- 🛡️ **Named Policy Store**: Create, edit, and assign security policies (e.g. `Read-Only`, `Read-Write`, or custom DDL/DML permission matrices) to users.
+- 🔄 **Transaction Monitoring**: Real-time indication of current connections and active transaction status.
+
+---
+
 ## 🧪 Tests
 
 **Reproducible research** demands reproducible software. Every package requires unit tests; every bug fix requires a regression test. FlamingoDB enforces this as a hard rule.
