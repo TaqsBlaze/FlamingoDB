@@ -67,6 +67,8 @@ func (e *Executor) ExecuteWithTx(tx *transaction.Transaction, node planner.PlanN
 		return e.executeScan(tx, n)
 	case *planner.IndexScanNode:
 		return e.executeIndexScan(tx, n)
+	case *planner.ShowTablesNode:
+		return e.executeShowTables(tx, n)
 	default:
 		return nil, fmt.Errorf("unsupported plan node type: %T", node)
 	}
@@ -1145,4 +1147,17 @@ func compareValues(left record.Value, op string, right record.Value) (bool, erro
 		}
 	}
 	return false, fmt.Errorf("unsupported operator %q for type %v", op, left.Type)
+}
+
+func (e *Executor) executeShowTables(tx *transaction.Transaction, n *planner.ShowTablesNode) (*Result, error) {
+	tables := e.tm.ListTables()
+	rows := make([]Row, len(tables))
+	for i, name := range tables {
+		rows[i] = Row{
+			Values: []record.Value{
+				{Type: record.Varchar, Str: name},
+			},
+		}
+	}
+	return &Result{Rows: rows}, nil
 }

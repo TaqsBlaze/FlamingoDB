@@ -243,6 +243,15 @@ func (s *DropTableStatement) String() string {
 	return "DROP TABLE " + s.Table + ";"
 }
 
+// ShowTablesStatement represents a SHOW TABLES query.
+type ShowTablesStatement struct {
+	Token lexer.Token // the 'SHOW' token
+}
+
+func (s *ShowTablesStatement) statementNode()       {}
+func (s *ShowTablesStatement) TokenLiteral() string { return s.Token.Literal }
+func (s *ShowTablesStatement) String() string       { return "SHOW TABLES;" }
+
 
 // ImaginaryLiteral represents an imaginary number literal (e.g. 3i, 4.5i).
 type ImaginaryLiteral struct {
