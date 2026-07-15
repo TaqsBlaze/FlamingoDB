@@ -1194,6 +1194,8 @@ func inferColumnNames(node planner.PlanNode, tm *catalog.TableManager) []string 
 			names = append(names, col.Name)
 		}
 		return names
+	case *planner.ShowTablesNode:
+		return []string{"table_name"}
 	}
 	return nil
 }

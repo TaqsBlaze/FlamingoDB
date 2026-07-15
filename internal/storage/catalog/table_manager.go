@@ -167,6 +167,32 @@ func (tm *TableManager) InsertRecord(tx *transaction.Transaction, tableName stri
 		return err
 	}
 
+	// Ensure that no more than 1 record with the same ID can exist in the table
+	idColIdx := -1
+	for i, col := range meta.Schema.Columns {
+		if strings.EqualFold(col.Name, "id") {
+			idColIdx = i
+			break
+		}
+	}
+
+	if idColIdx != -1 && len(rec.Values) > idColIdx {
+		// Read all records to check for duplicate ID
+		existingRecs, err := tm.ReadRecords(tx, tableName)
+		if err != nil {
+			return err
+		}
+		newVal := rec.Values[idColIdx]
+		for _, er := range existingRecs {
+			if len(er.Values) > idColIdx {
+				oldVal := er.Values[idColIdx]
+				if valuesEqual(oldVal, newVal) {
+					return fmt.Errorf("duplicate key error: a record with id %s already exists in table %q", formatValue(newVal), tableName)
+				}
+			}
+		}
+	}
+
 	var tbl *table.Table
 	tbl, err = table.New(tm.pager, tm.txMgr, tx, meta.FirstPageID, false)
 	if err != nil {
@@ -435,4 +461,33 @@ func (tm *TableManager) ReadRecordsIndexed(
 	}
 
 	return records, nil
+}
+
+func valuesEqual(a, b record.Value) bool {
+	if a.Type != b.Type {
+		return false
+	}
+	switch a.Type {
+	case record.Integer:
+		return a.Int == b.Int
+	case record.Float:
+		return a.Flt == b.Flt
+	case record.Varchar:
+		return a.Str == b.Str
+	default:
+		return false
+	}
+}
+
+func formatValue(v record.Value) string {
+	switch v.Type {
+	case record.Integer:
+		return fmt.Sprintf("%d", v.Int)
+	case record.Float:
+		return fmt.Sprintf("%g", v.Flt)
+	case record.Varchar:
+		return fmt.Sprintf("%q", v.Str)
+	default:
+		return "unknown"
+	}
 }

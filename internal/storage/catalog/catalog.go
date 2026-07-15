@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"errors"
+	"sort"
 	"sync"
 
 	"github.com/TaqsBlaze/FlamingoDB/internal/index/btree"
@@ -130,6 +131,7 @@ func (c *Catalog) ListTables() []string {
 	for name := range c.tables {
 		names = append(names, name)
 	}
+	sort.Strings(names)
 	return names
 }
 

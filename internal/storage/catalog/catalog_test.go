@@ -118,4 +118,17 @@ func TestTableManager(t *testing.T) {
 	if records2[0].Values[1].Str != "Alice" {
 		t.Errorf("r1 name mismatch after reload: %s", records2[0].Values[1].Str)
 	}
+
+	// 5. Test duplicate ID prevention
+	rDuplicate := &record.Record{
+		Values: []record.Value{
+			{Type: record.Integer, Int: 1},
+			{Type: record.Varchar, Str: "Charlie"},
+			{Type: record.Float, Flt: 5.0},
+		},
+	}
+	err = tm2.InsertRecord(nil, "users", rDuplicate)
+	if err == nil {
+		t.Fatalf("expected duplicate key error when inserting record with existing id 1, got nil")
+	}
 }

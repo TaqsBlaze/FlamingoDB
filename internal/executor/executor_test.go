@@ -269,3 +269,21 @@ func TestExecuteGeospatialTypes(t *testing.T) {
 		t.Errorf("expected intersects 1 (true), got %d", fRow.Values[2].Int)
 	}
 }
+
+func TestExecuteShowTables(t *testing.T) {
+	exec := setupExecutor(t)
+
+	execSQL(t, exec, "CREATE TABLE planets (id INT, name VARCHAR, radius FLOAT);")
+	execSQL(t, exec, "CREATE TABLE stars (id INT, name VARCHAR, magnitude FLOAT);")
+
+	result := execSQL(t, exec, "SHOW TABLES;")
+	if len(result.Rows) != 2 {
+		t.Fatalf("expected 2 rows, got %d", len(result.Rows))
+	}
+	if result.Rows[0].Values[0].Str != "planets" {
+		t.Errorf("expected planets, got %s", result.Rows[0].Values[0].Str)
+	}
+	if result.Rows[1].Values[0].Str != "stars" {
+		t.Errorf("expected stars, got %s", result.Rows[1].Values[0].Str)
+	}
+}

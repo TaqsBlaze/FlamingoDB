@@ -22,6 +22,7 @@ const (
 	PlanCreateTable PlanType = "CreateTable"
 	PlanDropTable   PlanType = "DropTable"
 	PlanIndexScan   PlanType = "IndexScan"
+	PlanShowTables  PlanType = "ShowTables"
 )
 
 // PlanNode is the common interface for all logical plan nodes.
@@ -182,6 +183,20 @@ func (n *DropTableNode) String() string {
 	return fmt.Sprintf("DropTable(table=%s)", n.Table)
 }
 
+// ShowTablesNode represents a SHOW TABLES query.
+type ShowTablesNode struct{}
+
+// Type returns PlanShowTables.
+func (n *ShowTablesNode) Type() PlanType { return PlanShowTables }
+
+// Children returns nil.
+func (n *ShowTablesNode) Children() []PlanNode { return nil }
+
+// String returns a string representation.
+func (n *ShowTablesNode) String() string {
+	return "ShowTables"
+}
+
 // MapStringToTypeID converts a string representation of a type (e.g. "INT", "FLOAT", "VARCHAR") into a record.TypeID.
 func MapStringToTypeID(t string) (record.TypeID, error) {
 	switch strings.ToUpper(t) {
@@ -251,6 +266,8 @@ func (p *Planner) Plan(stmt ast.Statement) (PlanNode, error) {
 		return p.planCreateTable(s)
 	case *ast.DropTableStatement:
 		return p.planDropTable(s)
+	case *ast.ShowTablesStatement:
+		return &ShowTablesNode{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported statement type: %T", stmt)
 	}

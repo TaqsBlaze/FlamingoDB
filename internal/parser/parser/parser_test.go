@@ -280,3 +280,21 @@ func TestParseScientificLiterals(t *testing.T) {
 		t.Errorf("imaginary value wrong. expected=-5.6, got=%g", imag.Value)
 	}
 }
+
+func TestParseShowTables(t *testing.T) {
+	input := "SHOW TABLES;"
+	l := lexer.New(input)
+	p := New(l)
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program.Statements does not contain 1 statement. got=%d", len(program.Statements))
+	}
+
+	_, ok := program.Statements[0].(*ast.ShowTablesStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ShowTablesStatement. got=%T", program.Statements[0])
+	}
+}
