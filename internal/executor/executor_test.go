@@ -287,3 +287,38 @@ func TestExecuteShowTables(t *testing.T) {
 		t.Errorf("expected stars, got %s", result.Rows[1].Values[0].Str)
 	}
 }
+
+func TestExecuteInsertWithColumns(t *testing.T) {
+	exec := setupExecutor(t)
+
+	execSQL(t, exec, "CREATE TABLE stars (id INT, name VARCHAR, magnitude FLOAT);")
+	execSQL(t, exec, "INSERT INTO stars (name, id, magnitude) VALUES ('Sirius', 1, -1.46);")
+	execSQL(t, exec, "INSERT INTO stars (id, name) VALUES (2, 'Canopus');") // magnitude should default to float zero value (0.0)
+
+	result := execSQL(t, exec, "SELECT * FROM stars;")
+
+	if len(result.Rows) != 2 {
+		t.Fatalf("expected 2 rows, got %d", len(result.Rows))
+	}
+	// Sirius: id=1, name=Sirius, magnitude=-1.46
+	if result.Rows[0].Values[0].Int != 1 {
+		t.Errorf("expected id=1, got %d", result.Rows[0].Values[0].Int)
+	}
+	if result.Rows[0].Values[1].Str != "Sirius" {
+		t.Errorf("expected Sirius, got %s", result.Rows[0].Values[1].Str)
+	}
+	if result.Rows[0].Values[2].Flt != -1.46 {
+		t.Errorf("expected magnitude=-1.46, got %f", result.Rows[0].Values[2].Flt)
+	}
+
+	// Canopus: id=2, name=Canopus, magnitude=0.0 (default/zero)
+	if result.Rows[1].Values[0].Int != 2 {
+		t.Errorf("expected id=2, got %d", result.Rows[1].Values[0].Int)
+	}
+	if result.Rows[1].Values[1].Str != "Canopus" {
+		t.Errorf("expected Canopus, got %s", result.Rows[1].Values[1].Str)
+	}
+	if result.Rows[1].Values[2].Flt != 0.0 {
+		t.Errorf("expected magnitude=0.0, got %f", result.Rows[1].Values[2].Flt)
+	}
+}

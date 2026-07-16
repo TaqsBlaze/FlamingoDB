@@ -22,6 +22,8 @@ func main() {
 	password := flag.String("pass", "admin", "Database auth password")
 	dataDir := flag.String("dir", "./data", "Database data directory")
 	dbName := flag.String("db", "flamingo", "Database name")
+	mcpMode := flag.Bool("mcp", false, "Run in stdio Model Context Protocol (MCP) server mode")
+	policyName := flag.String("policy", "", "Policy name to enforce for MCP server queries")
 	flag.Parse()
 
 	log := logger.New(logger.LevelInfo)
@@ -77,6 +79,17 @@ func main() {
 	}
 
 	// 4. Start server
+	if *mcpMode {
+		log.Info("Running in MCP mode over stdio...")
+		// Redirect logs away from stdout so we don't pollute stdio JSON-RPC stream
+		// We can change log output or set LevelError
+		log = logger.New(logger.LevelError)
+		srv.RunMCPServer(*policyName)
+		_ = tm.Close()
+		_ = dm.Close()
+		os.Exit(0)
+	}
+
 	if err := srv.Start(); err != nil {
 		log.Error("Failed to start network server: %v", err)
 		_ = tm.Close()

@@ -249,6 +249,25 @@ func (p *Parser) parseInsertStatement() *ast.InsertStatement {
 	}
 	stmt.Table = p.curToken.Literal
 
+	if p.peekTokenIs(lexer.LPAREN) {
+		p.nextToken() // move to LPAREN
+		p.nextToken() // move past LPAREN
+		for !p.curTokenIs(lexer.RPAREN) && !p.curTokenIs(lexer.EOF) {
+			if p.curTokenIs(lexer.IDENT) {
+				stmt.Columns = append(stmt.Columns, p.curToken.Literal)
+			}
+			if p.peekTokenIs(lexer.COMMA) {
+				p.nextToken()
+				p.nextToken()
+			} else {
+				p.nextToken()
+			}
+		}
+		if !p.curTokenIs(lexer.RPAREN) {
+			return nil
+		}
+	}
+
 	if !p.expectPeek(lexer.VALUES) {
 		return nil
 	}
