@@ -1727,7 +1727,6 @@
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState('');
 
-      // Side panel state for selected user details
       const [selectedUser, setSelectedUser] = useState(null);
       const [panel, setPanel] = useState(false);
       const [editAdmin, setEditAdmin] = useState(false);
@@ -1737,7 +1736,6 @@
       const [saveMsg, setSaveMsg] = useState('');
       const [deleteLoading, setDeleteLoading] = useState(false);
 
-      // Form state for modal user creation
       const [showCreateModal, setShowCreateModal] = useState(false);
       const [newUser, setNewUser] = useState({ username: '', password: '', is_admin: false, policy_name: '' });
       const [createLoading, setCreateLoading] = useState(false);
@@ -2138,34 +2136,106 @@
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
-    // PAGE: Settings (Named Policies Configuration)
+    // PAGE: Settings
     // ─────────────────────────────────────────────────────────────────────────────
     function SettingsPage({ creds }) {
       const [policies, setPolicies] = useState([]);
+      const [models, setModels] = useState([]);
+      const [activeTab, setActiveTab] = useState('policies');
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState('');
 
-      // Modal state for creating a policy
+      // Create Policy Modal
       const [showCreateModal, setShowCreateModal] = useState(false);
       const [newPolicy, setNewPolicy] = useState({ name: '', can_select: false, can_insert: false, can_update: false, can_delete: false, can_create: false, can_drop: false });
       const [createLoading, setCreateLoading] = useState(false);
       const [createMsg, setCreateMsg] = useState('');
 
-      const loadPolicies = async function () {
-        setLoading(true); setError('');
-        const { ok, data } = await apiFetch('/api/policies', {}, creds);
-        if (ok && data.policies) {
-          setPolicies(data.policies);
+      // Add/Edit Model Modal
+      const [showModelModal, setShowModelModal] = useState(false);
+      const [newModel, setNewModel] = useState({ id: '', name: '', provider: 'openai', api_key: '', model_name: 'gpt-4o-mini', description: '', thinking_level: 'none', policy_name: '' });
+      const [modelCreateLoading, setModelCreateLoading] = useState(false);
+      const [modelCreateMsg, setModelCreateMsg] = useState('');
+      const [isCustomModel, setIsCustomModel] = useState(false);
+      const [customModelName, setCustomModelName] = useState('');
+
+      // Delete Model Confirmation
+      const [modelToDelete, setModelToDelete] = useState(null);
+
+      const PROVIDER_MODELS = {
+        openai: 'gpt-4o-mini',
+        anthropic: 'claude-3-5-haiku-20241022',
+        gemini: 'gemini-1.5-flash',
+        deepseek: 'deepseek-chat'
+      };
+
+      const MODELS_BY_PROVIDER = {
+        openai: [
+          { value: 'gpt-4o-mini', label: 'GPT-4o Mini (Fast, Default)' },
+          { value: 'gpt-4o', label: 'GPT-4o (High Intelligence)' },
+          { value: 'o1-mini', label: 'o1 Mini (Reasoning / Thinking)' },
+          { value: 'o1', label: 'o1 (Advanced Reasoning)' },
+          { value: 'o3-mini', label: 'o3 Mini (Latest Reasoning / Thinking)' }
+        ],
+        anthropic: [
+          { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku (Fast, Smart)' },
+          { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet (State-of-the-art)' }
+        ],
+        gemini: [
+          { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Default)' },
+          { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (High Reasoning)' },
+          { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (Latest Next-Gen)' },
+          { value: 'gemini-2.0-flash-thinking-exp', label: 'Gemini 2.0 Flash Thinking (Reasoning)' }
+        ],
+        deepseek: [
+          { value: 'deepseek-chat', label: 'DeepSeek Chat (V3 - Fast)' },
+          { value: 'deepseek-reasoner', label: 'DeepSeek Reasoner (R1 - Thinking)' }
+        ]
+      };
+
+      const handleProviderChange = function(prov) {
+        setIsCustomModel(false);
+        const defaultModel = PROVIDER_MODELS[prov] || '';
+        setNewModel(function(p) {
+          return Object.assign({}, p, { provider: prov, model_name: defaultModel });
+        });
+      };
+
+      const handleModelChange = function(val) {
+        if (val === 'custom') {
+          setIsCustomModel(true);
+          setNewModel(function(p) {
+            return Object.assign({}, p, { model_name: customModelName || '' });
+          });
         } else {
-          setError(data.error || 'Failed to load policies');
+          setIsCustomModel(false);
+          setNewModel(function(p) {
+            return Object.assign({}, p, { model_name: val });
+          });
         }
+      };
+
+      const handleCustomModelNameChange = function(val) {
+        setCustomModelName(val);
+        setNewModel(function(p) {
+          return Object.assign({}, p, { model_name: val });
+        });
+      };
+
+      const loadData = async function () {
+        setLoading(true); setError('');
+        const [resP, resM] = await Promise.all([
+            apiFetch('/api/policies', {}, creds),
+            apiFetch('/api/models', {}, creds)
+        ]);
+        if (resP.ok && resP.data.policies) setPolicies(resP.data.policies);
+        if (resM.ok && resM.data.models) setModels(resM.data.models);
         setLoading(false);
       };
 
-      useEffect(function () {
-        loadPolicies();
-      }, []);
+      useEffect(function () { loadData(); }, []);
 
+      // Logic for Policies
       const createPolicy = async function () {
         if (!newPolicy.name) { setCreateMsg('error:Policy name required'); return; }
         setCreateLoading(true); setCreateMsg('');
@@ -2173,11 +2243,8 @@
         if (ok) {
           setCreateMsg('success');
           setNewPolicy({ name: '', can_select: false, can_insert: false, can_update: false, can_delete: false, can_create: false, can_drop: false });
-          await loadPolicies();
-          setTimeout(function () {
-            setShowCreateModal(false);
-            setCreateMsg('');
-          }, 1000);
+          loadData();
+          setTimeout(function () { setShowCreateModal(false); setCreateMsg(''); }, 1000);
         } else {
           setCreateMsg('error:' + (data.error || 'Failed to create policy'));
         }
@@ -2185,141 +2252,766 @@
       };
 
       const deletePolicy = async function (name) {
-        const { ok, data } = await apiFetch('/api/policies/' + encodeURIComponent(name), { method: 'DELETE' }, creds);
-        if (ok) {
-          loadPolicies();
+        await apiFetch('/api/policies/' + encodeURIComponent(name), { method: 'DELETE' }, creds);
+        loadData();
+      };
+
+      // Logic for Models
+      const addModel = async function() {
+        setModelCreateLoading(true); setModelCreateMsg('');
+        const r = await apiFetch('/api/models', { method: 'POST', body: JSON.stringify(newModel) }, creds);
+        if (r.ok) {
+            setModelCreateMsg('success');
+            setNewModel({ id: '', name: '', provider: 'openai', api_key: '', model_name: 'gpt-4o-mini', description: '', thinking_level: 'none', policy_name: '' });
+            loadData();
+            setTimeout(function(){ setShowModelModal(false); setModelCreateMsg(''); }, 1000);
         } else {
-          setError(data.error || 'Failed to delete policy');
+            setModelCreateMsg('error:' + (r.data.error || 'Failed to save model'));
         }
+        setModelCreateLoading(false);
+      };
+
+      const editModel = function(m) {
+          const presetModels = MODELS_BY_PROVIDER[m.provider] || [];
+          const isPreset = presetModels.some(pm => pm.value === m.model_name);
+          setIsCustomModel(!isPreset);
+          if (!isPreset) setCustomModelName(m.model_name);
+          
+          setNewModel({ 
+              id: m.id, 
+              name: m.name, 
+              provider: m.provider, 
+              api_key: m.api_key === '******' ? '' : (m.api_key || ''), 
+              model_name: m.model_name, 
+              description: m.description || '', 
+              thinking_level: m.thinking_level || 'none',
+              policy_name: m.policy_name || ''
+          });
+          setModelCreateMsg('');
+          setShowModelModal(true);
+      };
+
+      const executeDeleteModel = async function() {
+          if (!modelToDelete) return;
+          await apiFetch('/api/models/' + modelToDelete.id, { method: 'DELETE' }, creds);
+          setModelToDelete(null);
+          loadData();
       };
 
       return React.createElement(motion.div, { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10 }, transition: { duration: .3 } },
         error ? React.createElement('div', { className: 'mb-4' }, React.createElement(Banner, { type: 'error' }, error)) : null,
-        React.createElement('div', { style: { maxWidth: '100%' } },
-          React.createElement('div', { className: 'card' },
+        
+        React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 20 } },
+            ['policies', 'models'].map(t => React.createElement('button', { 
+                key: t, 
+                className: 'btn ' + (activeTab === t ? 'btn-primary' : 'btn-secondary'),
+                onClick: () => setActiveTab(t)
+            }, t === 'policies' ? 'System Policies' : 'AI Models'))
+        ),
+
+        activeTab === 'policies' ? 
+        React.createElement('div', { className: 'card' },
             React.createElement('div', { className: 'card-header' },
-              React.createElement(Icon, { name: 'settings', size: 15, stroke: 'var(--purple2)' }),
-              React.createElement('h3', null, 'System Policies'),
-              React.createElement('span', { className: 'badge badge-purple' }, policies.length),
-              React.createElement('button', {
-                className: 'btn btn-primary btn-sm',
-                onClick: function () {
-                  setNewPolicy({ name: '', can_select: false, can_insert: false, can_update: false, can_delete: false, can_create: false, can_drop: false });
-                  setCreateMsg('');
-                  setShowCreateModal(true);
-                }
-              },
-                React.createElement(Icon, { name: 'plus', size: 13 }),
-                'New Policy'
-              )
+                React.createElement(Icon, { name: 'shield', size: 15, stroke: 'var(--purple2)' }),
+                React.createElement('h3', null, 'System Policies'),
+                React.createElement('span', { className: 'badge badge-purple' }, policies.length),
+                React.createElement('button', { className: 'btn btn-primary btn-sm', onClick: () => setShowCreateModal(true) }, React.createElement(Icon, { name: 'plus', size: 13 }), 'New Policy')
             ),
             React.createElement('div', { style: { padding: 12 } },
-              loading
-                ? React.createElement(Empty, { icon: 'loader', title: 'Loading policies…' })
-                : policies.length === 0
-                  ? React.createElement(Empty, { icon: 'shield', title: 'No policies defined' })
-                  : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
-                    policies.map(function (p) {
-                      const tags = [];
-                      if (p.can_select) tags.push('SELECT');
-                      if (p.can_insert) tags.push('INSERT');
-                      if (p.can_update) tags.push('UPDATE');
-                      if (p.can_delete) tags.push('DELETE');
-                      if (p.can_create) tags.push('CREATE');
-                      if (p.can_drop) tags.push('DROP');
-
-                      return React.createElement('div', { key: p.name, className: 'user-row', style: { cursor: 'default' } },
+                loading ? React.createElement(Empty, { icon: 'loader', title: 'Loading…' }) :
+                policies.length === 0 ? React.createElement(Empty, { icon: 'shield', title: 'No policies defined' }) :
+                React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+                    policies.map(p => React.createElement('div', { key: p.name, className: 'user-row', style: { cursor: 'default' } },
                         React.createElement('div', { className: 'user-info' },
-                          React.createElement('div', { className: 'user-name', style: { fontSize: 13, fontWeight: 600 } }, p.name),
-                          React.createElement('div', { className: 'user-badges', style: { marginTop: 4 } },
-                            tags.length === 0
-                              ? React.createElement('span', { className: 'text-xs text-muted' }, 'No permissions')
-                              : tags.map(function (t) {
-                                let cls = 'badge-gray';
-                                if (t === 'SELECT') cls = 'badge-blue';
-                                if (t === 'INSERT') cls = 'badge-green';
-                                if (t === 'UPDATE') cls = 'badge-purple';
-                                if (t === 'DELETE') cls = 'badge-pink';
-                                return React.createElement('span', { key: t, className: 'badge ' + cls }, t);
-                              })
-                          )
+                            React.createElement('div', { className: 'user-name', style: { fontSize: 13, fontWeight: 600 } }, p.name)
                         ),
-                        React.createElement('button', { className: 'btn btn-red btn-sm btn-icon', onClick: function () { deletePolicy(p.name); } },
-                          React.createElement(Icon, { name: 'trash-2', size: 14 })
+                        React.createElement('button', { className: 'btn btn-red btn-sm btn-icon', onClick: () => deletePolicy(p.name) }, React.createElement(Icon, { name: 'trash-2', size: 14 }))
+                    ))
+                )
+            )
+        ) :
+        React.createElement('div', { className: 'card' },
+            React.createElement('div', { className: 'card-header' },
+                React.createElement(Icon, { name: 'cpu', size: 15, stroke: 'var(--green2)' }),
+                React.createElement('h3', null, 'AI Models'),
+                React.createElement('span', { className: 'badge badge-green' }, models.length),
+                React.createElement('button', { className: 'btn btn-primary btn-sm', onClick: () => { setNewModel({ id: '', name: '', provider: 'openai', api_key: '', model_name: 'gpt-4o-mini', description: '', thinking_level: 'none', policy_name: '' }); setIsCustomModel(false); setShowModelModal(true); } }, React.createElement(Icon, { name: 'plus', size: 13 }), 'Add Model')
+            ),
+            React.createElement('div', { style: { padding: 12 } },
+                loading ? React.createElement(Empty, { icon: 'loader', title: 'Loading…' }) :
+                models.length === 0 ? React.createElement(Empty, { icon: 'cpu', title: 'No models configured' }) :
+                React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+                    models.map(m => React.createElement('div', { key: m.id, className: 'user-row', style: { cursor: 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                        React.createElement('div', { className: 'user-info', style: { flex: 1 } },
+                            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+                                React.createElement('span', { className: 'user-name', style: { fontSize: 13, fontWeight: 600 } }, m.name),
+                                m.thinking_level && m.thinking_level !== 'none' ? React.createElement('span', { className: 'badge badge-blue', style: { fontSize: 9, padding: '1px 5px' } }, 'Thinking: ' + m.thinking_level) : null,
+                                m.policy_name ? React.createElement('span', { className: 'badge badge-purple', style: { fontSize: 9, padding: '1px 5px' } }, 'Policy: ' + m.policy_name) : null
+                            ),
+                            React.createElement('div', { style: { fontSize: 11, color: 'var(--muted)', marginTop: 2 } }, m.provider.toUpperCase() + ' · ' + m.model_name),
+                            m.description ? React.createElement('div', { style: { fontSize: 11, color: 'var(--muted)', marginTop: 2, fontStyle: 'italic' } }, m.description) : null
+                        ),
+                        React.createElement('div', { style: { display: 'flex', gap: 6 } },
+                            React.createElement('button', { className: 'btn btn-secondary btn-sm btn-icon', onClick: () => editModel(m) }, React.createElement(Icon, { name: 'edit-2', size: 14 })),
+                            React.createElement('button', { className: 'btn btn-red btn-sm btn-icon', onClick: () => setModelToDelete(m) }, React.createElement(Icon, { name: 'trash-2', size: 14 }))
                         )
-                      );
-                    })
-                  )
+                    ))
+                )
+            )
+        ),
+
+        // Modals
+        React.createElement(AnimatePresence, null, 
+          showCreateModal && React.createElement(motion.div, { className: 'modal-overlay', initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, onClick: () => setShowCreateModal(false) },
+            React.createElement(motion.div, { className: 'modal-card', initial: { y: 20 }, animate: { y: 0 }, exit: { y: 20 }, onClick: (e) => e.stopPropagation() },
+                React.createElement('div', { className: 'modal-header' }, React.createElement('h3', null, 'Create Policy'), React.createElement('button', { className: 'btn btn-secondary btn-sm btn-icon', onClick: () => setShowCreateModal(false) }, React.createElement(Icon, { name: 'x', size: 14 }))),
+                React.createElement('div', { className: 'modal-body' },
+                    React.createElement('div', { className: 'field' }, React.createElement('label', { className: 'label' }, 'Policy Name'), React.createElement('input', { className: 'input', value: newPolicy.name, onChange: (e) => setNewPolicy(p => ({ ...p, name: e.target.value })), placeholder: 'e.g. WriterOnly' })),
+                    POLICY_FIELDS.map(f => React.createElement('div', { key: f.key, className: 'toggle-row' }, React.createElement('div', { className: 'toggle-row-info' }, React.createElement('div', { className: 't-label' }, f.label)), React.createElement(Toggle, { checked: !!newPolicy[f.key], onChange: (v) => setNewPolicy(p => ({ ...p, [f.key]: v })) }))),
+                    createMsg ? React.createElement(Banner, { type: createMsg === 'success' ? 'success' : 'error' }, createMsg === 'success' ? 'Policy created!' : createMsg.replace('error:', '')) : null
+                ),
+                React.createElement('div', { className: 'modal-footer' }, React.createElement('button', { className: 'btn btn-primary btn-sm', onClick: createPolicy }, createLoading ? 'Creating…' : 'Create'))
             )
           )
         ),
-
-        React.createElement(AnimatePresence, null,
-          showCreateModal ? React.createElement(React.Fragment, null,
-            React.createElement(motion.div, {
-              className: 'modal-overlay',
-              initial: { opacity: 0 },
-              animate: { opacity: 1 },
-              exit: { opacity: 0 },
-              onClick: function () { setShowCreateModal(false); }
-            },
-              React.createElement(motion.div, {
-                className: 'modal-card',
-                initial: { y: 20, opacity: 0 },
-                animate: { y: 0, opacity: 1 },
-                exit: { y: 20, opacity: 0 },
-                onClick: function (e) { e.stopPropagation(); }
-              },
-                React.createElement('div', { className: 'modal-header' },
-                  React.createElement(Icon, { name: 'shield-alert', size: 16, stroke: 'var(--green2)' }),
-                  React.createElement('h3', null, 'Create Policy'),
-                  React.createElement('button', { className: 'btn btn-secondary btn-sm btn-icon', onClick: function () { setShowCreateModal(false); } },
-                    React.createElement(Icon, { name: 'x', size: 14 })
-                  )
-                ),
+        React.createElement(AnimatePresence, null, 
+          showModelModal && React.createElement(motion.div, { className: 'modal-overlay', initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, onClick: () => setShowModelModal(false) },
+            React.createElement(motion.div, { className: 'modal-card', initial: { y: 20 }, animate: { y: 0 }, exit: { y: 20 }, onClick: (e) => e.stopPropagation() },
+                React.createElement('div', { className: 'modal-header' }, React.createElement('h3', null, 'Add AI Model'), React.createElement('button', { className: 'btn btn-secondary btn-sm btn-icon', onClick: () => setShowModelModal(false) }, React.createElement(Icon, { name: 'x', size: 14 }))),
                 React.createElement('div', { className: 'modal-body' },
-                  React.createElement('div', { className: 'field' },
-                    React.createElement('label', { className: 'label' }, 'Policy Name'),
-                    React.createElement('input', {
-                      className: 'input',
-                      value: newPolicy.name,
-                      onChange: function (e) { setNewPolicy(function (p) { return Object.assign({}, p, { name: e.target.value }); }); },
-                      placeholder: 'e.g. WriterOnly',
-                      autoComplete: 'off'
-                    })
-                  ),
-                  React.createElement('hr', { className: 'divider' }),
-                  POLICY_FIELDS.map(function (f) {
-                    return React.createElement('div', { key: f.key, className: 'toggle-row' },
-                      React.createElement('div', { className: 'toggle-row-info' },
-                        React.createElement('div', { className: 't-label' },
-                          React.createElement(Icon, { name: f.icon, size: 13 }),
-                          ' ' + f.label
-                        ),
-                        React.createElement('div', { className: 't-desc' }, f.desc)
+                    React.createElement('div', { className: 'field' }, 
+                      React.createElement('label', { className: 'label' }, 'Configuration Name'), 
+                      React.createElement('input', { className: 'input', value: newModel.name, onChange: (e) => setNewModel(p => Object.assign({}, p, { name: e.target.value })), placeholder: 'e.g. My Gemini Model' })
+                    ),
+                    React.createElement('div', { className: 'field' }, 
+                      React.createElement('label', { className: 'label' }, 'Provider'), 
+                      React.createElement('select', { className: 'input', value: newModel.provider, onChange: (e) => handleProviderChange(e.target.value) }, 
+                        React.createElement('option', { value: 'openai' }, 'OpenAI'), 
+                        React.createElement('option', { value: 'anthropic' }, 'Anthropic'), 
+                        React.createElement('option', { value: 'gemini' }, 'Gemini'),
+                        React.createElement('option', { value: 'deepseek' }, 'DeepSeek')
+                      )
+                    ),
+                    React.createElement('div', { className: 'field' }, 
+                      React.createElement('label', { className: 'label' }, 'Model Selection'), 
+                      React.createElement('select', { className: 'input', value: isCustomModel ? 'custom' : newModel.model_name, onChange: (e) => handleModelChange(e.target.value) }, 
+                        (MODELS_BY_PROVIDER[newModel.provider] || []).map(m => React.createElement('option', { key: m.value, value: m.value }, m.label)),
+                        React.createElement('option', { value: 'custom' }, 'Custom Model Name...')
+                      )
+                    ),
+                    isCustomModel && React.createElement('div', { className: 'field' }, 
+                      React.createElement('label', { className: 'label' }, 'Custom Model Name'), 
+                      React.createElement('input', { className: 'input', value: customModelName, onChange: (e) => handleCustomModelNameChange(e.target.value), placeholder: 'e.g. gpt-4o-2024-08-06' })
+                    ),
+                    React.createElement('div', { className: 'field' }, 
+                      React.createElement('label', { className: 'label' }, 'Description'), 
+                      React.createElement('input', { className: 'input', value: newModel.description, onChange: (e) => setNewModel(p => Object.assign({}, p, { description: e.target.value })), placeholder: 'Optional configuration description' })
+                    ),
+                    React.createElement('div', { className: 'field' }, 
+                      React.createElement('label', { className: 'label' }, 'Thinking Level'), 
+                      React.createElement('select', { className: 'input', value: newModel.thinking_level, onChange: (e) => setNewModel(p => Object.assign({}, p, { thinking_level: e.target.value })) }, 
+                        React.createElement('option', { value: 'none' }, 'No thinking / Default'), 
+                        React.createElement('option', { value: 'low' }, 'Low'), 
+                        React.createElement('option', { value: 'medium' }, 'Medium'), 
+                        React.createElement('option', { value: 'high' }, 'High')
                       ),
-                      React.createElement(Toggle, {
-                        checked: !!newPolicy[f.key],
-                        onChange: function (v) { setNewPolicy(function (p) { const n = Object.assign({}, p); n[f.key] = v; return n; }); }
-                      })
-                    );
-                  }),
-                  createMsg ? React.createElement('div', { className: 'mb-3 mt-3' },
-                    createMsg === 'success'
-                      ? React.createElement(Banner, { type: 'success' }, 'Policy created successfully!')
-                      : React.createElement(Banner, { type: 'error' }, createMsg.replace('error:', ''))
-                  ) : null
+                      React.createElement('div', { style: { fontSize: 10, color: 'var(--muted)', marginTop: 4 } }, 'Applies to reasoning models (OpenAI o1/o3, Gemini 2.0 Thinking, DeepSeek R1)')
+                    ),
+                    React.createElement('div', { className: 'field' }, 
+                      React.createElement('label', { className: 'label' }, 'System Policy'), 
+                      React.createElement('select', { className: 'input', value: newModel.policy_name, onChange: (e) => setNewModel(p => Object.assign({}, p, { policy_name: e.target.value })) }, 
+                        React.createElement('option', { value: '' }, 'None (Unrestricted / Admin)'),
+                        policies.map(p => React.createElement('option', { key: p.name, value: p.name }, p.name))
+                      )
+                    ),
+                    React.createElement('div', { className: 'field' }, 
+                      React.createElement('label', { className: 'label' }, 'API Key'), 
+                      React.createElement('input', { className: 'input', type: 'password', value: newModel.api_key, onChange: (e) => setNewModel(p => Object.assign({}, p, { api_key: e.target.value })), placeholder: 'sk-...' })
+                    ),
+                    modelCreateMsg ? React.createElement(Banner, { type: modelCreateMsg === 'success' ? 'success' : 'error' }, modelCreateMsg === 'success' ? 'Model saved!' : modelCreateMsg.replace('error:', '')) : null
                 ),
-                React.createElement('div', { className: 'modal-footer' },
-                  React.createElement('button', { className: 'btn btn-secondary btn-sm', onClick: function () { setShowCreateModal(false); } }, 'Cancel'),
-                  React.createElement('button', { className: 'btn btn-primary btn-sm', onClick: createPolicy, disabled: createLoading },
-                    createLoading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'plus', size: 15 }),
-                    createLoading ? 'Creating…' : 'Create Policy'
+                React.createElement('div', { className: 'modal-footer' }, React.createElement('button', { className: 'btn btn-primary btn-sm', onClick: addModel }, modelCreateLoading ? 'Saving…' : 'Save Model'))
+            )
+          )
+        ),
+        React.createElement(AnimatePresence, null, 
+          modelToDelete && React.createElement(motion.div, { className: 'modal-overlay', initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, onClick: () => setModelToDelete(null) },
+            React.createElement(motion.div, { className: 'modal-card', style: { maxWidth: 400 }, initial: { y: 20 }, animate: { y: 0 }, exit: { y: 20 }, onClick: (e) => e.stopPropagation() },
+                React.createElement('div', { className: 'modal-header' }, React.createElement('h3', null, 'Delete AI Model'), React.createElement('button', { className: 'btn btn-secondary btn-sm btn-icon', onClick: () => setModelToDelete(null) }, React.createElement(Icon, { name: 'x', size: 14 }))),
+                React.createElement('div', { className: 'modal-body' },
+                    React.createElement('p', null, `Are you sure you want to delete the configuration for "${modelToDelete.name}"? This action cannot be undone.`)
+                ),
+                React.createElement('div', { className: 'modal-footer', style: { justifyContent: 'flex-end', gap: 8 } }, 
+                    React.createElement('button', { className: 'btn btn-secondary btn-sm', onClick: () => setModelToDelete(null) }, 'Cancel'),
+                    React.createElement('button', { className: 'btn btn-red btn-sm', onClick: executeDeleteModel }, 'Delete Model')
+                )
+            )
+          )
+        )
+      );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // PAGE: AI Assistant
+    // ─────────────────────────────────────────────────────────────────────────────
+    const INITIAL_MESSAGES = [
+      { role: 'assistant', text: 'Hello! I am your FlamingoDB AI Assistant. Ask me anything about the database, table schemas, or generated SQL queries.' }
+    ];
+
+    // Helper to render raw query result JSON array (A) or standard JSON list of flat objects (B)
+    function renderJsonArrayAsTable(arr, keyPrefix) {
+      if (!Array.isArray(arr) || arr.length === 0) return null;
+      
+      // Accumulate all distinct properties from all row items to serve as headers
+      const cols = [];
+      arr.forEach(item => {
+        if (item && typeof item === 'object' && !Array.isArray(item)) {
+          Object.keys(item).forEach(k => {
+            if (!cols.includes(k)) cols.push(k);
+          });
+        }
+      });
+      
+      if (cols.length === 0) return null;
+
+      return React.createElement('div', {
+        key: keyPrefix,
+        className: 'table-wrap mb-3 mt-2',
+        style: {
+          background: 'var(--surface)',
+          border: '1px solid var(--border2)',
+          borderRadius: '10px',
+          overflowX: 'auto',
+          width: '100%',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+        }
+      },
+        React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: '13px' } },
+          React.createElement('thead', null,
+            React.createElement('tr', { style: { background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--border2)' } },
+              cols.map(c => React.createElement('th', {
+                key: c,
+                style: {
+                  padding: '10px 14px',
+                  textAlign: 'left',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  color: 'var(--muted2)',
+                  letterSpacing: '0.5px',
+                  textTransform: 'uppercase'
+                }
+              }, c))
+            )
+          ),
+          React.createElement('tbody', null,
+            arr.map((row, ri) => React.createElement('tr', {
+              key: ri,
+              style: {
+                borderBottom: ri < arr.length - 1 ? '1px solid rgba(30, 45, 69, 0.5)' : 'none',
+                background: ri % 2 === 1 ? 'rgba(255, 255, 255, 0.01)' : 'transparent'
+              }
+            },
+              cols.map(c => {
+                const val = row ? row[c] : undefined;
+                return React.createElement('td', {
+                  key: c,
+                  style: {
+                    padding: '10px 14px',
+                    fontFamily: "'Fira Code', monospace",
+                    fontSize: '12px',
+                    color: val === null || val === undefined ? 'var(--muted)' : 'var(--text)'
+                  }
+                }, fmt(val));
+              })
+            ))
+          )
+        )
+      );
+    }
+
+    // Helper to render FlamingoDB special query results
+    function renderFlamingoResults(parsed, keyPrefix) {
+      return React.createElement('div', { key: keyPrefix, style: { width: '100%', display: 'flex', flexDirection: 'column', gap: '10px', margin: '12px 0' } },
+        parsed.map((res, i) => {
+          if (res.error) {
+            return React.createElement(Banner, { key: i, type: 'error' }, res.error);
+          }
+          if (res.message) {
+            return React.createElement('div', { key: i, className: 'result-msg' }, '✓ ' + res.message);
+          }
+          if (res.columns && res.rows) {
+            return React.createElement('div', {
+              key: i,
+              className: 'table-wrap',
+              style: {
+                background: 'var(--surface)',
+                border: '1px solid var(--border2)',
+                borderRadius: '10px',
+                overflowX: 'auto',
+                width: '100%',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+              }
+            },
+              React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: '13px' } },
+                React.createElement('thead', null,
+                  React.createElement('tr', { style: { background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--border2)' } },
+                    res.columns.map(c => React.createElement('th', {
+                      key: c,
+                      style: {
+                        padding: '10px 14px',
+                        textAlign: 'left',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        color: 'var(--muted2)',
+                        letterSpacing: '0.5px',
+                        textTransform: 'uppercase'
+                      }
+                    }, c))
                   )
+                ),
+                React.createElement('tbody', null,
+                  res.rows.length === 0
+                    ? React.createElement('tr', null, React.createElement('td', { colSpan: res.columns.length }, React.createElement(Empty, { icon: 'inbox', title: 'No rows returned' })))
+                    : res.rows.map((row, ri) => React.createElement('tr', {
+                        key: ri,
+                        style: {
+                          borderBottom: ri < res.rows.length - 1 ? '1px solid rgba(30, 45, 69, 0.5)' : 'none',
+                          background: ri % 2 === 1 ? 'rgba(255, 255, 255, 0.01)' : 'transparent'
+                        }
+                      },
+                        row.map((v, ci) => React.createElement('td', {
+                          key: ci,
+                          style: {
+                            padding: '10px 14px',
+                            fontFamily: "'Fira Code', monospace",
+                            fontSize: '12px',
+                            color: 'var(--text)'
+                          }
+                        }, fmt(v)))
+                      ))
+                )
+              )
+            );
+          }
+          return null;
+        })
+      );
+    }
+
+    // Helper to parse inline Markdown components (bold, italic, inline code)
+    function parseInlineMarkdown(text) {
+      if (!text) return '';
+      const regex = /(\*\*.*?\*\*|\*.*?\*|`.*?`)/g;
+      const pieces = text.split(regex);
+      return pieces.map((piece, i) => {
+        if (piece.startsWith('**') && piece.endsWith('**')) {
+          return React.createElement('strong', { key: i, style: { fontWeight: '700', color: '#fff' } }, piece.slice(2, -2));
+        }
+        if (piece.startsWith('*') && piece.endsWith('*')) {
+          return React.createElement('em', { key: i, style: { fontStyle: 'italic' } }, piece.slice(1, -1));
+        }
+        if (piece.startsWith('`') && piece.endsWith('`')) {
+          return React.createElement('code', {
+            key: i,
+            className: 'font-mono',
+            style: {
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid var(--border)',
+              borderRadius: '4px',
+              padding: '2px 6px',
+              fontSize: '12px',
+              color: 'var(--pink2)'
+            }
+          }, piece.slice(1, -1));
+        }
+        return piece;
+      });
+    }
+
+    // Helper to split plain text into HTML block formats (paragraphs, bullets, markdown tables)
+    function parseBlockMarkdown(text, keyPrefix) {
+      const lines = text.split('\n');
+      const blocks = [];
+      let currentList = null;
+      let currentTable = null;
+
+      const flushList = () => {
+        if (currentList) {
+          blocks.push(React.createElement('ul', {
+            key: 'ul-' + blocks.length,
+            style: { paddingLeft: '20px', margin: '8px 0', listStyleType: 'disc' }
+          }, currentList));
+          currentList = null;
+        }
+      };
+
+      const flushTable = () => {
+        if (currentTable) {
+          const headers = currentTable.headers;
+          const rows = currentTable.rows;
+          blocks.push(
+            React.createElement('div', {
+              key: 'md-table-' + blocks.length,
+              className: 'table-wrap mb-3 mt-2',
+              style: {
+                background: 'var(--surface)',
+                border: '1px solid var(--border2)',
+                borderRadius: '10px',
+                overflowX: 'auto',
+                width: '100%',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+              }
+            },
+              React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: '13px' } },
+                React.createElement('thead', null,
+                  React.createElement('tr', { style: { background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--border2)' } },
+                    headers.map((h, hi) => React.createElement('th', {
+                      key: hi,
+                      style: {
+                        padding: '10px 14px',
+                        textAlign: 'left',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        color: 'var(--muted2)',
+                        letterSpacing: '0.5px',
+                        textTransform: 'uppercase'
+                      }
+                    }, parseInlineMarkdown(h.trim())))
+                  )
+                ),
+                React.createElement('tbody', null,
+                  rows.map((row, ri) => React.createElement('tr', {
+                    key: ri,
+                    style: {
+                      borderBottom: ri < rows.length - 1 ? '1px solid rgba(30, 45, 69, 0.5)' : 'none',
+                      background: ri % 2 === 1 ? 'rgba(255, 255, 255, 0.01)' : 'transparent'
+                    }
+                  },
+                    row.map((cell, ci) => React.createElement('td', {
+                      key: ci,
+                      style: {
+                        padding: '10px 14px',
+                        fontSize: '12px',
+                        color: 'var(--text)'
+                      }
+                    }, parseInlineMarkdown(cell.trim())))
+                  ))
                 )
               )
             )
-          ) : null
+          );
+          currentTable = null;
+        }
+      };
+
+      for (let idx = 0; idx < lines.length; idx++) {
+        const line = lines[idx];
+        const trimmed = line.trim();
+
+        // Detect Markdown Table Line (starts/ends with | or contains |)
+        if (trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.length > 2) {
+          flushList();
+          const cells = trimmed.split('|').map(s => s.trim()).filter((_, i, a) => i > 0 && i < a.length - 1);
+          
+          if (cells.every(c => c.match(/^[-:]+$/))) {
+            // It's the divider row e.g. |---|---|
+            continue;
+          }
+
+          if (!currentTable) {
+            currentTable = { headers: cells, rows: [] };
+          } else {
+            currentTable.rows.push(cells);
+          }
+          continue;
+        } else {
+          flushTable();
+        }
+
+        // Detect Bullet Lists
+        if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+          const content = trimmed.slice(2);
+          const liElement = React.createElement('li', {
+            key: 'li-' + (currentList ? currentList.length : 0),
+            style: { margin: '4px 0', color: 'var(--text)' }
+          }, parseInlineMarkdown(content));
+
+          if (!currentList) {
+            currentList = [liElement];
+          } else {
+            currentList.push(liElement);
+          }
+          continue;
+        } else {
+          flushList();
+        }
+
+        // Skip Empty Lines
+        if (!trimmed) {
+          continue;
+        }
+
+        // Fallback: Regular paragraph block
+        blocks.push(React.createElement('p', {
+          key: 'p-' + idx,
+          style: { margin: '8px 0', color: 'var(--text)', lineHeight: '1.6' }
+        }, parseInlineMarkdown(line)));
+      }
+
+      flushList();
+      flushTable();
+
+      return React.createElement('div', { key: keyPrefix }, blocks);
+    }
+
+    function AIAssistantPage({ creds }) {
+      const [models, setModels] = useState([]);
+      const [selectedModel, setSelectedModel] = useState('');
+      const [loading, setLoading] = useState(true);
+      const [messages, setMessages] = useState(function() {
+        try {
+          const saved = localStorage.getItem('flamingodb_chat_history');
+          return saved ? JSON.parse(saved) : INITIAL_MESSAGES;
+        } catch(e) { return INITIAL_MESSAGES; }
+      });
+      const [inputMsg, setInputMsg] = useState('');
+      const [chatLoading, setChatLoading] = useState(false);
+      const [editingMsgIdx, setEditingMsgIdx] = useState(null);
+      const [editingMsgText, setEditingMsgText] = useState('');
+      const [hoveredMsgIdx, setHoveredMsgIdx] = useState(null);
+
+      // Persist messages to localStorage whenever they change
+      useEffect(function() {
+        try { localStorage.setItem('flamingodb_chat_history', JSON.stringify(messages)); } catch(e) {}
+      }, [messages]);
+
+      const startNewChat = function() {
+        setMessages(INITIAL_MESSAGES);
+        try { localStorage.removeItem('flamingodb_chat_history'); } catch(e) {}
+      };
+
+      const resendMessage = async function(idx, newText) {
+          if (!newText.trim() || !selectedModel || chatLoading) return;
+          const newHistory = messages.slice(0, idx);
+          newHistory.push({ role: 'user', text: newText });
+          setMessages(newHistory);
+          setEditingMsgIdx(null);
+          setChatLoading(true);
+
+          const r = await apiFetch('/api/ai/chat', {
+            method: 'POST',
+            body: JSON.stringify({ model_id: selectedModel, message: newText, history: newHistory })
+          }, creds);
+
+          setChatLoading(false);
+          const replyText = (r.ok && r.data.reply) ? r.data.reply : 'Error: ' + (r.data.error || 'Failed to get reply.');
+          setMessages(function(prev) { return prev.concat({ role: 'assistant', text: replyText }); });
+      };
+
+      useEffect(function() {
+        apiFetch('/api/models', {}, creds).then(function(r) {
+          if (r.ok && r.data.models) {
+            setModels(r.data.models);
+            if (r.data.models.length > 0) {
+              setSelectedModel(r.data.models[0].id);
+            }
+          }
+          setLoading(false);
+        });
+      }, []);
+
+      const sendMessage = async function() {
+        if (!inputMsg.trim() || !selectedModel || chatLoading) return;
+        const userText = inputMsg;
+        setInputMsg('');
+
+        // Build history SYNCHRONOUSLY from current messages state before any async call
+        const newHistory = messages.concat({ role: 'user', text: userText });
+        setMessages(newHistory);
+        setChatLoading(true);
+
+        const r = await apiFetch('/api/ai/chat', {
+          method: 'POST',
+          body: JSON.stringify({ model_id: selectedModel, message: userText, history: newHistory })
+        }, creds);
+
+        setChatLoading(false);
+        const replyText = (r.ok && r.data.reply) ? r.data.reply : 'Error: ' + (r.data.error || 'Failed to get reply.');
+        setMessages(function(prev) { return prev.concat({ role: 'assistant', text: replyText }); });
+      };
+
+      const runQueryDirectly = async function(sql) {
+        const r = await apiFetch('/query', {
+          method: 'POST',
+          body: JSON.stringify({ query: sql })
+        }, creds);
+        if (r.ok && r.data.results) {
+          const formatted = JSON.stringify(r.data.results, null, 2);
+          setMessages(function(prev) {
+            return prev.concat({ role: 'assistant', text: 'Query Result:\n```json\n' + formatted + '\n```' });
+          });
+        } else {
+          setMessages(function(prev) {
+            return prev.concat({ role: 'assistant', text: 'Query failed: ' + (r.data.error || 'Unknown error') });
+          });
+        }
+      };
+
+      const parseMessageText = function(text) {
+        const parts = [];
+        const regex = /```(sql|json)?([\s\S]*?)```/g;
+        let lastIdx = 0;
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+          if (match.index > lastIdx) {
+            const normalText = text.substring(lastIdx, match.index);
+            parts.push(parseBlockMarkdown(normalText, 'text-' + lastIdx));
+          }
+          const lang = match[1] || 'text';
+          const code = match[2].trim();
+          const codeKey = match.index;
+          
+          if (lang === 'json') {
+              try {
+                  const parsed = JSON.parse(code);
+                  
+                  // Case A: FlamingoDB's core query result structure
+                  if (Array.isArray(parsed) && parsed.length > 0 && 
+                      (parsed[0].columns !== undefined || parsed[0].error !== undefined || parsed[0].message !== undefined)) {
+                      parts.push(renderFlamingoResults(parsed, 'flamingo-' + codeKey));
+                      lastIdx = regex.lastIndex;
+                      continue;
+                  }
+                  
+                  // Case B: Raw JSON array of flat objects (e.g. users' pasted examples)
+                  if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object' && !Array.isArray(parsed[0])) {
+                      parts.push(renderJsonArrayAsTable(parsed, 'raw-json-arr-' + codeKey));
+                      lastIdx = regex.lastIndex;
+                      continue;
+                  }
+              } catch (e) {
+                  // Not valid JSON, fallback to standard code block
+              }
+          }
+
+          parts.push(
+            React.createElement('div', { key: 'code-' + codeKey, className: 'chat-code-block', style: { margin: '8px 0', width: '100%', background: 'var(--surface)', padding: 12, borderRadius: 6, border: '1px solid var(--border2)', position: 'relative' } },
+              React.createElement('pre', { style: { fontFamily: "'Fira Code', monospace", fontSize: 12, margin: 0, overflowX: 'auto', whiteSpace: 'pre-wrap' } }, code),
+              lang === 'sql' ? React.createElement('button', {
+                className: 'btn btn-primary btn-sm',
+                style: { position: 'absolute', right: 8, top: 8, padding: '2px 8px', fontSize: 10 },
+                onClick: function() { runQueryDirectly(code); }
+              }, 'Run Query') : null
+            )
+          );
+          lastIdx = regex.lastIndex;
+        }
+        if (lastIdx < text.length) {
+          const normalText = text.substring(lastIdx);
+          parts.push(parseBlockMarkdown(normalText, 'text-' + lastIdx));
+        }
+        return parts;
+      };
+
+      if (loading) {
+        return React.createElement('div', { style: { padding: 40, textAlign: 'center' } }, React.createElement(Spinner));
+      }
+
+      if (models.length === 0) {
+        return React.createElement('div', { style: { padding: 40, textAlign: 'center' } },
+          React.createElement(Banner, { type: 'error' }, 'No AI models configured. Please go to the Settings page to add your API keys first.')
+        );
+      }
+
+      return React.createElement('div', { className: 'card', style: { height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' } },
+        React.createElement('div', { className: 'card-header', style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+            React.createElement(Icon, { name: 'message-square', size: 15, stroke: 'var(--pink)' }),
+            React.createElement('h3', null, 'AI Assistant Chat')
+          ),
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+            React.createElement('span', { style: { style: { fontSize: 12, color: 'var(--muted)' } } }, 'Active Model:'),
+            React.createElement('select', {
+              className: 'input',
+              style: { width: 200, height: 32, padding: '0 8px', fontSize: 12 },
+              value: selectedModel,
+              onChange: function(e) { setSelectedModel(e.target.value); }
+            },
+              models.map(function(m) {
+                return React.createElement('option', { key: m.id, value: m.id }, m.name + ' (' + m.provider.toUpperCase() + ')');
+              })
+            ),
+            React.createElement('button', {
+              className: 'btn btn-ghost',
+              style: { height: 32, padding: '0 12px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', borderRadius: 6 },
+              onClick: startNewChat,
+              title: 'Start a new chat'
+            },
+              React.createElement(Icon, { name: 'plus', size: 13 }),
+              'New Chat'
+            )
+          )
+        ),
+        React.createElement('div', { className: 'card-body', style: { flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, padding: 16 } },
+          messages.map(function(m, idx) {
+            const isAssistant = m.role === 'assistant';
+            return React.createElement('div', {
+              key: idx,
+              onMouseEnter: () => setHoveredMsgIdx(idx),
+              onMouseLeave: () => setHoveredMsgIdx(null),
+              style: {
+                alignSelf: isAssistant ? 'flex-start' : 'flex-end',
+                background: isAssistant ? 'var(--card)' : 'rgba(244, 63, 135, 0.12)',
+                border: isAssistant ? '1px solid var(--border)' : '1px solid rgba(244, 63, 135, 0.3)',
+                padding: '10px 14px',
+                borderRadius: 10,
+                maxWidth: '85%',
+                fontSize: 13,
+                lineHeight: 1.5,
+                position: 'relative'
+              }
+            },
+              editingMsgIdx === idx ? 
+                React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 300 } },
+                  React.createElement('textarea', {
+                    className: 'input',
+                    style: { width: '100%', minHeight: 60, padding: 8, fontFamily: 'inherit' },
+                    value: editingMsgText,
+                    onChange: (e) => setEditingMsgText(e.target.value)
+                  }),
+                  React.createElement('div', { style: { display: 'flex', gap: 8, justifyContent: 'flex-end' } },
+                    React.createElement('button', { className: 'btn btn-secondary btn-sm', onClick: () => setEditingMsgIdx(null) }, 'Cancel'),
+                    React.createElement('button', { className: 'btn btn-primary btn-sm', onClick: () => resendMessage(idx, editingMsgText) }, 'Send')
+                  )
+                )
+              : React.createElement(React.Fragment, null,
+                  parseMessageText(m.text),
+                  !isAssistant && hoveredMsgIdx === idx && React.createElement('div', {
+                      style: { position: 'absolute', top: -12, right: 10, display: 'flex', gap: 4, background: 'var(--card)', padding: '2px 4px', borderRadius: 4, border: '1px solid var(--border)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }
+                  },
+                      React.createElement('button', { className: 'btn btn-secondary btn-icon', title: 'Edit Message', style: { padding: 4, height: 'auto' }, onClick: () => { setEditingMsgIdx(idx); setEditingMsgText(m.text); } }, React.createElement(Icon, { name: 'edit-2', size: 12 })),
+                      React.createElement('button', { className: 'btn btn-secondary btn-icon', title: 'Copy Message', style: { padding: 4, height: 'auto' }, onClick: () => { navigator.clipboard.writeText(m.text); } }, React.createElement(Icon, { name: 'copy', size: 12 }))
+                  )
+                )
+            );
+          }),
+          chatLoading ? React.createElement('div', { style: { alignSelf: 'flex-start', background: 'var(--card)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)' } }, React.createElement(Spinner), ' Thinking…') : null
+        ),
+        React.createElement('div', { style: { padding: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 } },
+          React.createElement('input', {
+            className: 'input',
+            value: inputMsg,
+            onChange: function(e){ setInputMsg(e.target.value); },
+            onKeyDown: function(e){ if (e.key === 'Enter') sendMessage(); },
+            placeholder: 'Ask the assistant a question...',
+            disabled: chatLoading,
+            style: { flex: 1 }
+          }),
+          React.createElement('button', {
+            className: 'btn btn-primary',
+            onClick: sendMessage,
+            disabled: chatLoading || !inputMsg.trim()
+          }, 'Send')
         )
       );
     }
@@ -2567,6 +3259,7 @@
     const PAGES = [
       { id: 'console', label: 'SQL Console', icon: 'terminal' },
       { id: 'tables', label: 'Table Browser', icon: 'database' },
+      { id: 'ai', label: 'AI Assistant', icon: 'cpu' },
       { id: 'users', label: 'Users', icon: 'users' },
       { id: 'settings', label: 'Settings', icon: 'settings' },
       { id: 'profile', label: 'My Profile', icon: 'user' },
@@ -2681,7 +3374,8 @@
                   page === 'users' ? React.createElement(UsersPage, { key: 'users', creds: creds }) :
                     page === 'settings' ? React.createElement(SettingsPage, { key: 'settings', creds: creds }) :
                       page === 'profile' ? React.createElement(ProfilePage, { key: 'profile', creds: creds, setCreds: setCreds }) :
-                        null
+                        page === 'ai' ? React.createElement(AIAssistantPage, { key: 'ai', creds: creds }) :
+                          null
             )
           )
         )

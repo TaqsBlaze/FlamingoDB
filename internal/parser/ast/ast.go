@@ -157,9 +157,10 @@ func (s *SelectStatement) String() string {
 
 // InsertStatement represents an INSERT query.
 type InsertStatement struct {
-	Token  lexer.Token // the 'INSERT' token
-	Table  string
-	Values []Expression
+	Token   lexer.Token // the 'INSERT' token
+	Table   string
+	Columns []string
+	Values  []Expression
 }
 
 func (s *InsertStatement) statementNode()       {}
@@ -168,6 +169,9 @@ func (s *InsertStatement) String() string {
 	var vals []string
 	for _, v := range s.Values {
 		vals = append(vals, v.String())
+	}
+	if len(s.Columns) > 0 {
+		return "INSERT INTO " + s.Table + " (" + strings.Join(s.Columns, ", ") + ") VALUES (" + strings.Join(vals, ", ") + ");"
 	}
 	return "INSERT INTO " + s.Table + " VALUES (" + strings.Join(vals, ", ") + ");"
 }
