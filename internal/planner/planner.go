@@ -88,8 +88,9 @@ func (n *ProjectNode) String() string {
 
 // InsertNode inserts values into a table.
 type InsertNode struct {
-	Table  string
-	Values []ast.Expression
+	Table   string
+	Columns []string
+	Values  []ast.Expression
 }
 
 // Type returns PlanInsert.
@@ -103,6 +104,9 @@ func (n *InsertNode) String() string {
 	var vals []string
 	for _, v := range n.Values {
 		vals = append(vals, v.String())
+	}
+	if len(n.Columns) > 0 {
+		return fmt.Sprintf("Insert(table=%s, columns=[%s], values=[%s])", n.Table, strings.Join(n.Columns, ", "), strings.Join(vals, ", "))
 	}
 	return fmt.Sprintf("Insert(table=%s, values=[%s])", n.Table, strings.Join(vals, ", "))
 }
@@ -309,8 +313,9 @@ func (p *Planner) planInsert(stmt *ast.InsertStatement) (PlanNode, error) {
 	}
 
 	return &InsertNode{
-		Table:  stmt.Table,
-		Values: stmt.Values,
+		Table:   stmt.Table,
+		Columns: stmt.Columns,
+		Values:  stmt.Values,
 	}, nil
 }
 

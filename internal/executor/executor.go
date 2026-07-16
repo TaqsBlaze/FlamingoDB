@@ -103,21 +103,61 @@ func (e *Executor) executeInsert(tx *transaction.Transaction, n *planner.InsertN
 		return nil, fmt.Errorf("insert into %q failed: %w", n.Table, err)
 	}
 
-	if len(n.Values) != len(schema.Columns) {
-		return nil, fmt.Errorf(
-			"insert into %q: expected %d values, got %d",
-			n.Table, len(schema.Columns), len(n.Values),
-		)
-	}
+	values := make([]record.Value, len(schema.Columns))
 
-	values := make([]record.Value, len(n.Values))
-	for i, expr := range n.Values {
-		col := schema.Columns[i]
-		v, err := evalExpression(expr, col.Type)
-		if err != nil {
-			return nil, fmt.Errorf("insert into %q, column %q: %w", n.Table, col.Name, err)
+	if len(n.Columns) > 0 {
+		if len(n.Values) != len(n.Columns) {
+			return nil, fmt.Errorf(
+				"insert into %q: expected %d values, got %d",
+				n.Table, len(n.Columns), len(n.Values),
+			)
 		}
-		values[i] = v
+
+		schemaColMap := make(map[string]int)
+		for idx, col := range schema.Columns {
+			schemaColMap[strings.ToLower(col.Name)] = idx
+		}
+
+		for _, colName := range n.Columns {
+			if _, exists := schemaColMap[strings.ToLower(colName)]; !exists {
+				return nil, fmt.Errorf("insert into %q: column %q does not exist", n.Table, colName)
+			}
+		}
+
+		colMap := make(map[string]int)
+		for idx, colName := range n.Columns {
+			colMap[strings.ToLower(colName)] = idx
+		}
+
+		for i, col := range schema.Columns {
+			valIdx, specified := colMap[strings.ToLower(col.Name)]
+			if specified {
+				expr := n.Values[valIdx]
+				v, err := evalExpression(expr, col.Type)
+				if err != nil {
+					return nil, fmt.Errorf("insert into %q, column %q: %w", n.Table, col.Name, err)
+				}
+				values[i] = v
+			} else {
+				values[i] = record.Value{Type: col.Type}
+			}
+		}
+	} else {
+		if len(n.Values) != len(schema.Columns) {
+			return nil, fmt.Errorf(
+				"insert into %q: expected %d values, got %d",
+				n.Table, len(schema.Columns), len(n.Values),
+			)
+		}
+
+		for i, expr := range n.Values {
+			col := schema.Columns[i]
+			v, err := evalExpression(expr, col.Type)
+			if err != nil {
+				return nil, fmt.Errorf("insert into %q, column %q: %w", n.Table, col.Name, err)
+			}
+			values[i] = v
+		}
 	}
 
 	rec := &record.Record{Values: values}
