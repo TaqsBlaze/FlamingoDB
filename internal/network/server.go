@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
@@ -59,6 +60,7 @@ type Server struct {
 	password  string
 	userStore   *UserStore
 	policyStore *PolicyStore
+	aiStore     *AIModelStore
 
 	// TCP states
 	tcpListener   net.Listener
@@ -110,6 +112,15 @@ func NewServer(cfg Config, tm *catalog.TableManager, log *logger.Logger) (*Serve
 		return nil, fmt.Errorf("failed to init policy store: %w", err)
 	}
 
+	modelsFile := cfg.DataDir + "/models.json"
+	if cfg.DataDir == "" {
+		modelsFile = "./models.json"
+	}
+	as, err := NewAIModelStore(modelsFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init AI models store: %w", err)
+	}
+
 	return &Server{
 		tm:            tm,
 		log:           log,
@@ -119,6 +130,7 @@ func NewServer(cfg Config, tm *catalog.TableManager, log *logger.Logger) (*Serve
 		password:      cfg.Password,
 		userStore:     us,
 		policyStore:   ps,
+		aiStore:       as,
 		tcpConns:      make(map[net.Conn]struct{}),
 		connSemaphore: make(chan struct{}, cfg.MaxConnections),
 		httpTxMap:     make(map[string]*httpTxState),
@@ -202,6 +214,9 @@ func (s *Server) Start() error {
 		mux.HandleFunc("/api/users/", s.handleHTTPUsersPath) // handles /api/users/:name and /api/users/:name/policy
 		mux.HandleFunc("/api/policies", s.handleHTTPPolicies)
 		mux.HandleFunc("/api/policies/", s.handleHTTPPoliciesPath) // handles /api/policies/:name
+		mux.HandleFunc("/api/models", s.handleHTTPModels)
+		mux.HandleFunc("/api/models/", s.handleHTTPModelsPath)
+		mux.HandleFunc("/api/ai/chat", s.handleHTTPQueryAI)
 		mux.HandleFunc("/api/me", s.handleHTTPMe)
 		mux.HandleFunc("/api/me/password", s.handleHTTPChangePassword)
 
@@ -1259,4 +1274,152 @@ func (s *Server) handleHTTPPoliciesPath(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "message": "policy deleted: " + name})
+}
+
+// GET /api/models - list all AI models (admin only)
+// POST /api/models - create/update AI model (admin only)
+func (s *Server) handleHTTPModels(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	
+	if r.Method == http.MethodOptions {
+		return
+	}
+
+	if _, ok := s.requireAdmin(w, r); !ok {
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		list := s.aiStore.List()
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "models": list})
+
+	case http.MethodPost:
+		var m AIModelConfig
+		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": err.Error()})
+			return
+		}
+		if m.Name == "" || m.Provider == "" || m.APIKey == "" || m.ModelName == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "name, provider, api_key, and model_name are required"})
+			return
+		}
+		if err := s.aiStore.Set(&m); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": err.Error()})
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "message": "model config saved"})
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+// DELETE /api/models/ - delete an AI model (admin only)
+func (s *Server) handleHTTPModelsPath(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	
+	if r.Method == http.MethodOptions {
+		return
+	}
+
+	if r.Method != http.MethodDelete {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	if _, ok := s.requireAdmin(w, r); !ok {
+		return
+	}
+	id := strings.TrimPrefix(r.URL.Path, "/api/models/")
+	if id == "" {
+		id = r.URL.Query().Get("id")
+	}
+	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "id required"})
+		return
+	}
+	if err := s.aiStore.Delete(id); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": err.Error()})
+		return
+	}
+	_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "message": "model deleted"})
+}
+
+// POST /api/ai/chat - queries an AI model with schema context
+func (s *Server) handleHTTPQueryAI(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	
+	if r.Method == http.MethodOptions {
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Verify authenticated user (any user can chat, depending on basic auth)
+	if _, ok := s.authenticateHTTP(r); !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "unauthorized"})
+		return
+	}
+
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": err.Error()})
+		return
+	}
+	s.log.Info("Query AI raw request body: %s", string(bodyBytes))
+
+	var req struct {
+		ModelID string              `json:"model_id"`
+		Message string              `json:"message"` // Fallback for single message
+		History []map[string]string `json:"history"`
+	}
+	if err := json.Unmarshal(bodyBytes, &req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": err.Error()})
+		return
+	}
+
+	if req.ModelID == "" || (req.Message == "" && len(req.History) == 0) {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "model_id and message/history are required"})
+		return
+	}
+
+	cfg, exists := s.aiStore.Get(req.ModelID)
+	if !exists {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "configured AI model not found"})
+		return
+	}
+
+	systemPrompt := GenerateSystemPrompt(s.tm)
+	
+	// Convert single message to history format if history is missing
+	history := req.History
+	if len(history) == 0 {
+		history = []map[string]string{
+			{"role": "user", "text": req.Message},
+		}
+	}
+
+	reply, err := CallModel(cfg, systemPrompt, history)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": err.Error()})
+		return
+	}
+
+	_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "reply": reply})
 }

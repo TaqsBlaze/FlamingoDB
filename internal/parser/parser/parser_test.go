@@ -65,6 +65,44 @@ func TestParseInsertStatement(t *testing.T) {
 	if stmt.Values[0].String() != "1" || stmt.Values[1].String() != "9.99" || stmt.Values[2].String() != "'test'" {
 		t.Errorf("values wrong. got=%v", stmt.Values)
 	}
+
+	// Test with column list specification
+	inputWithCols := "INSERT INTO records (id, record, value) VALUES (1, 'grocery', 120.22);"
+	lWithCols := lexer.New(inputWithCols)
+	pWithCols := New(lWithCols)
+
+	programWithCols := pWithCols.ParseProgram()
+	checkParserErrors(t, pWithCols)
+
+	if len(programWithCols.Statements) != 1 {
+		t.Fatalf("programWithCols.Statements does not contain 1 statement. got=%d", len(programWithCols.Statements))
+	}
+
+	stmtWithCols, ok := programWithCols.Statements[0].(*ast.InsertStatement)
+	if !ok {
+		t.Fatalf("programWithCols.Statements[0] is not ast.InsertStatement. got=%T", programWithCols.Statements[0])
+	}
+
+	if stmtWithCols.Table != "records" {
+		t.Errorf("stmtWithCols.Table not 'records'. got=%s", stmtWithCols.Table)
+	}
+
+	expectedCols := []string{"id", "record", "value"}
+	if len(stmtWithCols.Columns) != len(expectedCols) {
+		t.Fatalf("len(stmtWithCols.Columns) not %d. got=%d", len(expectedCols), len(stmtWithCols.Columns))
+	}
+	for i, col := range expectedCols {
+		if stmtWithCols.Columns[i] != col {
+			t.Errorf("column at %d wrong. expected=%s, got=%s", i, col, stmtWithCols.Columns[i])
+		}
+	}
+
+	if len(stmtWithCols.Values) != 3 {
+		t.Fatalf("len(stmtWithCols.Values) not 3. got=%d", len(stmtWithCols.Values))
+	}
+	if stmtWithCols.Values[0].String() != "1" || stmtWithCols.Values[1].String() != "'grocery'" || stmtWithCols.Values[2].String() != "120.22" {
+		t.Errorf("values wrong. got=%v", stmtWithCols.Values)
+	}
 }
 
 func TestParseUpdateStatement(t *testing.T) {
