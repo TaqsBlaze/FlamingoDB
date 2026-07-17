@@ -23,8 +23,9 @@ const (
 
 // Column defines a single column in a schema.
 type Column struct {
-	Name string
-	Type TypeID
+	Name          string
+	Type          TypeID
+	AutoIncrement bool
 }
 
 // Schema defines the structure of a table.
