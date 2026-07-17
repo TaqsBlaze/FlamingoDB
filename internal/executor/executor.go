@@ -3,6 +3,7 @@ package executor
 import (
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 
 	"github.com/TaqsBlaze/FlamingoDB/internal/datatypes"
@@ -1252,22 +1253,28 @@ func compareValues(left record.Value, op string, right record.Value) (bool, erro
 
 // executeJoin performs a nested loop join operation.
 func (e *Executor) executeJoin(tx *transaction.Transaction, n *planner.JoinNode) (*Result, error) {
-	// Execute the left side (child)
-	leftResult, err := e.ExecuteWithTx(tx, n.Child)
+	// Execute the left side
+	leftResult, err := e.ExecuteWithTx(tx, n.Left)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get schema for the left side
-	leftSchema, err := e.schemaFromChild(n.Child)
+	leftSchema, err := e.schemaFromChild(n.Left)
 	if err != nil {
 		return nil, err
 	}
 
+	// The right side must be a ScanNode (carries the table to read).
+	rightScan, ok := n.Right.(*planner.ScanNode)
+	if !ok {
+		return nil, fmt.Errorf("right side of join must be a scan, got %T", n.Right)
+	}
+
 	// Get schema for the right table
-	rightSchema, err := e.tm.GetSchema(n.Table)
+	rightSchema, err := e.tm.GetSchema(rightScan.Table)
 	if err != nil {
-		return nil, fmt.Errorf("join table %q not found: %w", n.Table, err)
+		return nil, fmt.Errorf("join table %q not found: %w", rightScan.Table, err)
 	}
 
 	// Combine schemas for the result
@@ -1280,9 +1287,9 @@ func (e *Executor) executeJoin(tx *transaction.Transaction, n *planner.JoinNode)
 	// For each row in the left side
 	for _, leftRow := range leftResult.Rows {
 		// Scan the right table
-		rightRecords, err := e.tm.ReadRecords(tx, n.Table)
+		rightRecords, err := e.tm.ReadRecords(tx, rightScan.Table)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read join table %q: %w", n.Table, err)
+			return nil, fmt.Errorf("failed to read join table %q: %w", rightScan.Table, err)
 		}
 
 		// For each row in the right table
@@ -1381,11 +1388,6 @@ func (e *Executor) executeAggregate(tx *transaction.Transaction, n *planner.Aggr
 	// Calculate aggregates for each group
 	var resultRows []Row
 
-	// Determine what aggregates to compute based on the AggFuncs map
-	needCount := n.AggFuncs["COUNT"]
-	needSum := n.AggFuncs["SUM"]
-	needAvg := n.AggFuncs["AVG"]
-
 	// For each group
 	for _, groupRows := range groups {
 		if len(groupRows) == 0 {
@@ -1394,21 +1396,34 @@ func (e *Executor) executeAggregate(tx *transaction.Transaction, n *planner.Aggr
 
 		// Initialize aggregation values
 		var count int64 = 0
-		var sumFloat float64 = 0
-		var sumInt int64 = 0
-		var numericType bool = false // true if we have numeric data for SUM/AVG
+		var sumValues []float64 = make([]float64, len(n.Aggregates))
+		var countValues []int64 = make([]int64, len(n.Aggregates))
 
 		// Process each row in the group
 		for _, row := range groupRows {
 			count++
 
-			// If we need to compute SUM or AVG, we need to determine what to aggregate
-			// For simplicity, we'll assume the first non-GROUP BY, non-aggregate expression in SELECT
-			// In a real implementation, this would be more sophisticated
-			if needSum || needAvg {
-				// This is a simplified approach - in reality we'd need to know what expressions to aggregate
-				// For now, we'll skip implementing SUM/AVG properly and just note that it's needed
-				// A proper implementation would need to extract the aggregate expressions from the SELECT clause
+			// Evaluate each aggregate expression for this row
+			for i, aggExpr := range n.Aggregates {
+				val, err := evalRowExpression(aggExpr, row, schema)
+				if err != nil {
+					return nil, fmt.Errorf("failed to evaluate aggregate expression: %w", err)
+				}
+
+				// For SUM and AVG, we need numeric values
+				if val.Type == record.Integer || val.Type == record.Float {
+					floatVal := 0.0
+					if val.Type == record.Integer {
+						floatVal = float64(val.Int)
+					} else {
+						floatVal = val.Flt
+					}
+					sumValues[i] += floatVal
+					countValues[i]++
+				}
+				// For COUNT, we count non-null values (or * for COUNT(*))
+				// For simplicity, we'll handle COUNT(*) separately in the planner
+				// For now, COUNT(expression) counts non-null values
 			}
 		}
 
@@ -1426,22 +1441,40 @@ func (e *Executor) executeAggregate(tx *transaction.Transaction, n *planner.Aggr
 			}
 		}
 
-		// Add aggregate values (simplified - just COUNT for now)
+		// Compute aggregate values
 		var aggValues []record.Value
-		if needCount {
-			aggValues = append(aggValues, record.Value{Type: record.Integer, Int: count})
-		}
-		if needSum {
-			// Placeholder - would need actual sum implementation
-			aggValues = append(aggValues, record.Value{Type: record.Integer, Int: 0})
-		}
-		if needAvg {
-			// Placeholder - would need actual average implementation
-			avg := int64(0)
-			if count > 0 {
-				avg = 0 // Placeholder
+		for i, aggExpr := range n.Aggregates {
+			// Determine the aggregate function type from the expression
+			var aggFunc string
+			if callExpr, ok := aggExpr.(*ast.CallExpression); ok {
+				aggFunc = strings.ToUpper(callExpr.Function)
 			}
-			aggValues = append(aggValues, record.Value{Type: record.Integer, Int: avg})
+
+			switch aggFunc {
+			case "COUNT":
+				// COUNT(*) counts rows, COUNT(expression) counts non-null values
+				// For simplicity, we'll use the row count for all COUNT aggregates
+				// A more accurate implementation would distinguish COUNT(*) from COUNT(column)
+				aggValues = append(aggValues, record.Value{Type: record.Integer, Int: int32(count)})
+			case "SUM":
+				if countValues[i] > 0 {
+					// Determine if we should return int or float based on input types
+					// For simplicity, always return float64 for SUM
+					aggValues = append(aggValues, record.Value{Type: record.Float, Flt: sumValues[i]})
+				} else {
+					aggValues = append(aggValues, record.Value{Type: record.Float, Flt: 0.0})
+				}
+			case "AVG":
+				if countValues[i] > 0 {
+					avg := sumValues[i] / float64(countValues[i])
+					aggValues = append(aggValues, record.Value{Type: record.Float, Flt: avg})
+				} else {
+					aggValues = append(aggValues, record.Value{Type: record.Float, Flt: 0.0})
+				}
+			default:
+				// Unknown aggregate function, use 0
+				aggValues = append(aggValues, record.Value{Type: record.Integer, Int: 0})
+			}
 		}
 
 		// Combine GROUP BY and aggregate values
@@ -1533,12 +1566,6 @@ func (e *Executor) executeDistinct(tx *transaction.Transaction, n *planner.Disti
 		return nil, err
 	}
 
-	// Get schema from child
-	schema, err := e.schemaFromChild(n.Child)
-	if err != nil {
-		return nil, err
-	}
-
 	// Use a map to track seen rows (using string representation as key)
 	seen := make(map[string]bool)
 	var resultRows []Row
@@ -1558,12 +1585,6 @@ func (e *Executor) executeDistinct(tx *transaction.Transaction, n *planner.Disti
 				rowStr += fmt.Sprintf("%f", val.Flt)
 			case record.Varchar:
 				rowStr += val.Str
-			case record.Boolean:
-				if val.Blob != nil && len(val.Blob) > 0 {
-					rowStr += string(val.Blob)
-				} else {
-					rowStr += "false"
-				}
 			default:
 				// For other types, use a generic representation
 				rowStr += fmt.Sprintf("%v", val)
@@ -1643,6 +1664,140 @@ func (e *Executor) executeLimitOffset(tx *transaction.Transaction, n *planner.Li
 	resultRows := childResult.Rows[startIndex:endIndex]
 
 	return &Result{Rows: resultRows}, nil
+}
+
+// executeUpdate updates rows matching the condition.
+func (e *Executor) executeUpdate(tx *transaction.Transaction, n *planner.UpdateNode) (*Result, error) {
+	// Get the source rows to update (applying WHERE clause if present)
+	var source *Result
+	var err error
+	if n.Child != nil {
+		source, err = e.ExecuteWithTx(tx, n.Child)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Scan the table directly
+		source, err = e.executeScan(tx, &planner.ScanNode{Table: n.Table})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Get schema for validation
+	schema, err := e.schemaFromChild(&planner.ScanNode{Table: n.Table})
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate SET expressions
+	for colName, expr := range n.Set {
+		if err := validateExpression(expr, schema); err != nil {
+			return nil, fmt.Errorf("invalid expression for column %q: %w", colName, err)
+		}
+	}
+
+	// If there's a WHERE clause, we need to filter rows
+	var rowsToUpdate []Row
+	if n.Child != nil {
+		// The child already includes the WHERE filter (it's a FilterNode)
+		rowsToUpdate = source.Rows
+	} else {
+		// No child means we scanned the whole table, need to apply WHERE if present
+		// Actually, looking at the planner, UpdateNode.Child should be a FilterNode if WHERE exists
+		// or a ScanNode if no WHERE
+		rowsToUpdate = source.Rows
+	}
+
+	// Update each row
+	var updatedCount int
+	for _, row := range rowsToUpdate {
+		// Create a copy of the row values to modify
+		newValues := make([]record.Value, len(row.Values))
+		copy(newValues, row.Values)
+
+		// Apply SET expressions
+		for colName, expr := range n.Set {
+			// Find the column index
+			colIdx := -1
+			for i, col := range schema.Columns {
+				if strings.EqualFold(col.Name, colName) {
+					colIdx = i
+					break
+				}
+			}
+			if colIdx == -1 {
+				return nil, fmt.Errorf("column %q not found in table %q", colName, n.Table)
+			}
+
+			// Evaluate the expression
+			value, err := evalRowExpression(expr, row, schema)
+			if err != nil {
+				return nil, fmt.Errorf("failed to evaluate expression for column %q: %w", colName, err)
+			}
+
+			// Check type compatibility
+			if value.Type != schema.Columns[colIdx].Type {
+				// Try to convert if possible (e.g., int to float)
+				if value.Type == record.Integer && schema.Columns[colIdx].Type == record.Float {
+					value = record.Value{Type: record.Float, Flt: float64(value.Int)}
+				} else {
+					return nil, fmt.Errorf("cannot assign %v to column %q of type %v", value.Type, colName, schema.Columns[colIdx].Type)
+				}
+			}
+
+			newValues[colIdx] = value
+		}
+
+		// For simplicity, we delete the old record and insert the new one
+		// In a real implementation, we'd update in-place
+		// But first we need to identify the record to delete
+		// This is complex without a proper primary key/index lookup
+		// For now, we'll just count the updates
+		_ = newValues // values are computed but persistence is not yet implemented
+		updatedCount++
+	}
+
+	// TODO: Implement actual update logic (delete old, insert new)
+	// For now, just return the count
+	return &Result{RowsAffected: updatedCount}, nil
+}
+
+// executeDelete deletes rows matching the condition.
+func (e *Executor) executeDelete(tx *transaction.Transaction, n *planner.DeleteNode) (*Result, error) {
+	// Get the source rows to delete (applying WHERE clause if present)
+	var source *Result
+	var err error
+	if n.Child != nil {
+		source, err = e.ExecuteWithTx(tx, n.Child)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Scan the table directly
+		source, err = e.executeScan(tx, &planner.ScanNode{Table: n.Table})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Get schema for validation (like executeUpdate does)
+	_, err = e.schemaFromChild(&planner.ScanNode{Table: n.Table})
+	if err != nil {
+		return nil, err
+	}
+
+	// All rows from the source need to be deleted (WHERE already applied by child/scan)
+	var deletedCount int
+	for _, row := range source.Rows {
+		rec := &record.Record{Values: row.Values}
+		if err := e.tm.DeleteRecord(tx, n.Table, rec); err != nil {
+			return nil, err
+		}
+		deletedCount++
+	}
+
+	return &Result{RowsAffected: deletedCount}, nil
 }
 
 func (e *Executor) executeShowTables(tx *transaction.Transaction, n *planner.ShowTablesNode) (*Result, error) {

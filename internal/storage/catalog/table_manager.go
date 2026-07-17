@@ -147,6 +147,51 @@ func (tm *TableManager) DropTable(tx *transaction.Transaction, name string) (err
 	return err
 }
 
+// DeleteRecord deletes the first record matching rec from tableName by tombstoning it.
+// It returns an error if no matching record is found.
+func (tm *TableManager) DeleteRecord(tx *transaction.Transaction, tableName string, rec *record.Record) (err error) {
+	isAutoCommit := (tx == nil)
+	if isAutoCommit {
+		tx, err = tm.Begin()
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if err != nil {
+				tm.Rollback(tx)
+			}
+		}()
+	}
+
+	meta, err := tm.catalog.GetTable(tableName)
+	if err != nil {
+		return err
+	}
+
+	// Serialize the record to compare against page contents
+	payload := rec.Serialize(meta.Schema)
+
+	// Open the table heap
+	tbl, err := table.New(tm.pager, tm.txMgr, tx, meta.FirstPageID, false)
+	if err != nil {
+		return err
+	}
+
+	// Attempt to tombstone the first matching record
+	found, err := tbl.TombstoneRecord(tx, payload)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return fmt.Errorf("delete on %q: record not found", tableName)
+	}
+
+	if isAutoCommit {
+		err = tm.Commit(tx)
+	}
+	return err
+}
+
 // InsertRecord serializes and inserts a record into the specified table.
 func (tm *TableManager) InsertRecord(tx *transaction.Transaction, tableName string, rec *record.Record) (err error) {
 	isAutoCommit := (tx == nil)
@@ -403,6 +448,47 @@ func (tm *TableManager) GetIndexes(tableName string) (map[string]*IndexMetadata,
 	return meta.Indexes, nil
 }
 
+// NextSequenceValue returns the next sequence value for an AUTO_INCREMENT column.
+// If the column doesn't exist or isn't AUTO_INCREMENT, it returns an error.
+// The sequence is incremented and persisted.
+func (tm *TableManager) NextSequenceValue(tx *transaction.Transaction, tableName string, columnName string) (int32, error) {
+	meta, err := tm.catalog.GetTable(tableName)
+	if err != nil {
+		return 0, err
+	}
+
+	// Find the column index
+	colIdx := -1
+	for i, col := range meta.Schema.Columns {
+		if strings.EqualFold(col.Name, columnName) {
+			colIdx = i
+			break
+		}
+	}
+	if colIdx == -1 {
+		return 0, fmt.Errorf("column %q not found in table %q", columnName, tableName)
+	}
+
+	// Check if the column is AUTO_INCREMENT
+	if !meta.Schema.Columns[colIdx].AutoIncrement {
+		return 0, fmt.Errorf("column %q.%q is not AUTO_INCREMENT", tableName, columnName)
+	}
+
+	// Get current sequence value
+	seq := meta.Sequences[columnName]
+	nextSeq := seq + 1
+
+	// Update the sequence in metadata
+	meta.Sequences[columnName] = nextSeq
+
+	// Persist the change
+	if err := tm.catalog.persist(tx); err != nil {
+		return 0, err
+	}
+
+	return nextSeq, nil
+}
+
 // ReadRecordsIndexed performs a range scan on the B+ Tree index, gets physical PageIDs,
 // loads the corresponding pages from the heap table, and returns all records found in those pages.
 func (tm *TableManager) ReadRecordsIndexed(
@@ -448,16 +534,19 @@ func (tm *TableManager) ReadRecordsIndexed(
 		numRecords := encoding.Uint32(pg.Data()[0:4])
 		offset := uint32(table.PageHeaderSize)
 
-		for i := uint32(0); i < numRecords; i++ {
-			recordSize := encoding.Uint32(pg.Data()[offset : offset+4])
-			rawRecord := make([]byte, recordSize)
-			copy(rawRecord, pg.Data()[offset+4:offset+4+recordSize])
+			for i := uint32(0); i < numRecords; i++ {
+				deleted := pg.Data()[offset]
+				if deleted == 0 { // not tombstoned
+					recordSize := encoding.Uint32(pg.Data()[offset+1 : offset+1+4])
+					rawRecord := make([]byte, recordSize)
+					copy(rawRecord, pg.Data()[offset+1+4 : offset+1+4+recordSize])
 
-			rec := record.Deserialize(rawRecord, meta.Schema)
-			records = append(records, rec)
-
-			offset += 4 + recordSize
-		}
+					rec := record.Deserialize(rawRecord, meta.Schema)
+					records = append(records, rec)
+				}
+				// advance past: 1 byte flag + 4 byte size + recordSize payload
+				offset += 1 + 4 + encoding.Uint32(pg.Data()[offset+1 : offset+1+4])
+			}
 	}
 
 	return records, nil
