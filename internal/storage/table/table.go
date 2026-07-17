@@ -15,7 +15,19 @@ var (
 )
 
 const (
-	PageHeaderSize = 12
+	// PageHeaderSize is the size in bytes of a heap page header.
+	//
+	// Layout:
+	//   [0:4]   uint32  NumRecords         (live + tombstoned, never decremented)
+	//   [4:8]   uint32  FreeSpaceOffset    (end of the allocated region)
+	//   [8:12]  uint32  NextPageID
+	//   [12:16] uint32  LiveRecordCount    (what reads should return)
+	//
+	// Each record slot after the header is framed as:
+	//   [0:1]   uint8   deleted  (0 = live, 1 = tombstone)
+	//   [1:5]   uint32  recordSize
+	//   [5:]    bytes   payload
+	PageHeaderSize = 16
 	NoPage         = page.PageID(math.MaxUint32)
 )
 
@@ -94,14 +106,16 @@ func (t *Table) FirstPageID() page.PageID {
 
 func (t *Table) initPageHeader(pg *page.Page) {
 	encoding.PutUint32(pg.Data()[0:4], 0)               // NumRecords = 0
-	encoding.PutUint32(pg.Data()[4:8], PageHeaderSize)  // FreeSpaceOffset = 12
+	encoding.PutUint32(pg.Data()[4:8], PageHeaderSize)  // FreeSpaceOffset = 16
 	encoding.PutUint32(pg.Data()[8:12], uint32(NoPage)) // NextPageID = NoPage
+	encoding.PutUint32(pg.Data()[12:16], 0)             // LiveRecordCount = 0
 }
 
 // InsertRecord inserts a raw record into the table and returns the pageID it was written to.
 func (t *Table) InsertRecord(tx *transaction.Transaction, record []byte) (page.PageID, error) {
 	recordSize := uint32(len(record))
-	totalSize := recordSize + 4 // +4 for length prefix
+	// Per-record framing: 1 byte deleted flag + 4 byte size prefix + payload.
+	totalSize := recordSize + 5
 
 	var pg *page.Page
 	var err error
@@ -152,13 +166,16 @@ func (t *Table) InsertRecord(tx *transaction.Transaction, record []byte) (page.P
 
 	// Write record
 	numRecords := encoding.Uint32(pg.Data()[0:4])
+	liveRecords := encoding.Uint32(pg.Data()[12:16])
 
-	encoding.PutUint32(pg.Data()[freeOffset:freeOffset+4], recordSize)
-	copy(pg.Data()[freeOffset+4:freeOffset+totalSize], record)
+	pg.Data()[freeOffset] = 0 // deleted = false
+	encoding.PutUint32(pg.Data()[freeOffset+1:freeOffset+5], recordSize)
+	copy(pg.Data()[freeOffset+5:freeOffset+totalSize], record)
 
 	// Update header
 	encoding.PutUint32(pg.Data()[0:4], numRecords+1)
 	encoding.PutUint32(pg.Data()[4:8], freeOffset+totalSize)
+	encoding.PutUint32(pg.Data()[12:16], liveRecords+1)
 
 	if t.txMgr != nil && tx != nil {
 		err = t.txMgr.WritePage(tx, pg)
@@ -189,12 +206,15 @@ func (t *Table) ReadAll(tx *transaction.Transaction) ([][]byte, error) {
 		offset := uint32(PageHeaderSize)
 
 		for i := uint32(0); i < numRecords; i++ {
-			recordSize := encoding.Uint32(pg.Data()[offset : offset+4])
-			record := make([]byte, recordSize)
-			copy(record, pg.Data()[offset+4:offset+4+recordSize])
-
-			records = append(records, record)
-			offset += 4 + recordSize
+			deleted := pg.Data()[offset]
+			if deleted == 0 { // not tombstoned
+				recordSize := encoding.Uint32(pg.Data()[offset+1 : offset+1+4])
+				record := make([]byte, recordSize)
+				copy(record, pg.Data()[offset+1+4 : offset+1+4+recordSize])
+				records = append(records, record)
+			}
+			// advance past: 1 byte flag + 4 byte size + recordSize payload
+			offset += 1 + 4 + encoding.Uint32(pg.Data()[offset+1 : offset+1+4])
 		}
 
 		nextID := encoding.Uint32(pg.Data()[8:12])
@@ -202,4 +222,122 @@ func (t *Table) ReadAll(tx *transaction.Transaction) ([][]byte, error) {
 	}
 
 	return records, nil
+}
+
+// ReadAllLive is like ReadAll but skips tombstoned records.
+// It is used by DELETE to find matching rows and should be the
+// source of truth for live row count.
+func (t *Table) ReadAllLive(tx *transaction.Transaction) ([][]byte, error) {
+	var records [][]byte
+	currPageID := t.firstPageID
+
+	for currPageID != NoPage {
+		var pg *page.Page
+		var err error
+		if t.txMgr != nil && tx != nil {
+			pg, err = t.txMgr.FetchPage(tx, currPageID)
+		} else {
+			pg, err = t.pager.FetchPage(currPageID)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		numRecords := encoding.Uint32(pg.Data()[0:4])
+		offset := uint32(PageHeaderSize)
+
+		for i := uint32(0); i < numRecords; i++ {
+			deleted := pg.Data()[offset]
+			if deleted == 0 { // not tombstoned
+				recordSize := encoding.Uint32(pg.Data()[offset+1 : offset+1+4])
+				record := make([]byte, recordSize)
+				copy(record, pg.Data()[offset+1+4 : offset+1+4+recordSize])
+				records = append(records, record)
+			}
+			// advance past: 1 byte flag + 4 byte size + recordSize payload
+			offset += 1 + 4 + encoding.Uint32(pg.Data()[offset+1 : offset+1+4])
+		}
+
+		nextID := encoding.Uint32(pg.Data()[8:12])
+		currPageID = page.PageID(nextID)
+	}
+
+	return records, nil
+}
+
+// TombstoneRecord finds the first record whose serialized payload equals target
+// and marks it as deleted by setting the deleted flag to 1 and decrementing
+// LiveRecordCount. Returns true if a record was tombstoned, false if none matched.
+func (t *Table) TombstoneRecord(tx *transaction.Transaction, target []byte) (bool, error) {
+	currPageID := t.firstPageID
+
+	for currPageID != NoPage {
+		var pg *page.Page
+		var err error
+		if t.txMgr != nil && tx != nil {
+			pg, err = t.txMgr.FetchPage(tx, currPageID)
+		} else {
+			pg, err = t.pager.FetchPage(currPageID)
+		}
+		if err != nil {
+			return false, err
+		}
+
+		numRecords := encoding.Uint32(pg.Data()[0:4])
+		offset := uint32(PageHeaderSize)
+
+		for i := uint32(0); i < numRecords; i++ {
+			deleted := pg.Data()[offset]
+			if deleted == 0 { // only check live records
+				recordSize := encoding.Uint32(pg.Data()[offset+1 : offset+1+4])
+				recordStart := offset + 1 + 4
+				recordEnd := recordStart + recordSize
+				if recordEnd > uint32(len(pg.Data())) {
+					// malformed page; stop scanning this page
+					break
+				}
+				record := pg.Data()[recordStart:recordEnd:recordEnd]
+				if equal(record, target) {
+					// Mark as deleted
+					pg.Data()[offset] = 1
+					// Decrement live count
+					live := encoding.Uint32(pg.Data()[12:16])
+					if live > 0 {
+						encoding.PutUint32(pg.Data()[12:16], live-1)
+					}
+					// Persist the page
+					if t.txMgr != nil && tx != nil {
+						if err := t.txMgr.WritePage(tx, pg); err != nil {
+							return false, err
+						}
+					} else {
+						if err := t.pager.WritePage(pg); err != nil {
+							return false, err
+						}
+					}
+					return true, nil
+				}
+			}
+			// advance past: 1 byte flag + 4 byte size + recordSize payload
+			offset += 1 + 4 + encoding.Uint32(pg.Data()[offset+1 : offset+1+4])
+		}
+
+		nextID := encoding.Uint32(pg.Data()[8:12])
+		currPageID = page.PageID(nextID)
+	}
+
+	return false, nil
+}
+
+// equal returns true if two byte slices are equal.
+func equal(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }

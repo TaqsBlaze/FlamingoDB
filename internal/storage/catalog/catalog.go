@@ -31,6 +31,7 @@ type TableMetadata struct {
 	FirstPageID page.PageID
 	Schema      *record.Schema
 	Indexes     map[string]*IndexMetadata
+	Sequences   map[string]int32 // Per-column AUTO_INCREMENT sequence counters
 }
 
 // Catalog manages database tables and their schemas.
@@ -92,6 +93,7 @@ func (c *Catalog) CreateTable(tx *transaction.Transaction, name string, schema *
 		FirstPageID: firstPageID,
 		Schema:      schema,
 		Indexes:     make(map[string]*IndexMetadata),
+		Sequences:   make(map[string]int32),
 	}
 
 	return c.persist(tx)
@@ -198,6 +200,12 @@ func (c *Catalog) serialize() []byte {
 
 			buf[offset] = uint8(col.Type)
 			offset += 1
+			if col.AutoIncrement {
+				buf[offset] = 1
+			} else {
+				buf[offset] = 0
+			}
+			offset += 1
 		}
 
 		encoding.PutUint32(buf[offset:], uint32(len(t.Indexes)))
@@ -212,6 +220,16 @@ func (c *Catalog) serialize() []byte {
 
 			buf[offset] = uint8(idx.KeyType)
 			offset += 1
+		}
+
+		// Serialize sequences (AUTO_INCREMENT counters)
+		encoding.PutUint32(buf[offset:], uint32(len(t.Sequences)))
+		offset += 4
+		for colName, seq := range t.Sequences {
+			n := encoding.PutString(buf[offset:], colName)
+			offset += n
+			encoding.PutUint32(buf[offset:], uint32(seq))
+			offset += 4
 		}
 	}
 
@@ -243,7 +261,10 @@ func deserializeCatalog(data []byte) (map[string]*TableMetadata, error) {
 			colType := record.TypeID(data[offset])
 			offset += 1
 
-			cols[j] = record.Column{Name: colName, Type: colType}
+			autoInc := data[offset] != 0
+			offset += 1
+
+			cols[j] = record.Column{Name: colName, Type: colType, AutoIncrement: autoInc}
 		}
 
 		numIndexes := encoding.Uint32(data[offset:])
@@ -267,11 +288,24 @@ func deserializeCatalog(data []byte) (map[string]*TableMetadata, error) {
 			}
 		}
 
+		// Deserialize sequences (AUTO_INCREMENT counters)
+		numSeqs := int(encoding.Uint32(data[offset:]))
+		offset += 4
+		sequences := make(map[string]int32)
+		for j := 0; j < numSeqs; j++ {
+			colName, n := encoding.String(data[offset:])
+			offset += n
+			seq := int32(encoding.Uint32(data[offset:]))
+			offset += 4
+			sequences[colName] = seq
+		}
+
 		tables[name] = &TableMetadata{
 			Name:        name,
 			FirstPageID: firstPageID,
 			Schema:      record.NewSchema(cols),
 			Indexes:     indexes,
+			Sequences:   sequences,
 		}
 	}
 

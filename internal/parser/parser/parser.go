@@ -201,6 +201,12 @@ func (p *Parser) parseSelectStatement() *ast.SelectStatement {
 
 	p.nextToken() // move past SELECT
 
+	// Check for DISTINCT
+	if p.peekTokenIs(lexer.DISTINCT) {
+		p.nextToken()
+		stmt.Distinct = true
+	}
+
 	// Parse fields
 	for {
 		expr := p.parseExpression(LOWEST)
@@ -218,16 +224,98 @@ func (p *Parser) parseSelectStatement() *ast.SelectStatement {
 	if !p.expectPeek(lexer.FROM) {
 		return nil
 	}
-	
+
 	if !p.expectPeek(lexer.IDENT) {
 		return nil
 	}
 	stmt.Table = p.curToken.Literal
 
+	// Parse JOIN clauses
+	for p.peekTokenIs(lexer.JOIN) || p.peekTokenIs(lexer.INNER) || p.peekTokenIs(lexer.LEFT) {
+		join := p.parseJoin()
+		if join != nil {
+			stmt.Joins = append(stmt.Joins, *join)
+		}
+	}
+
+	// Parse WHERE clause
 	if p.peekTokenIs(lexer.WHERE) {
 		p.nextToken() // Move to WHERE
 		p.nextToken() // Move past WHERE
 		stmt.Where = p.parseExpression(LOWEST)
+	}
+
+	// Parse GROUP BY clause
+	if p.peekTokenIs(lexer.GROUP) {
+		p.nextToken() // Move to GROUP
+		if !p.expectPeek(lexer.BY) {
+			return nil
+		}
+		// Parse GROUP BY expressions
+		for {
+			expr := p.parseExpression(LOWEST)
+			if expr != nil {
+				stmt.GroupBy = append(stmt.GroupBy, expr)
+			}
+			if p.peekTokenIs(lexer.COMMA) {
+				p.nextToken() // Move to COMMA
+				p.nextToken() // Move past COMMA
+			} else {
+				break
+			}
+		}
+	}
+
+	// Parse HAVING clause
+	if p.peekTokenIs(lexer.HAVING) {
+		p.nextToken() // Move to HAVING
+		stmt.Having = p.parseExpression(LOWEST)
+	}
+
+	// Parse ORDER BY clause
+	if p.peekTokenIs(lexer.ORDER) {
+		p.nextToken() // Move to ORDER
+		if !p.expectPeek(lexer.BY) {
+			return nil
+		}
+		// Parse ORDER BY expressions
+		for {
+			expr := p.parseExpression(LOWEST)
+			if expr == nil {
+				return nil
+			}
+
+			// Check for ASC or DESC
+			ascending := true
+			if p.peekTokenIs(lexer.ASC) {
+				p.nextToken()
+				ascending = true
+			} else if p.peekTokenIs(lexer.DESC) {
+				p.nextToken()
+				ascending = false
+			}
+
+			stmt.OrderBy = append(stmt.OrderBy, ast.OrderBy{Expression: expr, Ascending: ascending})
+
+			if p.peekTokenIs(lexer.COMMA) {
+				p.nextToken() // Move to COMMA
+				p.nextToken() // Move past COMMA
+			} else {
+				break
+			}
+		}
+	}
+
+	// Parse LIMIT clause
+	if p.peekTokenIs(lexer.LIMIT) {
+		p.nextToken() // Move to LIMIT
+		stmt.Limit = p.parseExpression(LOWEST)
+	}
+
+	// Parse OFFSET clause
+	if p.peekTokenIs(lexer.OFFSET) {
+		p.nextToken() // Move to OFFSET
+		stmt.Offset = p.parseExpression(LOWEST)
 	}
 
 	if p.peekTokenIs(lexer.SEMICOLON) {
@@ -235,6 +323,47 @@ func (p *Parser) parseSelectStatement() *ast.SelectStatement {
 	}
 
 	return stmt
+}
+
+// parseJoin parses a JOIN clause
+func (p *Parser) parseJoin() *ast.JoinDef {
+	// Determine join type
+	joinType := ""
+	if p.peekTokenIs(lexer.INNER) {
+		p.nextToken()
+		joinType = "INNER"
+	} else if p.peekTokenIs(lexer.LEFT) {
+		p.nextToken()
+		joinType = "LEFT"
+	}
+
+	// Expect JOIN keyword
+	if !p.expectPeek(lexer.JOIN) {
+		return nil
+	}
+
+	// Expect table name
+	if !p.expectPeek(lexer.IDENT) {
+		return nil
+	}
+	table := p.curToken.Literal
+
+	// Expect ON keyword
+	if !p.expectPeek(lexer.ON) {
+		return nil
+	}
+
+	// Parse join condition
+	condition := p.parseExpression(LOWEST)
+	if condition == nil {
+		return nil
+	}
+
+	return &ast.JoinDef{
+		Type:      joinType,
+		Table:     table,
+		Condition: condition,
+	}
 }
 
 func (p *Parser) parseInsertStatement() *ast.InsertStatement {
@@ -272,25 +401,50 @@ func (p *Parser) parseInsertStatement() *ast.InsertStatement {
 		return nil
 	}
 
-	if !p.expectPeek(lexer.LPAREN) {
-		return nil
-	}
-
-	p.nextToken() // Move past (
-
-	for !p.curTokenIs(lexer.RPAREN) && !p.curTokenIs(lexer.EOF) {
-		expr := p.parseExpression(LOWEST)
-		if expr != nil {
-			stmt.Values = append(stmt.Values, expr)
+	// Parse multiple rows of values
+	var rows [][]ast.Expression
+	for {
+		if !p.expectPeek(lexer.LPAREN) {
+			return nil
 		}
-		
+
+		p.nextToken() // Move past (
+
+		// Parse values for this row
+		var row []ast.Expression
+		for !p.curTokenIs(lexer.RPAREN) && !p.curTokenIs(lexer.EOF) {
+			expr := p.parseExpression(LOWEST)
+			if expr != nil {
+				row = append(row, expr)
+			}
+
+			if p.peekTokenIs(lexer.COMMA) {
+				p.nextToken()
+				p.nextToken()
+			} else {
+				p.nextToken() // should be RPAREN
+			}
+		}
+
+		if !p.curTokenIs(lexer.RPAREN) {
+			return nil
+		}
+
+		rows = append(rows, row)
+
+		// Check if there's another row (comma followed by another left parenthesis)
 		if p.peekTokenIs(lexer.COMMA) {
-			p.nextToken()
-			p.nextToken()
+			p.nextToken() // consume comma
+			if !p.peekTokenIs(lexer.LPAREN) {
+				return nil
+			}
+			continue
 		} else {
-			p.nextToken() // should be RPAREN
+			break
 		}
 	}
+
+	stmt.Rows = rows
 
 	if p.peekTokenIs(lexer.SEMICOLON) {
 		p.nextToken()
@@ -389,7 +543,7 @@ func (p *Parser) parseCreateTableStatement() *ast.CreateTableStatement {
 	if !p.expectPeek(lexer.LPAREN) {
 		return nil
 	}
-	
+
 	p.nextToken() // move past (
 
 	for !p.curTokenIs(lexer.RPAREN) && !p.curTokenIs(lexer.EOF) {
@@ -397,14 +551,40 @@ func (p *Parser) parseCreateTableStatement() *ast.CreateTableStatement {
 			return nil
 		}
 		colName := p.curToken.Literal
-		
+
 		if !p.expectPeek(lexer.IDENT) {
 			return nil
 		}
 		colType := p.curToken.Literal
-		
-		stmt.Columns = append(stmt.Columns, ast.ColumnDef{Name: colName, Type: colType})
-		
+
+		// Parse column attributes (AUTO_INCREMENT, PRIMARY KEY, NOT NULL, etc.)
+		var attributes []string
+		for p.peekTokenIs(lexer.AUTO_INCREMENT) || p.peekTokenIs(lexer.PRIMARY) ||
+		      p.peekTokenIs(lexer.KEY) || p.peekTokenIs(lexer.NOT) ||
+		      p.peekTokenIs(lexer.NULL) {
+			if p.peekTokenIs(lexer.AUTO_INCREMENT) {
+				p.nextToken()
+				attributes = append(attributes, "AUTO_INCREMENT")
+			} else if p.peekTokenIs(lexer.PRIMARY) {
+				p.nextToken() // PRIMARY
+				if p.peekTokenIs(lexer.KEY) {
+					p.nextToken() // KEY
+					attributes = append(attributes, "PRIMARY KEY")
+				}
+			} else if p.peekTokenIs(lexer.NOT) {
+				p.nextToken() // NOT
+				if p.peekTokenIs(lexer.NULL) {
+					p.nextToken() // NULL
+					attributes = append(attributes, "NOT NULL")
+				}
+			} else if p.peekTokenIs(lexer.NULL) {
+				p.nextToken()
+				attributes = append(attributes, "NULL")
+			}
+		}
+
+		stmt.Columns = append(stmt.Columns, ast.ColumnDef{Name: colName, Type: colType, Attributes: attributes})
+
 		if p.peekTokenIs(lexer.COMMA) {
 			p.nextToken() // COMMA
 			p.nextToken() // past COMMA
