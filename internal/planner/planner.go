@@ -23,6 +23,11 @@ const (
 	PlanDropTable   PlanType = "DropTable"
 	PlanIndexScan   PlanType = "IndexScan"
 	PlanShowTables  PlanType = "ShowTables"
+	PlanJoin        PlanType = "Join"
+	PlanAggregate   PlanType = "Aggregate"
+	PlanSort        PlanType = "Sort"
+	PlanDistinct    PlanType = "Distinct"
+	PlanLimitOffset PlanType = "LimitOffset"
 )
 
 // PlanNode is the common interface for all logical plan nodes.
@@ -86,18 +91,25 @@ func (n *ProjectNode) String() string {
 	return fmt.Sprintf("Project(%s)", strings.Join(fields, ", "))
 }
 
-// InsertNode inserts values into a table.
+// InsertNode inserts values into a table. Optional Next chains another
+// InsertNode so a single bulk INSERT can persist multiple rows.
 type InsertNode struct {
 	Table   string
 	Columns []string
 	Values  []ast.Expression
+	Next    PlanNode
 }
 
 // Type returns PlanInsert.
 func (n *InsertNode) Type() PlanType { return PlanInsert }
 
-// Children returns nil (Insert is a leaf node).
-func (n *InsertNode) Children() []PlanNode { return nil }
+// Children returns the chained next insert node (if any).
+func (n *InsertNode) Children() []PlanNode {
+	if n.Next == nil {
+		return nil
+	}
+	return []PlanNode{n.Next}
+}
 
 // String returns a string representation of InsertNode.
 func (n *InsertNode) String() string {
@@ -201,6 +213,155 @@ func (n *ShowTablesNode) String() string {
 	return "ShowTables"
 }
 
+// JoinNode represents a JOIN operation. It wraps the right table with a join
+// condition that is evaluated against rows from the left side.
+type JoinNode struct {
+	Left      PlanNode
+	Right     PlanNode
+	Condition ast.Expression
+	JoinType  string // INNER, LEFT, etc.
+}
+
+// Type returns PlanJoin.
+func (n *JoinNode) Type() PlanType { return PlanJoin }
+
+// Children returns the left and right child nodes.
+func (n *JoinNode) Children() []PlanNode { return []PlanNode{n.Left, n.Right} }
+
+// String returns a string representation of JoinNode.
+func (n *JoinNode) String() string {
+	if n.JoinType == "" {
+		return fmt.Sprintf("Join(%s, %s, ON %s)", n.Left.String(), n.Right.String(), n.Condition.String())
+	}
+	return fmt.Sprintf("%s JOIN(%s, %s, ON %s)", n.JoinType, n.Left.String(), n.Right.String(), n.Condition.String())
+}
+
+// AggregateNode represents GROUP BY and aggregation operations.
+type AggregateNode struct {
+	GroupBy    []ast.Expression
+	Having     ast.Expression
+	AggFuncs   map[string]bool   // Aggregate function names that are present
+	Aggregates []ast.Expression  // Aggregate expressions extracted from SELECT
+	Child      PlanNode
+}
+
+// Type returns PlanAggregate.
+func (n *AggregateNode) Type() PlanType { return PlanAggregate }
+
+// Children returns the child node.
+func (n *AggregateNode) Children() []PlanNode { return []PlanNode{n.Child} }
+
+// String returns a string representation of AggregateNode.
+func (n *AggregateNode) String() string {
+	var groupByStrs []string
+	for _, g := range n.GroupBy {
+		groupByStrs = append(groupByStrs, g.String())
+	}
+	havingStr := ""
+	if n.Having != nil {
+		havingStr = " HAVING " + n.Having.String()
+	}
+	var aggFuncs []string
+	for f := range n.AggFuncs {
+		aggFuncs = append(aggFuncs, f)
+	}
+	return fmt.Sprintf("Aggregate(GROUP BY [%s]%s AGG [%s])", strings.Join(groupByStrs, ", "), havingStr, strings.Join(aggFuncs, ", "))
+}
+
+// SortNode represents an ORDER BY operation.
+type SortNode struct {
+	OrderBy []ast.OrderBy
+	Child   PlanNode
+}
+
+// Type returns PlanSort.
+func (n *SortNode) Type() PlanType { return PlanSort }
+
+// Children returns the child node.
+func (n *SortNode) Children() []PlanNode { return []PlanNode{n.Child} }
+
+// String returns a string representation of SortNode.
+func (n *SortNode) String() string {
+	var orderByStrs []string
+	for _, ob := range n.OrderBy {
+		dir := "ASC"
+		if !ob.Ascending {
+			dir = "DESC"
+		}
+		orderByStrs = append(orderByStrs, ob.Expression.String()+" "+dir)
+	}
+	return fmt.Sprintf("Sort(%s)", strings.Join(orderByStrs, ", "))
+}
+
+// DistinctNode represents a DISTINCT operation.
+type DistinctNode struct {
+	Child PlanNode
+}
+
+// Type returns PlanDistinct.
+func (n *DistinctNode) Type() PlanType { return PlanDistinct }
+
+// Children returns the child node.
+func (n *DistinctNode) Children() []PlanNode { return []PlanNode{n.Child} }
+
+// String returns a string representation of DistinctNode.
+func (n *DistinctNode) String() string {
+	return fmt.Sprintf("Distinct(%s)", n.Child.String())
+}
+
+// LimitOffsetNode represents LIMIT and OFFSET operations.
+type LimitOffsetNode struct {
+	Limit  ast.Expression
+	Offset ast.Expression
+	Child  PlanNode
+}
+
+// Type returns PlanLimitOffset.
+func (n *LimitOffsetNode) Type() PlanType { return PlanLimitOffset }
+
+// Children returns the child node.
+func (n *LimitOffsetNode) Children() []PlanNode { return []PlanNode{n.Child} }
+
+// String returns a string representation of LimitOffsetNode.
+func (n *LimitOffsetNode) String() string {
+	var limitOffsetStrs []string
+	if n.Limit != nil {
+		limitOffsetStrs = append(limitOffsetStrs, "LIMIT "+n.Limit.String())
+	}
+	if n.Offset != nil {
+		limitOffsetStrs = append(limitOffsetStrs, "OFFSET "+n.Offset.String())
+	}
+	return fmt.Sprintf("LimitOffset(%s)", strings.Join(limitOffsetStrs, " "))
+}
+
+// IndexScanNode represents an index-assisted scan on a table.
+type IndexScanNode struct {
+	Table       string
+	ColumnName  string
+	IndexRootID uint32
+	KeyType     uint8 // btree.KeyType
+	LowVal      *record.Value
+	HighVal     *record.Value
+}
+
+// Type returns PlanIndexScan.
+func (n *IndexScanNode) Type() PlanType { return PlanIndexScan }
+
+// Children returns nil (IndexScan is a leaf node).
+func (n *IndexScanNode) Children() []PlanNode { return nil }
+
+// String returns a string representation of IndexScanNode.
+func (n *IndexScanNode) String() string {
+	var lowStr, highStr string = "nil", "nil"
+	if n.LowVal != nil {
+		lowStr = fmt.Sprintf("%v", n.LowVal)
+	}
+	if n.HighVal != nil {
+		highStr = fmt.Sprintf("%v", n.HighVal)
+	}
+	return fmt.Sprintf("IndexScan(%s.%s, root=%d, range=[%s, %s])", n.Table, n.ColumnName, n.IndexRootID, lowStr, highStr)
+}
+
 // MapStringToTypeID converts a string representation of a type (e.g. "INT", "FLOAT", "VARCHAR") into a record.TypeID.
 func MapStringToTypeID(t string) (record.TypeID, error) {
 	switch strings.ToUpper(t) {
@@ -236,11 +397,23 @@ func (n *CreateTableNode) ToSchema() (*record.Schema, error) {
 			return nil, err
 		}
 		cols[i] = record.Column{
-			Name: c.Name,
-			Type: t,
+			Name:          c.Name,
+			Type:          t,
+			AutoIncrement: hasAttribute(c.Attributes, "AUTO_INCREMENT"),
 		}
 	}
 	return record.NewSchema(cols), nil
+}
+
+// hasAttribute reports whether a column attribute list contains the given
+// attribute (case-insensitive).
+func hasAttribute(attrs []string, name string) bool {
+	for _, a := range attrs {
+		if strings.EqualFold(a, name) {
+			return true
+		}
+	}
+	return false
 }
 
 // Planner converts AST nodes into logical plan nodes.
@@ -282,10 +455,10 @@ func (p *Planner) planSelect(stmt *ast.SelectStatement) (PlanNode, error) {
 		return nil, errors.New("select statement must specify a table")
 	}
 
-	// Leaf: Scan table
+	// Start with scanning the main table
 	var node PlanNode = &ScanNode{Table: stmt.Table}
 
-	// If there is a WHERE clause, wrap with FilterNode
+	// Apply WHERE clause filtering
 	if stmt.Where != nil {
 		node = &FilterNode{
 			Child:     node,
@@ -293,7 +466,66 @@ func (p *Planner) planSelect(stmt *ast.SelectStatement) (PlanNode, error) {
 		}
 	}
 
-	// Wrap with ProjectNode
+	// Apply JOIN operations
+	for _, join := range stmt.Joins {
+		rightScan := &ScanNode{Table: join.Table}
+		node = &JoinNode{
+			Left:      node,
+			Right:     rightScan,
+			Condition: join.Condition,
+			JoinType:  join.Type,
+		}
+	}
+
+	// Apply GROUP BY and aggregation
+	if len(stmt.GroupBy) > 0 || stmt.Having != nil {
+		// Determine which aggregates are present in the SELECT clause
+		aggFuncs := make(map[string]bool)
+		var aggregates []ast.Expression
+		for _, field := range stmt.Fields {
+			if callExpr, ok := field.(*ast.CallExpression); ok {
+				switch strings.ToUpper(callExpr.Function) {
+				case "COUNT", "SUM", "AVG", "MIN", "MAX":
+					aggFuncs[strings.ToUpper(callExpr.Function)] = true
+					aggregates = append(aggregates, field)
+				}
+			}
+		}
+
+		node = &AggregateNode{
+			GroupBy:    stmt.GroupBy,
+			Having:     stmt.Having,
+			AggFuncs:   aggFuncs,
+			Aggregates: aggregates,
+			Child:      node,
+		}
+	}
+
+	// Apply DISTINCT
+	if stmt.Distinct {
+		node = &DistinctNode{
+			Child: node,
+		}
+	}
+
+	// Apply ORDER BY
+	if len(stmt.OrderBy) > 0 {
+		node = &SortNode{
+			OrderBy: stmt.OrderBy,
+			Child:   node,
+		}
+	}
+
+	// Apply LIMIT/OFFSET
+	if stmt.Limit != nil || stmt.Offset != nil {
+		node = &LimitOffsetNode{
+			Limit:  stmt.Limit,
+			Offset: stmt.Offset,
+			Child:  node,
+		}
+	}
+
+	// Apply projection (SELECT clause)
 	if len(stmt.Fields) > 0 {
 		node = &ProjectNode{
 			Child:  node,
@@ -308,15 +540,29 @@ func (p *Planner) planInsert(stmt *ast.InsertStatement) (PlanNode, error) {
 	if stmt.Table == "" {
 		return nil, errors.New("insert statement must specify a table")
 	}
-	if len(stmt.Values) == 0 {
-		return nil, errors.New("insert statement must specify values")
+	if len(stmt.Rows) == 0 {
+		return nil, errors.New("insert statement must specify at least one row of values")
 	}
 
-	return &InsertNode{
+	// Each row becomes its own InsertNode so the executor can persist all rows
+	// in a single pass. We return the first row's plan and chain the rest as a
+	// SequenceNode-like series via a small wrapper.
+	rows := stmt.Rows
+	first := &InsertNode{
 		Table:   stmt.Table,
 		Columns: stmt.Columns,
-		Values:  stmt.Values,
-	}, nil
+		Values:  rows[0],
+	}
+	cur := PlanNode(first)
+	for i := 1; i < len(rows); i++ {
+		cur = &InsertNode{
+			Table:   stmt.Table,
+			Columns: stmt.Columns,
+			Values:  rows[i],
+			Next:    cur,
+		}
+	}
+	return cur, nil
 }
 
 func (p *Planner) planUpdate(stmt *ast.UpdateStatement) (PlanNode, error) {
@@ -385,32 +631,4 @@ func (p *Planner) planDropTable(stmt *ast.DropTableStatement) (PlanNode, error) 
 	return &DropTableNode{
 		Table: stmt.Table,
 	}, nil
-}
-
-// IndexScanNode represents an index-assisted scan on a table.
-type IndexScanNode struct {
-	Table       string
-	ColumnName  string
-	IndexRootID uint32
-	KeyType     uint8 // btree.KeyType
-	LowVal      *record.Value
-	HighVal     *record.Value
-}
-
-// Type returns PlanIndexScan.
-func (n *IndexScanNode) Type() PlanType { return PlanIndexScan }
-
-// Children returns nil (IndexScan is a leaf node).
-func (n *IndexScanNode) Children() []PlanNode { return nil }
-
-// String returns a string representation of IndexScanNode.
-func (n *IndexScanNode) String() string {
-	var lowStr, highStr string = "nil", "nil"
-	if n.LowVal != nil {
-		lowStr = fmt.Sprintf("%v", n.LowVal)
-	}
-	if n.HighVal != nil {
-		highStr = fmt.Sprintf("%v", n.HighVal)
-	}
-	return fmt.Sprintf("IndexScan(%s.%s, root=%d, range=[%s, %s])", n.Table, n.ColumnName, n.IndexRootID, lowStr, highStr)
 }
