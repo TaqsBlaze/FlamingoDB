@@ -129,16 +129,37 @@ func (ce *CallExpression) String() string {
 
 // ColumnDef represents a column definition in a CREATE TABLE statement.
 type ColumnDef struct {
-	Name string
-	Type string // e.g. INT, FLOAT, STRING
+	Name       string
+	Type       string // e.g. INT, FLOAT, STRING
+	Attributes []string // e.g. AUTO_INCREMENT, PRIMARY KEY, NOT NULL
+}
+
+// JoinDef represents a JOIN clause in a SELECT statement.
+type JoinDef struct {
+	Type      string // INNER, LEFT, etc.
+	Table     string
+	Condition Expression // ON condition
+}
+
+// OrderBy represents an ORDER BY clause.
+type OrderBy struct {
+	Expression Expression
+	Ascending  bool // true for ASC, false for DESC
 }
 
 // SelectStatement represents a SELECT query.
 type SelectStatement struct {
-	Token lexer.Token // the 'SELECT' token
-	Fields []Expression
-	Table  string
-	Where  Expression
+	Token   lexer.Token // the 'SELECT' token
+	Distinct bool
+	Fields  []Expression
+	Table   string
+	Joins   []JoinDef
+	Where   Expression
+	GroupBy []Expression
+	Having  Expression
+	OrderBy []OrderBy
+	Limit   Expression
+	Offset  Expression
 }
 
 func (s *SelectStatement) statementNode()       {}
@@ -148,32 +169,96 @@ func (s *SelectStatement) String() string {
 	for _, f := range s.Fields {
 		fields = append(fields, f.String())
 	}
-	out := "SELECT " + strings.Join(fields, ", ") + " FROM " + s.Table
+
+	var joins []string
+	for _, j := range s.Joins {
+		var joinType string
+		if j.Type == "" {
+			joinType = "JOIN"
+		} else {
+			joinType = j.Type + " JOIN"
+		}
+		joins = append(joins, joinType+" "+j.Table+" ON "+j.Condition.String())
+	}
+
+	var groupBy []string
+	for _, g := range s.GroupBy {
+		groupBy = append(groupBy, g.String())
+	}
+
+	var orderBy []string
+	for _, o := range s.OrderBy {
+		dir := "ASC"
+		if !o.Ascending {
+			dir = "DESC"
+		}
+		orderBy = append(orderBy, o.Expression.String()+" "+dir)
+	}
+
+	out := "SELECT "
+	if s.Distinct {
+		out += "DISTINCT "
+	}
+	out += strings.Join(fields, ", ") + " FROM " + s.Table
+
+	if len(joins) > 0 {
+		out += " " + strings.Join(joins, " ")
+	}
+
 	if s.Where != nil {
 		out += " WHERE " + s.Where.String()
 	}
+
+	if len(groupBy) > 0 {
+		out += " GROUP BY " + strings.Join(groupBy, ", ")
+		if s.Having != nil {
+			out += " HAVING " + s.Having.String()
+		}
+	}
+
+	if len(orderBy) > 0 {
+		out += " ORDER BY " + strings.Join(orderBy, ", ")
+	}
+
+	if s.Limit != nil {
+		out += " LIMIT " + s.Limit.String()
+	}
+
+	if s.Offset != nil {
+		out += " OFFSET " + s.Offset.String()
+	}
+
 	return out + ";"
 }
 
 // InsertStatement represents an INSERT query.
 type InsertStatement struct {
-	Token   lexer.Token // the 'INSERT' token
-	Table   string
+	Token  lexer.Token // the 'INSERT' token
+	Table  string
 	Columns []string
-	Values  []Expression
+	Rows    [][]Expression // Multiple rows of values
 }
 
 func (s *InsertStatement) statementNode()       {}
 func (s *InsertStatement) TokenLiteral() string { return s.Token.Literal }
 func (s *InsertStatement) String() string {
-	var vals []string
-	for _, v := range s.Values {
-		vals = append(vals, v.String())
+	if len(s.Rows) == 0 {
+		return "INSERT INTO " + s.Table + " VALUES ();"
 	}
+
+	var rows []string
+	for _, row := range s.Rows {
+		var vals []string
+		for _, v := range row {
+			vals = append(vals, v.String())
+		}
+		rows = append(rows, "("+strings.Join(vals, ", ")+")")
+	}
+
 	if len(s.Columns) > 0 {
-		return "INSERT INTO " + s.Table + " (" + strings.Join(s.Columns, ", ") + ") VALUES (" + strings.Join(vals, ", ") + ");"
+		return "INSERT INTO " + s.Table + " (" + strings.Join(s.Columns, ", ") + ") VALUES " + strings.Join(rows, ", ") + ";"
 	}
-	return "INSERT INTO " + s.Table + " VALUES (" + strings.Join(vals, ", ") + ");"
+	return "INSERT INTO " + s.Table + " VALUES " + strings.Join(rows, ", ") + ";"
 }
 
 // UpdateStatement represents an UPDATE query.
@@ -229,7 +314,11 @@ func (s *CreateTableStatement) String() string {
 	out := "CREATE TABLE " + s.Table + " ("
 	var cols []string
 	for _, c := range s.Columns {
-		cols = append(cols, c.Name+" "+c.Type)
+		colDef := c.Name + " " + c.Type
+		if len(c.Attributes) > 0 {
+			colDef += " " + strings.Join(c.Attributes, " ")
+		}
+		cols = append(cols, colDef)
 	}
 	out += strings.Join(cols, ", ") + ");"
 	return out
@@ -255,7 +344,6 @@ type ShowTablesStatement struct {
 func (s *ShowTablesStatement) statementNode()       {}
 func (s *ShowTablesStatement) TokenLiteral() string { return s.Token.Literal }
 func (s *ShowTablesStatement) String() string       { return "SHOW TABLES;" }
-
 
 // ImaginaryLiteral represents an imaginary number literal (e.g. 3i, 4.5i).
 type ImaginaryLiteral struct {
