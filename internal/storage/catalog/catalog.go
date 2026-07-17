@@ -221,6 +221,16 @@ func (c *Catalog) serialize() []byte {
 			buf[offset] = uint8(idx.KeyType)
 			offset += 1
 		}
+
+		// Serialize sequences (AUTO_INCREMENT counters)
+		encoding.PutUint32(buf[offset:], uint32(len(t.Sequences)))
+		offset += 4
+		for colName, seq := range t.Sequences {
+			n := encoding.PutString(buf[offset:], colName)
+			offset += n
+			encoding.PutUint32(buf[offset:], uint32(seq))
+			offset += 4
+		}
 	}
 
 	return buf
@@ -278,11 +288,24 @@ func deserializeCatalog(data []byte) (map[string]*TableMetadata, error) {
 			}
 		}
 
+		// Deserialize sequences (AUTO_INCREMENT counters)
+		numSeqs := int(encoding.Uint32(data[offset:]))
+		offset += 4
+		sequences := make(map[string]int32)
+		for j := 0; j < numSeqs; j++ {
+			colName, n := encoding.String(data[offset:])
+			offset += n
+			seq := int32(encoding.Uint32(data[offset:]))
+			offset += 4
+			sequences[colName] = seq
+		}
+
 		tables[name] = &TableMetadata{
 			Name:        name,
 			FirstPageID: firstPageID,
 			Schema:      record.NewSchema(cols),
 			Indexes:     indexes,
+			Sequences:   sequences,
 		}
 	}
 
