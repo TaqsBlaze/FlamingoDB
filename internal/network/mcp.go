@@ -139,6 +139,29 @@ func (s *Server) handleMCPToolsList(id any) {
 				"required": []string{"query"},
 			},
 		},
+		{
+			"name":        "generate_chart",
+			"description": "Generate a chart configuration for visualizing data",
+			"inputSchema": map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"type": map[string]any{
+						"type":        "string",
+						"description": "The type of chart to generate (bar, line, pie, doughnut, radar, polarArea, scatter, bubble)",
+						"enum":        []string{"bar", "line", "pie", "doughnut", "radar", "polarArea", "scatter", "bubble"},
+					},
+					"data": map[string]any{
+						"type":        "object",
+						"description": "The data for the chart (labels and datasets)",
+					},
+					"options": map[string]any{
+						"type":        "object",
+						"description": "Optional configuration options for the chart",
+					},
+				},
+				"required": []string{"type", "data"},
+			},
+		},
 	}
 
 	s.sendMCPResponse(id, map[string]any{"tools": tools})
