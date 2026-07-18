@@ -32,17 +32,17 @@ type MCPClient struct {
 	pending map[uint64]chan []byte
 }
 
-func NewMCPClient(policyName string) (*MCPClient, error) {
+func NewMCPClient(policyName string, dataDir string, dbName string) (*MCPClient, error) {
 	exe, err := os.Executable()
 	if err != nil {
 		return nil, err
 	}
-	
-	args := []string{"-mcp"}
+
+	args := []string{"-mcp", "-dir=" + dataDir, "-db=" + dbName}
 	if policyName != "" {
 		args = append(args, "-policy="+policyName)
 	}
-	
+
 	cmd := exec.Command(exe, args...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -52,21 +52,18 @@ func NewMCPClient(policyName string) (*MCPClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	
-	// We might want to pass the same dir flag if needed, but for MCP it might be running in the same dir.
-	// Actually, let's pass the -dir flag from the current process if possible. We can assume the default or same CWD.
-	
+
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	
+
 	client := &MCPClient{
 		cmd:     cmd,
 		stdin:   stdin,
 		stdout:  stdout,
 		pending: make(map[uint64]chan []byte),
 	}
-	
+
 	go client.readLoop()
 	return client, nil
 }
