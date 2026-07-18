@@ -15,7 +15,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/framer-motion@10.16.4/dist/framer-motion.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
-  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     *,
     *::before,
@@ -2764,6 +2765,46 @@
       return React.createElement('div', { key: keyPrefix }, blocks);
     }
 
+
+    // Chart viewer component
+    const ChartViewer = function({ spec, key }) {
+      const canvasRef = useRef(null);
+      const chartRef = useRef(null);
+      const [error, setError] = useState(null);
+      useEffect(() => {
+        if (!canvasRef.current) return;
+        const ctx = canvasRef.current.getContext('2d');
+        if (chartRef.current) {
+          chartRef.current.destroy();
+        }
+        try {
+          const chart = new Chart(ctx, spec);
+          chartRef.current = chart;
+          setError(null);
+          return () => {
+            if (chart) chart.destroy();
+          };
+        } catch (err) {
+          setError('Failed to render chart: ' + err.message);
+          return () => {
+            if (chartRef.current) {
+              chartRef.current.destroy();
+              chartRef.current = null;
+            }
+          };
+        }
+      }, [spec]);
+
+      if (error) {
+        return React.createElement('div', {
+          style: { padding: '12px', color: 'var(--red)', textAlign: 'center', fontSize: '14px' }
+        }, error);
+      }
+
+      return React.createElement('canvas', { ref: canvasRef, width: 400, height: 200 });
+    }
+
+
     function AIAssistantPage({ creds }) {
       const [models, setModels] = useState([]);
       const [selectedModel, setSelectedModel] = useState('');
@@ -2859,7 +2900,7 @@
 
       const parseMessageText = function(text) {
         const parts = [];
-        const regex = /```(sql|json)?([\s\S]*?)```/g;
+        const regex = /```(sql|json|chart)?([\s\S]*?)```/g;
         let lastIdx = 0;
         let match;
         while ((match = regex.exec(text)) !== null) {
@@ -2871,21 +2912,29 @@
           const code = match[2].trim();
           const codeKey = match.index;
           
-          if (lang === 'json') {
+          if (lang === 'json' || lang === 'chart') {
               try {
                   const parsed = JSON.parse(code);
-                  
+
                   // Case A: FlamingoDB's core query result structure
-                  if (Array.isArray(parsed) && parsed.length > 0 && 
+                  if (Array.isArray(parsed) && parsed.length > 0 &&
                       (parsed[0].columns !== undefined || parsed[0].error !== undefined || parsed[0].message !== undefined)) {
                       parts.push(renderFlamingoResults(parsed, 'flamingo-' + codeKey));
                       lastIdx = regex.lastIndex;
                       continue;
                   }
-                  
+
                   // Case B: Raw JSON array of flat objects (e.g. users' pasted examples)
                   if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object' && !Array.isArray(parsed[0])) {
                       parts.push(renderJsonArrayAsTable(parsed, 'raw-json-arr-' + codeKey));
+                      lastIdx = regex.lastIndex;
+                      continue;
+                  }
+
+                  // Case C: Chart specification (e.g. {type: 'bar', data: {...}, options: {...}})
+                  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.type &&
+                      ['bar', 'line', 'pie', 'doughnut', 'radar', 'polarArea', 'scatter', 'bubble'].includes(parsed.type)) {
+                      parts.push(React.createElement(ChartViewer, { key: 'chart-' + codeKey, spec: parsed }));
                       lastIdx = regex.lastIndex;
                       continue;
                   }
