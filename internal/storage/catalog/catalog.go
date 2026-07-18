@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"sync"
 
@@ -240,44 +241,92 @@ func deserializeCatalog(data []byte) (map[string]*TableMetadata, error) {
 	tables := make(map[string]*TableMetadata)
 	offset := 0
 
+	if len(data) < 4 {
+		return nil, fmt.Errorf("catalog data too short for number of tables")
+	}
 	numTables := encoding.Uint32(data[offset:])
 	offset += 4
 
 	for i := uint32(0); i < numTables; i++ {
-		name, n := encoding.String(data[offset:])
-		offset += n
+		if offset+4 > len(data) {
+			return nil, fmt.Errorf("catalog data too short for table name length")
+		}
+		nameLen := encoding.Uint32(data[offset:])
+		offset += 4
+		if uint64(offset)+uint64(nameLen) > uint64(len(data)) {
+			return nil, fmt.Errorf("table name length %d out of bounds", nameLen)
+		}
+		name := string(data[offset : offset+int(nameLen)])
+		offset += int(nameLen)
 
+		if offset+4 > len(data) {
+			return nil, fmt.Errorf("catalog data too short for first page ID")
+		}
 		firstPageID := page.PageID(encoding.Uint32(data[offset:]))
 		offset += 4
 
+		if offset+4 > len(data) {
+			return nil, fmt.Errorf("catalog data too short for number of columns")
+		}
 		numCols := encoding.Uint32(data[offset:])
 		offset += 4
 
 		cols := make([]record.Column, numCols)
 		for j := uint32(0); j < numCols; j++ {
-			colName, n := encoding.String(data[offset:])
-			offset += n
+			if offset+4 > len(data) {
+				return nil, fmt.Errorf("catalog data too short for column name length")
+			}
+			colNameLen := encoding.Uint32(data[offset:])
+			offset += 4
+			if uint64(offset)+uint64(colNameLen) > uint64(len(data)) {
+				return nil, fmt.Errorf("column name length %d out of bounds", colNameLen)
+			}
+			colName := string(data[offset : offset+int(colNameLen)])
+			offset += int(colNameLen)
 
+			if offset+1 > len(data) {
+				return nil, fmt.Errorf("catalog data too short for column type")
+			}
 			colType := record.TypeID(data[offset])
 			offset += 1
 
+			if offset+1 > len(data) {
+				return nil, fmt.Errorf("catalog data too short for auto increment flag")
+			}
 			autoInc := data[offset] != 0
 			offset += 1
 
 			cols[j] = record.Column{Name: colName, Type: colType, AutoIncrement: autoInc}
 		}
 
+		if offset+4 > len(data) {
+			return nil, fmt.Errorf("catalog data too short for number of indexes")
+		}
 		numIndexes := encoding.Uint32(data[offset:])
 		offset += 4
 
 		indexes := make(map[string]*IndexMetadata)
 		for j := uint32(0); j < numIndexes; j++ {
-			colName, n := encoding.String(data[offset:])
-			offset += n
+			if offset+4 > len(data) {
+				return nil, fmt.Errorf("catalog data too short for index column name length")
+			}
+			idxColNameLen := encoding.Uint32(data[offset:])
+			offset += 4
+			if uint64(offset)+uint64(idxColNameLen) > uint64(len(data)) {
+				return nil, fmt.Errorf("index column name length %d out of bounds", idxColNameLen)
+			}
+			colName := string(data[offset : offset+int(idxColNameLen)])
+			offset += int(idxColNameLen)
 
+			if offset+4 > len(data) {
+				return nil, fmt.Errorf("catalog data too short for index root page ID")
+			}
 			rootPID := page.PageID(encoding.Uint32(data[offset:]))
 			offset += 4
 
+			if offset+1 > len(data) {
+				return nil, fmt.Errorf("catalog data too short for index key type")
+			}
 			kType := btree.KeyType(data[offset])
 			offset += 1
 
@@ -289,12 +338,27 @@ func deserializeCatalog(data []byte) (map[string]*TableMetadata, error) {
 		}
 
 		// Deserialize sequences (AUTO_INCREMENT counters)
+		if offset+4 > len(data) {
+			return nil, fmt.Errorf("catalog data too short for number of sequences")
+		}
 		numSeqs := int(encoding.Uint32(data[offset:]))
 		offset += 4
 		sequences := make(map[string]int32)
 		for j := 0; j < numSeqs; j++ {
-			colName, n := encoding.String(data[offset:])
-			offset += n
+			if offset+4 > len(data) {
+				return nil, fmt.Errorf("catalog data too short for sequence column name length")
+			}
+			seqColNameLen := encoding.Uint32(data[offset:])
+			offset += 4
+			if uint64(offset)+uint64(seqColNameLen) > uint64(len(data)) {
+				return nil, fmt.Errorf("sequence column name length %d out of bounds", seqColNameLen)
+			}
+			colName := string(data[offset : offset+int(seqColNameLen)])
+			offset += int(seqColNameLen)
+
+			if offset+4 > len(data) {
+				return nil, fmt.Errorf("catalog data too short for sequence value")
+			}
 			seq := int32(encoding.Uint32(data[offset:]))
 			offset += 4
 			sequences[colName] = seq
