@@ -67,6 +67,7 @@ func main() {
 		Username:       *username,
 		Password:       *password,
 		DataDir:        *dataDir,
+		DBName:         *dbName,
 		MaxConnections: 100,
 	}
 
