@@ -1,6 +1,6 @@
 echo "Building...."
-go build -o flamingo cmd/flamingo/main.go
-go build -o flamingodbd cmd/flamingodbd/main.go
+go build -o flamingo cmd/flamingo/
+go build -o flamingodbd cmd/flamingodbd/
 
 echo "Installing..."
-mv flamingo flamingodbd ~/go/bin
+mv flamingodbd ~/go/bin
