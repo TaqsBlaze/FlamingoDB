@@ -143,6 +143,8 @@ func (c *Catalog) Reload() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	// Evict the cached page to ensure we read the latest data from disk.
+	c.pager.Evict(0)
 	pg, err := c.pager.FetchPage(0)
 	if err != nil {
 		return err
