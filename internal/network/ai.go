@@ -180,7 +180,7 @@ func CallModel(cfg *AIModelConfig, systemPrompt string, history []map[string]str
 		if tm != nil {
 			// Reload the catalog to pick up any changes made by the MCP subprocess (e.g., CREATE TABLE).
 			// This ensures the main server's metadata is up-to-date.
-			_ = tm.catalog.Reload()
+			_ = tm.ReloadCatalog()
 		}
 		return resp, nil
 	}
