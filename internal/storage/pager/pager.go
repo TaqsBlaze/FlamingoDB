@@ -128,3 +128,9 @@ func (p *Pager) FlushAll() error {
 	}
 	return nil
 }
+
+func (p *Pager) Evict(id page.PageID) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	delete(p.pages, id)
+}
