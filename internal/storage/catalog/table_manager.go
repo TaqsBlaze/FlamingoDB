@@ -52,6 +52,11 @@ func (tm *TableManager) Close() error {
 	return tm.txMgr.Close()
 }
 
+// ReloadCatalog reloads the catalog from disk, reversing uncommitted modifications.
+func (tm *TableManager) ReloadCatalog() error {
+	return tm.catalog.Reload()
+}
+
 // Begin starts a new transaction.
 func (tm *TableManager) Begin() (*transaction.Transaction, error) {
 	return tm.txMgr.Begin()
@@ -392,9 +397,9 @@ func (tm *TableManager) CreateIndex(tx *transaction.Transaction, tableName strin
 		offset := uint32(table.PageHeaderSize)
 
 		for i := uint32(0); i < numRecords; i++ {
-			recordSize := encoding.Uint32(pg.Data()[offset : offset+4])
+			recordSize := encoding.Uint32(pg.Data()[offset+1 : offset+1+4])
 			rawRecord := make([]byte, recordSize)
-			copy(rawRecord, pg.Data()[offset+4:offset+4+recordSize])
+				copy(rawRecord, pg.Data()[offset+1+4:offset+1+4+recordSize])
 
 			rec := record.Deserialize(rawRecord, meta.Schema)
 			val := rec.Values[colIdx]
@@ -415,7 +420,7 @@ func (tm *TableManager) CreateIndex(tx *transaction.Transaction, tableName strin
 				}
 			}
 
-			offset += 4 + recordSize
+				offset += 1 + 4 + recordSize
 		}
 
 		nextID := encoding.Uint32(pg.Data()[8:12])
