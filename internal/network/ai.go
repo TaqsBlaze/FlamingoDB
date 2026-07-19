@@ -124,8 +124,8 @@ func (s *AIModelStore) save() error {
 }
 
 // CallModel API sends the chat message, handles MCP tools, and queries the AI model.
-func CallModel(cfg *AIModelConfig, systemPrompt string, history []map[string]string) (string, error) {
-	client, err := NewMCPClient(cfg.PolicyName)
+func CallModel(cfg *AIModelConfig, systemPrompt string, history []map[string]string, dataDir string, dbName string) (string, error) {
+	client, err := NewMCPClient(cfg.PolicyName, dataDir, dbName)
 	if err == nil {
 		defer client.Close()
 		_ = client.Initialize()
