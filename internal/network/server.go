@@ -1415,7 +1415,7 @@ func (s *Server) handleHTTPQueryAI(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	reply, err := CallModel(cfg, systemPrompt, history, s.cfg.DataDir, s.cfg.DBName)
+	reply, err := CallModel(cfg, systemPrompt, history, s.cfg.DataDir, s.cfg.DBName, s.tm)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": err.Error()})

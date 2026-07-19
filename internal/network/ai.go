@@ -124,7 +124,7 @@ func (s *AIModelStore) save() error {
 }
 
 // CallModel API sends the chat message, handles MCP tools, and queries the AI model.
-func CallModel(cfg *AIModelConfig, systemPrompt string, history []map[string]string, dataDir string, dbName string) (string, error) {
+func CallModel(cfg *AIModelConfig, systemPrompt string, history []map[string]string, dataDir string, dbName string, tm *catalog.TableManager) (string, error) {
 	client, err := NewMCPClient(cfg.PolicyName, dataDir, dbName)
 	if err == nil {
 		defer client.Close()
@@ -167,7 +167,7 @@ func CallModel(cfg *AIModelConfig, systemPrompt string, history []map[string]str
 			} else {
 				result = "Error: MCP Client is not initialized"
 			}
-			
+
 			// Append the tool result back into the last message or create a new user message
 			lastIdx := len(history) - 1
 			if lastIdx >= 0 {
@@ -176,6 +176,12 @@ func CallModel(cfg *AIModelConfig, systemPrompt string, history []map[string]str
 			continue
 		}
 
+		// If we got a response without a tool call, we are done.
+		if tm != nil {
+			// Reload the catalog to pick up any changes made by the MCP subprocess (e.g., CREATE TABLE).
+			// This ensures the main server's metadata is up-to-date.
+			_ = tm.catalog.Reload()
+		}
 		return resp, nil
 	}
 	return "", fmt.Errorf("exceeded maximum tool call loops")
