@@ -38,6 +38,7 @@ type Config struct {
 	Username       string
 	Password       string
 	DataDir        string // directory where users.json is stored
+	DBName         string // database file name (without extension)
 	MaxConnections int    // Connection pooling limit
 }
 
@@ -1414,7 +1415,7 @@ func (s *Server) handleHTTPQueryAI(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	reply, err := CallModel(cfg, systemPrompt, history)
+	reply, err := CallModel(cfg, systemPrompt, history, s.cfg.DataDir, s.cfg.DBName)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": err.Error()})
