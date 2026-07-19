@@ -1595,15 +1595,23 @@
       const [preview, setPreview] = useState(null);
       const [previewLoading, setPreviewLoading] = useState(false);
 
-      useEffect(function () {
-        (async function () {
-          setLoading(true);
-          const { ok, data } = await apiFetch('/api/tables', {}, creds);
-          if (ok && data.tables) setTables(data.tables);
-          else setError(data.error || 'Failed to load tables');
-          setLoading(false);
-        })();
-      }, []);
+      const fetchTables = async () => {
+        setLoading(true);
+        const { ok, data } = await apiFetch('/api/tables', {}, creds);
+        if (ok && data.tables) {
+          setTables(data.tables);
+          setError('');
+        } else {
+          setError(data.error || 'Failed to load tables');
+        }
+        setLoading(false);
+      };
+
+      useEffect(() => {
+        fetchTables(); // initial fetch
+        const intervalId = setInterval(fetchTables, 5000); // poll every 5 seconds
+        return () => clearInterval(intervalId);
+      }, [creds]); // re-run effect if creds change
 
       const selectTable = async function (t) {
         setSelected(t); setSchema(null); setPreview(null);
