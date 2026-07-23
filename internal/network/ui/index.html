@@ -2785,6 +2785,7 @@
         if (chartRef.current) {
           chartRef.current.destroy();
         }
+        console.log('ChartViewer spec:', spec); // DEBUG
         try {
           const chart = new Chart(ctx, spec);
           chartRef.current = chart;
@@ -2793,6 +2794,7 @@
             if (chart) chart.destroy();
           };
         } catch (err) {
+          console.error('ChartViewer error:', err);
           setError('Failed to render chart: ' + err.message);
           return () => {
             if (chartRef.current) {
@@ -2809,7 +2811,7 @@
         }, error);
       }
 
-      return React.createElement('canvas', { ref: canvasRef, width: 400, height: 200 });
+      return React.createElement('canvas', { ref: canvasRef, width: 250, height: 150 });
     }
 
 
