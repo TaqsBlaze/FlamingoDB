@@ -2828,6 +2828,7 @@
       const [editingMsgIdx, setEditingMsgIdx] = useState(null);
       const [editingMsgText, setEditingMsgText] = useState('');
       const [hoveredMsgIdx, setHoveredMsgIdx] = useState(null);
+      const [chartSpecs, setChartSpecs] = useState({}); // modelId -> spec
 
       // Persist messages to localStorage whenever they change
       useEffect(function() {
@@ -2837,6 +2838,19 @@
       const startNewChat = function() {
         setMessages(INITIAL_MESSAGES);
         try { localStorage.removeItem('flamingodb_chat_history'); } catch(e) {}
+      };
+
+      // Extract chart specification from a message text
+      const extractChartSpec = (text) => {
+        const match = text.match(/```chart\s*([\s\S]*?)```/);
+        if (match && match[1]) {
+          try {
+            return JSON.parse(match[1].trim());
+          } catch (e) {
+            return null;
+          }
+        }
+        return null;
       };
 
       const resendMessage = async function(idx, newText) {
@@ -2854,6 +2868,11 @@
 
           setChatLoading(false);
           const replyText = (r.ok && r.data.reply) ? r.data.reply : 'Error: ' + (r.data.error || 'Failed to get reply.');
+          // Extract and store chart spec for the current model
+          const chartSpec = extractChartSpec(replyText);
+          if (chartSpec) {
+            setChartSpecs(prev => ({ ...prev, [selectedModel]: chartSpec }));
+          }
           setMessages(function(prev) { return prev.concat({ role: 'assistant', text: replyText }); });
       };
 
@@ -2886,6 +2905,11 @@
 
         setChatLoading(false);
         const replyText = (r.ok && r.data.reply) ? r.data.reply : 'Error: ' + (r.data.error || 'Failed to get reply.');
+        // Extract and store chart spec for the current model
+        const chartSpec = extractChartSpec(replyText);
+        if (chartSpec) {
+          setChartSpecs(prev => ({ ...prev, [selectedModel]: chartSpec }));
+        }
         setMessages(function(prev) { return prev.concat({ role: 'assistant', text: replyText }); });
       };
 
@@ -2919,7 +2943,7 @@
           const lang = match[1] || 'text';
           const code = match[2].trim();
           const codeKey = match.index;
-          
+
           if (lang === 'json' || lang === 'chart') {
               try {
                   const parsed = JSON.parse(code);
@@ -3010,6 +3034,12 @@
           )
         ),
         React.createElement('div', { className: 'card-body', style: { flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, padding: 16 } },
+          // Chart display for current model
+          chartSpecs[selectedModel] ? (
+            React.createElement('div', { style: { marginBottom: 12 } },
+              React.createElement(ChartViewer, { key: `chart-${selectedModel}`, spec: chartSpecs[selectedModel] })
+            )
+          ) : null,
           messages.map(function(m, idx) {
             const isAssistant = m.role === 'assistant';
             return React.createElement('div', {
@@ -3028,7 +3058,7 @@
                 position: 'relative'
               }
             },
-              editingMsgIdx === idx ? 
+              editingMsgIdx === idx ?
                 React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 300 } },
                   React.createElement('textarea', {
                     className: 'input',
@@ -3061,7 +3091,7 @@
             onChange: function(e){ setInputMsg(e.target.value); },
             onKeyDown: function(e){ if (e.key === 'Enter') sendMessage(); },
             placeholder: 'Ask the assistant a question...',
-            disabled: chatLoading,
+            disabled: chartLoading,
             style: { flex: 1 }
           }),
           React.createElement('button', {
