@@ -2828,7 +2828,17 @@
       const [editingMsgIdx, setEditingMsgIdx] = useState(null);
       const [editingMsgText, setEditingMsgText] = useState('');
       const [hoveredMsgIdx, setHoveredMsgIdx] = useState(null);
-      const [chartSpecs, setChartSpecs] = useState({}); // modelId -> spec
+      const [chartSpecs, setChartSpecs] = useState(function() {
+        try {
+          const saved = localStorage.getItem('flamingodb_chart_specs');
+          return saved ? JSON.parse(saved) : {};
+        } catch(e) { return {}; }
+      }); // modelId -> spec
+
+      // Persist chartSpecs to localStorage whenever they change
+      useEffect(function() {
+        try { localStorage.setItem('flamingodb_chart_specs', JSON.stringify(chartSpecs)); } catch(e) {}
+      }, [chartSpecs]);
 
       // Persist messages to localStorage whenever they change
       useEffect(function() {
@@ -3091,7 +3101,7 @@
             onChange: function(e){ setInputMsg(e.target.value); },
             onKeyDown: function(e){ if (e.key === 'Enter') sendMessage(); },
             placeholder: 'Ask the assistant a question...',
-            disabled: chartLoading,
+            disabled: chatLoading,
             style: { flex: 1 }
           }),
           React.createElement('button', {
