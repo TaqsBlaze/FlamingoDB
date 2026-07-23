@@ -224,7 +224,7 @@ func (s *Server) handleMCPToolsCall(id any, name string, args json.RawMessage, p
 					return
 				}
 				if (strings.HasPrefix(qUpper, "DELETE")) && !policy.CanDelete {
-					s.sendMCPToolResult(id, "Error: permission denied for DELETE by policy", true)
+					s.sendMCPToolResult(id, "Error: permission denied for DROP by policy", true)
 					return
 				}
 				if (strings.HasPrefix(qUpper, "CREATE")) && !policy.CanCreate {
@@ -250,6 +250,11 @@ func (s *Server) handleMCPToolsCall(id any, name string, args json.RawMessage, p
 			return
 		}
 		s.sendMCPToolResult(id, string(jsonData), false)
+
+	case "generate_chart":
+		// For now, we simply echo back the input as the chart specification.
+		// In the future, we could process the data to ensure it's in the correct format.
+		s.sendMCPToolResult(id, string(args), false)
 
 	default:
 		s.sendMCPError(id, -32601, fmt.Sprintf("Tool %s not found", name), nil)
