@@ -211,6 +211,7 @@ func (s *Server) Start() error {
 		mux.HandleFunc("/tx/rollback", s.handleHTTPTxRollback)
 		mux.HandleFunc("/api/tables", s.handleHTTPListTables)
 		mux.HandleFunc("/api/describe", s.handleHTTPDescribeTable)
+		mux.HandleFunc("/api/import", s.handleHTTPImport)
 		mux.HandleFunc("/api/users", s.handleHTTPUsers)
 		mux.HandleFunc("/api/users/", s.handleHTTPUsersPath) // handles /api/users/:name and /api/users/:name/policy
 		mux.HandleFunc("/api/policies", s.handleHTTPPolicies)
@@ -614,6 +615,289 @@ func (s *Server) handleHTTPDescribeTable(w http.ResponseWriter, r *http.Request)
 		cols[i] = colInfo{Name: c.Name, TypeID: int(c.Type)}
 	}
 	_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "table": tableName, "columns": cols})
+}
+
+func (s *Server) handleHTTPImport(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if r.Method == http.MethodOptions {
+		return
+	}
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "only POST allowed"})
+		return
+	}
+
+	dbUser, ok := s.authenticateHTTP(r)
+	if !ok {
+		w.Header().Set("WWW-Authenticate", `Basic realm="FlamingoDB"`)
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "unauthorized"})
+		return
+	}
+
+	var req struct {
+		Mode    string            `json:"mode"`     // "create" or "append"
+		Table   string            `json:"table"`    // target table name
+		Columns []ImportColumnDef `json:"columns"`  // ordered list of source->target mappings
+		Rows    [][]any           `json:"rows"`     // already parsed client-side
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("invalid json: %v", err)})
+		return
+	}
+
+	mode := strings.ToLower(strings.TrimSpace(req.Mode))
+	if mode != "create" && mode != "append" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "mode must be 'create' or 'append'"})
+		return
+	}
+	if strings.TrimSpace(req.Table) == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "table name required"})
+		return
+	}
+	if len(req.Rows) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "no rows to import"})
+		return
+	}
+	if len(req.Rows) > 10000 {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "row limit is 10,000 per import; please split the file"})
+		return
+	}
+
+	// Filter out columns the user has chosen to skip. Track the targets and
+	// types that will actually be used in the INSERT/CREATE statement.
+	var cols []importColSpec
+	for _, c := range req.Columns {
+		if c.Skip {
+			continue
+		}
+		if strings.TrimSpace(c.Target) == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "every active column needs a target name"})
+			return
+		}
+		colType := strings.ToUpper(strings.TrimSpace(c.Type))
+		if colType == "" {
+			colType = "VARCHAR"
+		}
+		if colType != "INT" && colType != "FLOAT" && colType != "VARCHAR" {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("unsupported column type %q (allowed: INT, FLOAT, VARCHAR)", colType)})
+			return
+		}
+		cols = append(cols, importColSpec{Target: c.Target, Type: colType})
+	}
+	if len(cols) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "at least one column must be mapped"})
+		return
+	}
+
+	// Verify each row has enough source columns to satisfy the mapping.
+	sourceIdx := make([]int, 0, len(req.Columns))
+	for _, c := range req.Columns {
+		if c.Skip {
+			continue
+		}
+		if c.SourceIndex < 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("source column %q has no source index", c.Source)})
+			return
+		}
+		sourceIdx = append(sourceIdx, c.SourceIndex)
+	}
+
+	// Policy checks mirror the /query path. Admin bypasses; otherwise the
+	// user's policy must allow CREATE (for mode=create) and INSERT.
+	if !dbUser.IsAdmin {
+		if mode == "create" && !dbUser.Policy.CanCreate {
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "permission denied: CREATE not allowed"})
+			return
+		}
+		if !dbUser.Policy.CanInsert {
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "permission denied: INSERT not allowed"})
+			return
+		}
+	}
+
+	// Build the CREATE TABLE statement when in 'create' mode. The column
+	// types come from the user-chosen mapping; nullability is left default.
+	if mode == "create" {
+		var colDefs []string
+		for _, c := range cols {
+			colDefs = append(colDefs, fmt.Sprintf("%s %s", c.Target, c.Type))
+		}
+		createSQL := fmt.Sprintf("CREATE TABLE %s (%s);", req.Table, strings.Join(colDefs, ", "))
+		res, err := s.ProcessQuery(nil, createSQL)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("create table failed: %v", err), "results": res})
+			return
+		}
+		for _, r := range res {
+			if r.Error != "" {
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": r.Error, "results": res})
+				return
+			}
+		}
+	} else {
+		// Append mode: verify every target column actually exists in the
+		// destination table so we fail fast with a clear error rather than
+		// discovering the mismatch halfway through the import.
+		schema, err := s.tm.GetSchema(req.Table)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("table %q not found", req.Table)})
+			return
+		}
+		existing := make(map[string]bool, len(schema.Columns))
+		for _, sc := range schema.Columns {
+			existing[sc.Name] = true
+		}
+		for _, c := range cols {
+			if !existing[c.Target] {
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("column %q does not exist in table %q", c.Target, req.Table)})
+				return
+			}
+		}
+	}
+
+	// Build a single multi-row INSERT and run it through ProcessQuery. The
+	// planner/executor already supports chained INSERT nodes so all rows go
+	// through one round-trip.
+	targetColNames := make([]string, len(cols))
+	for i, c := range cols {
+		targetColNames[i] = c.Target
+	}
+	var valuesSQL []string
+	for _, row := range req.Rows {
+		if len(row) <= maxSourceIndex(sourceIdx) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "row does not have enough columns to satisfy the mapping"})
+			return
+		}
+		var vals []string
+		for _, si := range sourceIdx {
+			v := row[si]
+			vals = append(vals, importSQLValue(v, targetTypeFor(cols, vals)))
+		}
+		valuesSQL = append(valuesSQL, "("+strings.Join(vals, ", ")+")")
+	}
+	insertSQL := fmt.Sprintf(
+		"INSERT INTO %s (%s) VALUES %s;",
+		req.Table,
+		strings.Join(targetColNames, ", "),
+		strings.Join(valuesSQL, ", "),
+	)
+	results, err := s.ProcessQuery(nil, insertSQL)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("insert failed: %v", err), "results": results})
+		return
+	}
+	// Surface any per-statement errors so the UI can show them.
+	for _, r := range results {
+		if r.Error != "" {
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": r.Error, "results": results})
+			return
+		}
+	}
+
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"success":       true,
+		"table":         req.Table,
+		"rows_imported": len(req.Rows),
+		"mode":          mode,
+	})
+}
+
+// ImportColumnDef is one column in a /api/import request.
+type ImportColumnDef struct {
+	Source      string `json:"source"`       // header text from the imported file
+	SourceIndex int    `json:"source_index"` // index of this column in the source rows
+	Target      string `json:"target"`       // column name in the destination table
+	Type        string `json:"type"`         // INT | FLOAT | VARCHAR
+	Skip        bool   `json:"skip"`         // do not include this column in the insert
+}
+
+// importColSpec is the server-side view of an active (non-skipped) column.
+type importColSpec struct {
+	Target string
+	Type   string
+}
+
+func maxSourceIndex(idxs []int) int {
+	m := 0
+	for _, v := range idxs {
+		if v > m {
+			m = v
+		}
+	}
+	return m
+}
+
+// targetTypeFor returns the SQL type for the column at the i-th position in
+// the active mapping. It walks the running list because callers iterate per
+// column, not per row.
+func targetTypeFor(cols []importColSpec, builtSoFar []string) string {
+	if len(builtSoFar) >= len(cols) {
+		return cols[len(cols)-1].Type
+	}
+	return cols[len(builtSoFar)].Type
+}
+
+// importSQLValue renders a cell value as a SQL literal that the parser will
+// accept, based on the destination column's type.
+func importSQLValue(v any, sqlType string) string {
+	switch sqlType {
+	case "INT":
+		// Integers serialize bare; non-numeric input becomes 0 rather than
+		// failing the entire import, matching the lenient behavior of the
+		// query endpoint.
+		if f, ok := toFloat(v); ok {
+			return fmt.Sprintf("%d", int64(f))
+		}
+		return "0"
+	case "FLOAT":
+		if f, ok := toFloat(v); ok {
+			return fmt.Sprintf("%v", f)
+		}
+		return "0"
+	default: // VARCHAR
+		s := fmt.Sprintf("%v", v)
+		return "'" + strings.ReplaceAll(s, "'", "''") + "'"
+	}
+}
+
+func toFloat(v any) (float64, bool) {
+	switch n := v.(type) {
+	case float64:
+		return n, true
+	case float32:
+		return float64(n), true
+	case int:
+		return float64(n), true
+	case int64:
+		return float64(n), true
+	case json.Number:
+		f, err := n.Float64()
+		if err == nil {
+			return f, true
+		}
+	}
+	return 0, false
 }
 
 func (s *Server) handleHTTPQuery(w http.ResponseWriter, r *http.Request) {
