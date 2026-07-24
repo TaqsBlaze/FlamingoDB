@@ -154,10 +154,22 @@ func (p *Parser) parseStatement() ast.Statement {
 	case lexer.DELETE:
 		return p.parseDeleteStatement()
 	case lexer.CREATE:
+		// Could be CREATE TABLE or CREATE INDEX
+		if p.peekTokenIs(lexer.INDEX) {
+			return p.parseCreateIndexStatement()
+		}
 		return p.parseCreateTableStatement()
 	case lexer.DROP:
+		// Could be DROP TABLE or DROP INDEX
+		if p.peekTokenIs(lexer.INDEX) {
+			return p.parseDropIndexStatement()
+		}
 		return p.parseDropTableStatement()
 	case lexer.SHOW:
+		// Could be SHOW TABLES or SHOW INDEXES
+		if p.peekTokenIs(lexer.INDEXES) {
+			return p.parseShowIndexesStatement()
+		}
 		return p.parseShowTablesStatement()
 	default:
 		// Not implemented or error
@@ -171,6 +183,122 @@ func (p *Parser) parseShowTablesStatement() *ast.ShowTablesStatement {
 	if !p.expectPeek(lexer.TABLES) {
 		return nil
 	}
+
+	if p.peekTokenIs(lexer.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
+}
+
+func (p *Parser) parseShowIndexesStatement() *ast.ShowIndexesStatement {
+	stmt := &ast.ShowIndexesStatement{Token: p.curToken}
+
+	if !p.expectPeek(lexer.INDEXES) {
+		return nil
+	}
+
+	// Optional FROM tableName
+	if p.peekTokenIs(lexer.FROM) {
+		p.nextToken() // consume FROM
+		if !p.expectPeek(lexer.IDENT) {
+			return nil
+		}
+		stmt.TableName = p.curToken.Literal
+	}
+
+	if p.peekTokenIs(lexer.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
+}
+
+func (p *Parser) parseCreateIndexStatement() *ast.CreateIndexStatement {
+	stmt := &ast.CreateIndexStatement{Token: p.curToken}
+
+	// Expect INDEX keyword
+	if !p.expectPeek(lexer.INDEX) {
+		return nil
+	}
+
+	// Check if it's a UNIQUE index
+	if p.peekTokenIs(lexer.UNIQUE) {
+		p.nextToken() // consume UNIQUE
+		stmt.IsUnique = true
+	}
+
+	// Expect index name
+	if !p.expectPeek(lexer.IDENT) {
+		return nil
+	}
+	stmt.IndexName = p.curToken.Literal
+
+	// Expect ON keyword
+	if !p.expectPeek(lexer.ON) {
+		return nil
+	}
+
+	// Expect table name
+	if !p.expectPeek(lexer.IDENT) {
+		return nil
+	}
+	stmt.TableName = p.curToken.Literal
+
+	// Expect opening parenthesis
+	if !p.expectPeek(lexer.LPAREN) {
+		return nil
+	}
+
+	// Expect column name
+	if !p.expectPeek(lexer.IDENT) {
+		return nil
+	}
+	stmt.ColumnName = p.curToken.Literal
+
+	// Expect closing parenthesis
+	if !p.expectPeek(lexer.RPAREN) {
+		return nil
+	}
+
+	if p.peekTokenIs(lexer.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
+}
+
+func (p *Parser) parseDropIndexStatement() *ast.DropIndexStatement {
+	stmt := &ast.DropIndexStatement{Token: p.curToken}
+
+	// Expect INDEX keyword
+	if !p.expectPeek(lexer.INDEX) {
+		return nil
+	}
+
+	// Check for IF EXISTS
+	if p.peekTokenIs(lexer.IF) {
+		p.nextToken() // consume IF
+		if !p.expectPeek(lexer.EXISTS) {
+			return nil
+		}
+		p.nextToken() // consume EXISTS
+		stmt.IfExists = true
+	}
+
+	// Expect index name
+	if !p.expectPeek(lexer.IDENT) {
+		return nil
+	}
+	stmt.IndexName = p.curToken.Literal
+
+	// Expect ON keyword
+	if !p.expectPeek(lexer.ON) {
+		return nil
+	}
+
+	// Expect table name
+	if !p.expectPeek(lexer.IDENT) {
+		return nil
+	}
+	stmt.TableName = p.curToken.Literal
 
 	if p.peekTokenIs(lexer.SEMICOLON) {
 		p.nextToken()
