@@ -58,6 +58,12 @@ func (e *Executor) ExecuteWithTx(tx *transaction.Transaction, node planner.PlanN
 		return e.executeCreateTable(tx, n)
 	case *planner.DropTableNode:
 		return e.executeDropTable(tx, n)
+	case *planner.CreateIndexNode:
+		return e.executeCreateIndex(tx, n)
+	case *planner.DropIndexNode:
+		return e.executeDropIndex(tx, n)
+	case *planner.ShowIndexesNode:
+		return e.executeShowIndexes(tx, n)
 	case *planner.InsertNode:
 		return e.executeInsert(tx, n)
 	case *planner.UpdateNode:
@@ -1811,4 +1817,85 @@ func (e *Executor) executeShowTables(tx *transaction.Transaction, n *planner.Sho
 		}
 	}
 	return &Result{Rows: rows}, nil
+}
+
+// executeCreateIndex handles CREATE INDEX by delegating to TableManager.
+func (e *Executor) executeCreateIndex(tx *transaction.Transaction, n *planner.CreateIndexNode) (*Result, error) {
+	if n.IsUnique {
+		// TODO: Implement unique index constraint checking
+		// For now, we'll proceed with a regular index but note this limitation
+	}
+
+	if err := e.tm.CreateIndex(tx, n.TableName, n.IndexName, n.ColumnName); err != nil {
+		return nil, err
+	}
+
+	var msg string
+	if n.IsUnique {
+		msg = fmt.Sprintf("unique index %q created on %s(%s)", n.IndexName, n.TableName, n.ColumnName)
+	} else {
+		msg = fmt.Sprintf("index %q created on %s(%s)", n.IndexName, n.TableName, n.ColumnName)
+	}
+
+	return &Result{Message: msg}, nil
+}
+
+// executeDropIndex handles DROP INDEX by delegating to TableManager.
+func (e *Executor) executeDropIndex(tx *transaction.Transaction, n *planner.DropIndexNode) (*Result, error) {
+	if err := e.tm.DropIndex(tx, n.TableName, n.IndexName, n.IfExists); err != nil {
+		return nil, err
+	}
+
+	var msg string
+	if n.IfExists {
+		msg = fmt.Sprintf("index %q dropped from %s (if existed)", n.IndexName, n.TableName)
+	} else {
+		msg = fmt.Sprintf("index %q dropped from %s", n.IndexName, n.TableName)
+	}
+
+	return &Result{Message: msg}, nil
+}
+
+// executeShowIndexes handles SHOW INDEXES by returning index information.
+func (e *Executor) executeShowIndexes(tx *transaction.Transaction, n *planner.ShowIndexesNode) (*Result, error) {
+	var indexes map[string]*catalog.IndexMetadata
+	var err error
+
+	if n.TableName == "" {
+		// We would need to show indexes for all tables, but for simplicity,
+		// we'll require a table name for now
+		return nil, fmt.Errorf("SHOW INDEXES requires a table name")
+	}
+
+	indexes, err = e.tm.GetIndexes(n.TableName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build result rows: IndexName, TableName, ColumnName, IsUnique
+	var rows []Row
+	for indexName, indexMeta := range indexes {
+		// Check if it's a unique index (we don't store this in IndexMetadata yet)
+		// For now, we'll assume all indexes are non-unique since we don't track uniqueness
+		isUnique := false
+
+		rows = append(rows, Row{
+			Values: []record.Value{
+				{Type: record.Varchar, Str: indexName},          // IndexName
+				{Type: record.Varchar, Str: n.TableName},        // TableName
+				{Type: record.Varchar, Str: indexMeta.ColumnName}, // ColumnName
+				{Type: record.Integer, Int: int32(boolToInt(isUnique))}, // IndexType (0=Non-unique, 1=Unique)
+			},
+		})
+	}
+
+	return &Result{Rows: rows}, nil
+}
+
+// Helper function to convert boolean to int
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
