@@ -134,6 +134,10 @@ func CallModel(cfg *AIModelConfig, systemPrompt string, history []map[string]str
 			toolsJSON, _ := json.MarshalIndent(tools, "", "  ")
 			systemPrompt += "\n\nYou have access to the following database tools via MCP:\n" + string(toolsJSON)
 			systemPrompt += "\n\nTo call a tool, you MUST respond with EXACTLY this JSON format and absolutely nothing else:\n{\"tool_call\": \"tool_name\", \"arguments\": {\"arg1\": \"value1\"}}"
+			systemPrompt += "\n\nVisualization rules:"
+			systemPrompt += "\n- Whenever the user asks for a chart, graph, plot, or any visual representation of data (pie, bar, line, doughnut, radar, polarArea, scatter, bubble), you MUST call the `generate_chart` tool."
+			systemPrompt += "\n- If the user did not supply data, first call `execute_query` to fetch the relevant rows, then transform them into a Chart.js-shaped `data` object (labels + datasets) and pass that to `generate_chart`."
+			systemPrompt += "\n- After receiving a `generate_chart` tool result, copy the returned markdown code block VERBATIM into your final reply so the UI can render it. Do not paraphrase the chart, do not describe it in prose, and do not wrap it in anything other than the exact ```chart ... ``` block the tool returned."
 		}
 	}
 
@@ -171,7 +175,11 @@ func CallModel(cfg *AIModelConfig, systemPrompt string, history []map[string]str
 			// Append the tool result back into the last message or create a new user message
 			lastIdx := len(history) - 1
 			if lastIdx >= 0 {
-			    history[lastIdx]["text"] += fmt.Sprintf("\n\n(AI Assistant attempted to call tool '%s' with arguments: %v)\n\nTool Result:\n%s\n\nPlease analyze this result and answer my original question.", tc.ToolCall, tc.Arguments, result)
+				if tc.ToolCall == "generate_chart" {
+					history[lastIdx]["text"] += fmt.Sprintf("\n\n(AI Assistant called tool '%s' with arguments: %v)\n\nTool Result (a markdown code block — emit this VERBATIM, with no surrounding prose or commentary):\n%s", tc.ToolCall, tc.Arguments, result)
+				} else {
+					history[lastIdx]["text"] += fmt.Sprintf("\n\n(AI Assistant attempted to call tool '%s' with arguments: %v)\n\nTool Result:\n%s\n\nPlease analyze this result and answer my original question.", tc.ToolCall, tc.Arguments, result)
+				}
 			}
 			continue
 		}
@@ -411,6 +419,7 @@ func GenerateSystemPrompt(tm *catalog.TableManager) string {
 	sb.WriteString("- Supports advanced scientific types: VECTOR, MATRIX, TENSOR, COMPLEX.\n")
 	sb.WriteString("- If asked to query or list records, you MUST use the `execute_query` MCP tool to execute the query yourself.\n")
 	sb.WriteString("- IMPORTANT: To display query results to the user in a beautiful HTML table, you must output the EXACT JSON response array returned by the `execute_query` tool inside a markdown block starting with ```json.\n")
+	sb.WriteString("- If the user asks for a chart, graph, plot, or any data visualization, you MUST use the `generate_chart` MCP tool. Choose the most appropriate chart type for the data (e.g. bar for comparing categories, line for trends over time, pie for part-to-whole). Pass a Chart.js-shaped `data` object (labels + datasets). The tool returns a ```chart markdown block — include it VERBATIM in your reply so the UI renders the actual chart instead of plain text.\n")
 
 	return sb.String()
 }
