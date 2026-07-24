@@ -75,6 +75,8 @@ const (
 	HAVING   = "HAVING"
 	LIMIT    = "LIMIT"
 	OFFSET   = "OFFSET"
+	IF       = "IF"
+	EXISTS   = "EXISTS"
 
 	// Constraints
 	AUTO_INCREMENT = "AUTO_INCREMENT"
@@ -82,6 +84,11 @@ const (
 	KEY            = "KEY"
 	NOT            = "NOT"
 	NULL           = "NULL"
+	UNIQUE         = "UNIQUE"
+
+	// Index operations
+	INDEX     = "INDEX"
+	INDEXES   = "INDEXES"
 
 // Order modifiers
 	ASC      = "ASC"
@@ -128,6 +135,8 @@ var keywords = map[string]TokenType{
 	"HAVING":   HAVING,
 	"LIMIT":    LIMIT,
 	"OFFSET":   OFFSET,
+	"IF":       IF,
+	"EXISTS":   EXISTS,
 
 	// Constraints
 	"AUTO_INCREMENT": AUTO_INCREMENT,
@@ -135,6 +144,10 @@ var keywords = map[string]TokenType{
 	"KEY":            KEY,
 	"NOT":            NOT,
 	"NULL":           NULL,
+
+	// Index operations
+	"INDEX":  INDEX,
+	"INDEXES": INDEXES,
 
 // Order modifiers
 	"ASC":  ASC,

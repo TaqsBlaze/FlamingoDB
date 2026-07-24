@@ -21,6 +21,9 @@ const (
 	PlanDelete      PlanType = "Delete"
 	PlanCreateTable PlanType = "CreateTable"
 	PlanDropTable   PlanType = "DropTable"
+	PlanCreateIndex PlanType = "CreateIndex"
+	PlanDropIndex   PlanType = "DropIndex"
+	PlanShowIndexes PlanType = "ShowIndexes"
 	PlanIndexScan   PlanType = "IndexScan"
 	PlanShowTables  PlanType = "ShowTables"
 	PlanJoin        PlanType = "Join"
@@ -362,6 +365,65 @@ func (n *IndexScanNode) String() string {
 	return fmt.Sprintf("IndexScan(%s.%s, root=%d, range=[%s, %s])", n.Table, n.ColumnName, n.IndexRootID, lowStr, highStr)
 }
 
+// CreateIndexNode represents a CREATE INDEX operation.
+type CreateIndexNode struct {
+	IndexName  string
+	TableName  string
+	ColumnName string
+	IsUnique   bool
+}
+
+// Type returns PlanCreateIndex.
+func (n *CreateIndexNode) Type() PlanType { return PlanCreateIndex }
+
+// Children returns nil (CreateIndex is a leaf node).
+func (n *CreateIndexNode) Children() []PlanNode { return nil }
+
+// String returns a string representation of CreateIndexNode.
+func (n *CreateIndexNode) String() string {
+	return fmt.Sprintf("CreateIndex(%s on %s(%s))", n.IndexName, n.TableName, n.ColumnName)
+}
+
+// DropIndexNode represents a DROP INDEX operation.
+type DropIndexNode struct {
+	IndexName  string
+	TableName  string
+	IfExists   bool
+}
+
+// Type returns PlanDropIndex.
+func (n *DropIndexNode) Type() PlanType { return PlanDropIndex }
+
+// Children returns nil (DropIndex is a leaf node).
+func (n *DropIndexNode) Children() []PlanNode { return nil }
+
+// String returns a string representation of DropIndexNode.
+func (n *DropIndexNode) String() string {
+	if n.IfExists {
+		return fmt.Sprintf("DropIndex(%s on %s IF EXISTS)", n.IndexName, n.TableName)
+	}
+	return fmt.Sprintf("DropIndex(%s on %s)", n.IndexName, n.TableName)
+}
+
+// ShowIndexesNode represents a SHOW INDEXES operation.
+type ShowIndexesNode struct {
+	TableName string
+}
+
+// Type returns PlanShowIndexes.
+func (n *ShowIndexesNode) Type() PlanType { return PlanShowIndexes }
+
+// Children returns nil (ShowIndexes is a leaf node).
+func (n *ShowIndexesNode) Children() []PlanNode { return nil }
+
+// String returns a string representation of ShowIndexesNode.
+func (n *ShowIndexesNode) String() string {
+	if n.TableName == "" {
+		return "ShowIndexes()"
+	}
+	return fmt.Sprintf("ShowIndexes(%s)", n.TableName)
+}
+
 // MapStringToTypeID converts a string representation of a type (e.g. "INT", "FLOAT", "VARCHAR") into a record.TypeID.
 func MapStringToTypeID(t string) (record.TypeID, error) {
 	switch strings.ToUpper(t) {
@@ -445,6 +507,12 @@ func (p *Planner) Plan(stmt ast.Statement) (PlanNode, error) {
 		return p.planDropTable(s)
 	case *ast.ShowTablesStatement:
 		return &ShowTablesNode{}, nil
+	case *ast.CreateIndexStatement:
+		return p.planCreateIndex(s)
+	case *ast.DropIndexStatement:
+		return p.planDropIndex(s)
+	case *ast.ShowIndexesStatement:
+		return p.planShowIndexes(s)
 	default:
 		return nil, fmt.Errorf("unsupported statement type: %T", stmt)
 	}
@@ -630,5 +698,45 @@ func (p *Planner) planDropTable(stmt *ast.DropTableStatement) (PlanNode, error) 
 
 	return &DropTableNode{
 		Table: stmt.Table,
+	}, nil
+}
+
+func (p *Planner) planCreateIndex(stmt *ast.CreateIndexStatement) (PlanNode, error) {
+	if stmt.IndexName == "" {
+		return nil, errors.New("create index statement must specify an index name")
+	}
+	if stmt.TableName == "" {
+		return nil, errors.New("create index statement must specify a table name")
+	}
+	if stmt.ColumnName == "" {
+		return nil, errors.New("create index statement must specify a column name")
+	}
+
+	return &CreateIndexNode{
+		IndexName:  stmt.IndexName,
+		TableName:  stmt.TableName,
+		ColumnName: stmt.ColumnName,
+		IsUnique:   stmt.IsUnique,
+	}, nil
+}
+
+func (p *Planner) planDropIndex(stmt *ast.DropIndexStatement) (PlanNode, error) {
+	if stmt.IndexName == "" {
+		return nil, errors.New("drop index statement must specify an index name")
+	}
+	if stmt.TableName == "" {
+		return nil, errors.New("drop index statement must specify a table name")
+	}
+
+	return &DropIndexNode{
+		IndexName: stmt.IndexName,
+		TableName: stmt.TableName,
+		IfExists:  stmt.IfExists,
+	}, nil
+}
+
+func (p *Planner) planShowIndexes(stmt *ast.ShowIndexesStatement) (PlanNode, error) {
+	return &ShowIndexesNode{
+		TableName: stmt.TableName,
 	}, nil
 }
