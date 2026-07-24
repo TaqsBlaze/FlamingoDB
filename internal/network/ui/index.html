@@ -917,6 +917,106 @@
       background: rgba(255, 255, 255, 0.01);
     }
 
+    /* Wide variant of the modal used for the data-import flow. */
+    .modal-card.wide {
+      max-width: 880px;
+    }
+
+    /* Step header row used inside the import modal. */
+    .import-step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .import-step .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+      color: white;
+      flex-shrink: 0;
+    }
+    .import-step .step-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .import-step .step-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* Column-mapping table inside the import modal. */
+    .mapping-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .mapping-table th {
+      text-align: left;
+      font-weight: 600;
+      color: var(--muted);
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .mapping-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .mapping-table tr:last-child td { border-bottom: none; }
+    .mapping-table tr.mapped-skip td { opacity: 0.5; }
+    .mapping-table input.input,
+    .mapping-table select.input {
+      width: 100%;
+      height: 28px;
+      padding: 0 6px;
+      font-size: 12px;
+    }
+    .mapping-table .src-sample {
+      color: var(--muted);
+      font-size: 11px;
+      font-family: 'Fira Code', monospace;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .preview-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      font-family: 'Fira Code', monospace;
+    }
+    .preview-table th,
+    .preview-table td {
+      padding: 4px 8px;
+      border: 1px solid var(--border);
+      text-align: left;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .preview-table th {
+      background: var(--surface);
+      color: var(--muted);
+      font-weight: 600;
+    }
+
     .login-bg {
       min-height: 100vh;
       width: 100%;
@@ -1594,6 +1694,9 @@
       const [schemaLoading, setSchemaLoading] = useState(false);
       const [preview, setPreview] = useState(null);
       const [previewLoading, setPreviewLoading] = useState(false);
+      const [showImport, setShowImport] = useState(false);
+      const [importInitialMode, setImportInitialMode] = useState('append');
+      const [importInitialTable, setImportInitialTable] = useState('');
 
       const fetchTables = async () => {
         setLoading(true);
@@ -1634,7 +1737,17 @@
               React.createElement('div', { className: 'card-header' },
                 React.createElement(Icon, { name: 'database', size: 15, stroke: 'var(--blue2)' }),
                 React.createElement('h3', null, 'Tables'),
-                React.createElement('span', { className: 'badge badge-blue' }, tables.length)
+                React.createElement('span', { className: 'badge badge-blue' }, tables.length),
+                React.createElement('div', { style: { flex: 1 } }),
+                React.createElement('button', {
+                  className: 'btn btn-ghost btn-sm',
+                  style: { display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', fontSize: 12 },
+                  onClick: function() { setImportInitialMode('append'); setImportInitialTable(''); setShowImport(true); },
+                  title: 'Import a CSV / JSON file into a table'
+                },
+                  React.createElement(Icon, { name: 'upload', size: 13 }),
+                  'Import Data'
+                )
               ),
               React.createElement('div', { style: { padding: 12, maxHeight: 620, overflowY: 'auto' } },
                 loading
@@ -2815,6 +2928,561 @@
     }
 
 
+    // ── Import data: parsing + modal ──────────────────────────────────────────────
+    // The import flow runs entirely on the client. The server receives an
+    // already-parsed column-mapping + rows payload via POST /api/import and
+    // just builds CREATE TABLE / INSERT statements.
+
+    // Detect a CSV / TSV / JSON payload from a filename + first chunk of text.
+    // Returns { format: 'csv'|'tsv'|'json', hasHeader: bool }.
+    function detectImportFormat(filename, sample) {
+      const lower = (filename || '').toLowerCase();
+      if (lower.endsWith('.json')) return { format: 'json', hasHeader: false };
+      if (lower.endsWith('.tsv')) return { format: 'tsv', hasHeader: guessHasHeader(sample, '\t') };
+      if (lower.endsWith('.csv')) return { format: 'csv', hasHeader: guessHasHeader(sample, ',') };
+      // No extension: look at the first non-empty line.
+      const firstLine = (sample || '').split(/\r?\n/).find(function(l) { return l.trim().length > 0; }) || '';
+      const trimmed = firstLine.trim();
+      if (trimmed.startsWith('[') || trimmed.startsWith('{')) return { format: 'json', hasHeader: false };
+      if (firstLine.indexOf('\t') !== -1) return { format: 'tsv', hasHeader: guessHasHeader(sample, '\t') };
+      return { format: 'csv', hasHeader: guessHasHeader(sample, ',') };
+    }
+
+    // Heuristic: if the first row contains any non-numeric tokens in a
+    // comma-/tab-separated payload, treat it as a header. The user can still
+    // toggle the choice in the modal.
+    function guessHasHeader(sample, delim) {
+      if (!sample) return true;
+      const lines = sample.split(/\r?\n/).filter(function(l) { return l.trim().length > 0; });
+      if (lines.length < 2) return false;
+      const first = lines[0].split(delim);
+      const second = lines[1].split(delim);
+      if (first.length !== second.length) return false;
+      // If the first row's cells are mostly non-numeric while the second
+      // row's are mostly numeric, assume a header row.
+      const firstNumeric = first.filter(function(c) { return c.trim() !== '' && !isNaN(Number(c)); }).length;
+      const secondNumeric = second.filter(function(c) { return c.trim() !== '' && !isNaN(Number(c)); }).length;
+      return firstNumeric < secondNumeric;
+    }
+
+    // Parse a delimited file into { headers: [string], rows: [[cell,...]] }.
+    // Honors double-quoted fields and embedded delimiters / newlines.
+    function parseDelimited(text, delim) {
+      const rows = [];
+      let cur = [];
+      let field = '';
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (inQuotes) {
+          if (ch === '"') {
+            if (text[i + 1] === '"') { field += '"'; i++; }
+            else { inQuotes = false; }
+          } else {
+            field += ch;
+          }
+        } else {
+          if (ch === '"') { inQuotes = true; }
+          else if (ch === delim) { cur.push(field); field = ''; }
+          else if (ch === '\n') { cur.push(field); field = ''; rows.push(cur); cur = []; }
+          else if (ch === '\r') { /* skip; \n handles the row end */ }
+          else { field += ch; }
+        }
+      }
+      if (field.length > 0 || cur.length > 0) { cur.push(field); rows.push(cur); }
+      // Drop trailing empty rows.
+      while (rows.length > 0 && rows[rows.length - 1].length === 1 && rows[rows.length - 1][0] === '') {
+        rows.pop();
+      }
+      return rows;
+    }
+
+    // Parse a JSON payload that is either an array of flat objects or a
+    // newline-delimited JSON stream. Returns { headers, rows }.
+    function parseJsonImport(text) {
+      const trimmed = text.trim();
+      // Try a single top-level array first.
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object' && !Array.isArray(parsed[0])) {
+          return jsonObjectsToGrid(parsed);
+        }
+      } catch (e) { /* fall through to NDJSON */ }
+      // Newline-delimited JSON objects.
+      const lines = trimmed.split(/\r?\n/).filter(function(l) { return l.trim().length > 0; });
+      const objects = [];
+      for (const line of lines) {
+        try { objects.push(JSON.parse(line)); } catch (e) { /* skip bad line */ }
+      }
+      if (objects.length > 0) return jsonObjectsToGrid(objects);
+      return { headers: [], rows: [] };
+    }
+
+    function jsonObjectsToGrid(objects) {
+      const colSet = [];
+      objects.forEach(function(o) {
+        Object.keys(o).forEach(function(k) {
+          if (colSet.indexOf(k) === -1) colSet.push(k);
+        });
+      });
+      const headers = colSet;
+      const rows = objects.map(function(o) {
+        return colSet.map(function(k) { return o[k] != null ? o[k] : ''; });
+      });
+      return { headers: headers, rows: rows };
+    }
+
+    // Best-effort type inference for a single column. Returns 'INT' | 'FLOAT'
+    // | 'VARCHAR'. Empty / non-numeric samples default to VARCHAR.
+    function inferColumnType(samples) {
+      let nonEmpty = 0;
+      let allInt = true;
+      let allFloat = true;
+      for (const s of samples) {
+        if (s === '' || s == null) continue;
+        nonEmpty++;
+        const t = String(s).trim();
+        if (t === '') continue;
+        if (!/^-?\d+$/.test(t)) allInt = false;
+        if (!/^-?\d+(\.\d+)?([eE][-+]?\d+)?$/.test(t)) allFloat = false;
+      }
+      if (nonEmpty === 0) return 'VARCHAR';
+      if (allInt) return 'INT';
+      if (allFloat) return 'FLOAT';
+      return 'VARCHAR';
+    }
+
+    // The import modal. Reused by the Table Browser page and the AI chat.
+    // Props:
+    //   creds             — auth creds for the apiFetch helper
+    //   onClose           — close handler
+    //   onComplete        — optional callback({ table, rows_imported, mode })
+    //   initialTable      — optional table name to pre-fill when appending
+    //   initialMode       — 'create' | 'append' (defaults to 'append')
+    function ImportDataModal({ creds, onClose, onComplete, initialTable, initialMode }) {
+      const [step, setStep] = useState(1);
+      const [fileName, setFileName] = useState('');
+      const [headers, setHeaders] = useState([]);
+      const [rows, setRows] = useState([]);
+      const [mode, setMode] = useState(initialMode || 'append');
+      const [targetTable, setTargetTable] = useState(initialTable || '');
+      const [mapping, setMapping] = useState([]);
+      const [tables, setTables] = useState([]);
+      const [destSchema, setDestSchema] = useState(null);
+      const [error, setError] = useState('');
+      const [busy, setBusy] = useState(false);
+      const [result, setResult] = useState(null);
+      const [importing, setImporting] = useState(false);
+
+      const onPickFile = function(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        setError('');
+        setFileName(file.name);
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          try {
+            const text = String(ev.target.result || '');
+            const sample = text.length > 4000 ? text.slice(0, 4000) : text;
+            const detected = detectImportFormat(file.name, sample);
+            let parsed;
+            if (detected.format === 'json') parsed = parseJsonImport(text);
+            else parsed = parseDelimited(text, detected.format === 'tsv' ? '\t' : ',');
+            if (parsed.length === 0 || (parsed.headers && parsed.headers.length === 0)) {
+              setError('No data rows found in the file.');
+              return;
+            }
+            let hdrs, body;
+            if (detected.format === 'json') {
+              hdrs = parsed.headers; body = parsed.rows;
+            } else if (detected.hasHeader) {
+              hdrs = parsed[0].map(function(h, i) { return h.trim() || ('col_' + (i + 1)); });
+              body = parsed.slice(1);
+            } else {
+              hdrs = parsed[0].map(function(_, i) { return 'col_' + (i + 1); });
+              body = parsed;
+            }
+            setHeaders(hdrs);
+            setRows(body);
+            setStep(2);
+          } catch (err) {
+            setError('Failed to read file: ' + err.message);
+          }
+        };
+        reader.onerror = function() { setError('Failed to read file.'); };
+        reader.readAsText(file);
+      };
+
+      // Fetch destination-table schema whenever the user picks an existing
+      // target. Used to populate the column-mapping dropdown in append mode.
+      useEffect(function() {
+        if (mode !== 'append' || !targetTable) { setDestSchema(null); return; }
+        apiFetch('/api/describe?table=' + encodeURIComponent(targetTable), {}, creds).then(function(r) {
+          if (r.ok && r.data.columns) setDestSchema(r.data.columns);
+          else setDestSchema(null);
+        });
+      }, [mode, targetTable, creds]);
+
+      // Fetch the list of existing tables once so the user can pick one.
+      useEffect(function() {
+        apiFetch('/api/tables', {}, creds).then(function(r) {
+          if (r.ok && r.data.tables) setTables(r.data.tables);
+        });
+      }, [creds]);
+
+      // Build a default mapping whenever the parsed headers, mode, or
+      // destination schema change. The user can override every cell.
+      useEffect(function() {
+        if (headers.length === 0) { setMapping([]); return; }
+        const destCols = (destSchema || []).map(function(c) { return c.name; });
+        setMapping(headers.map(function(h, i) {
+          const sample = rows.slice(0, 25).map(function(r) { return r[i]; }).filter(function(v) { return v !== '' && v != null; });
+          const inferred = inferColumnType(sample);
+          let target = '';
+          if (mode === 'append' && destCols.length > 0) {
+            const match = destCols.find(function(dc) { return dc.toLowerCase() === h.toLowerCase(); });
+            target = match || '';
+          } else {
+            // Create mode: default the target to a sanitized version of the
+            // header so the user usually only has to tweak types.
+            target = h.replace(/[^A-Za-z0-9_]/g, '_').toLowerCase() || ('col_' + (i + 1));
+          }
+          return {
+            source: h,
+            source_index: i,
+            target: target,
+            type: mode === 'create' ? inferred : 'VARCHAR',
+            skip: false
+          };
+        }));
+      }, [headers, mode, destSchema, rows]);
+
+      const updateMapping = function(idx, patch) {
+        setMapping(function(prev) {
+          const next = prev.slice();
+          next[idx] = Object.assign({}, next[idx], patch);
+          return next;
+        });
+      };
+
+      const visibleRowsForPreview = function() {
+        return rows.slice(0, 3);
+      };
+
+      const performImport = async function() {
+        setError('');
+        if (!targetTable) { setError('Please enter a target table name.'); return; }
+        const active = mapping.filter(function(m) { return !m.skip; });
+        if (active.length === 0) { setError('Map at least one column.'); return; }
+        for (const m of active) {
+          if (!m.target) { setError('Every active column needs a target name.'); return; }
+        }
+        setImporting(true);
+        const payload = {
+          mode: mode,
+          table: targetTable,
+          columns: mapping.map(function(m) {
+            return {
+              source: m.source,
+              source_index: m.source_index,
+              target: m.target,
+              type: mode === 'create' ? m.type : 'VARCHAR',
+              skip: m.skip
+            };
+          }),
+          rows: rows
+        };
+        const r = await apiFetch('/api/import', { method: 'POST', body: JSON.stringify(payload) }, creds);
+        setImporting(false);
+        if (r.ok && r.data.success) {
+          setResult({ table: r.data.table || targetTable, rows_imported: r.data.rows_imported || rows.length, mode: r.data.mode || mode });
+          setStep(4);
+          if (onComplete) onComplete({ table: r.data.table || targetTable, rows_imported: r.data.rows_imported || rows.length, mode: r.data.mode || mode });
+        } else {
+          setError(r.data.error || 'Import failed.');
+        }
+      };
+
+      // Close on backdrop click / Esc.
+      useEffect(function() {
+        function onKey(e) { if (e.key === 'Escape') onClose(); }
+        window.addEventListener('keydown', onKey);
+        return function() { window.removeEventListener('keydown', onKey); };
+      }, [onClose]);
+
+      return React.createElement('div', {
+        className: 'modal-overlay',
+        onClick: function(e) { if (e.target === e.currentTarget) onClose(); }
+      },
+        React.createElement('div', { className: 'modal-card wide' },
+          React.createElement('div', { className: 'modal-header' },
+            React.createElement(Icon, { name: 'upload', size: 16, stroke: 'var(--pink)' }),
+            React.createElement('h3', null, 'Import Data'),
+            React.createElement('button', { className: 'btn btn-icon btn-ghost', onClick: onClose, title: 'Close' }, React.createElement(Icon, { name: 'x', size: 14 }))
+          ),
+          React.createElement('div', { className: 'modal-body' },
+            error ? React.createElement('div', { className: 'mb-4' }, React.createElement(Banner, { type: 'error' }, error)) : null,
+            step === 1 ? renderStep1(onPickFile) : null,
+            step === 2 ? renderStep2({
+              fileName: fileName, mode: mode, setMode: setMode,
+              targetTable: targetTable, setTargetTable: setTargetTable,
+              tables: tables, headers: headers, rows: rows,
+              mapping: mapping, updateMapping: updateMapping,
+              destSchema: destSchema,
+              visibleRowsForPreview: visibleRowsForPreview,
+              onBack: function() { setStep(1); setError(''); },
+              onNext: function() { setStep(3); setError(''); }
+            }) : null,
+            step === 3 ? renderStep3({
+              fileName: fileName, mode: mode, targetTable: targetTable,
+              mapping: mapping, rows: rows,
+              visibleRowsForPreview: visibleRowsForPreview,
+              onBack: function() { setStep(2); setError(''); },
+              onImport: performImport,
+              importing: importing
+            }) : null,
+            step === 4 && result ? renderStep4(result, onClose) : null
+          ),
+          step === 2 ? React.createElement('div', { className: 'modal-footer' },
+            React.createElement('button', { className: 'btn btn-ghost', onClick: function() { setStep(1); setError(''); } }, 'Back'),
+            React.createElement('button', {
+              className: 'btn btn-primary',
+              onClick: function() {
+                if (!targetTable) { setError('Please enter a target table name.'); return; }
+                setError(''); setStep(3);
+              }
+            }, 'Continue')
+          ) : null,
+          step === 3 ? React.createElement('div', { className: 'modal-footer' },
+            React.createElement('button', { className: 'btn btn-ghost', onClick: function() { setStep(2); setError(''); }, disabled: importing }, 'Back'),
+            React.createElement('button', { className: 'btn btn-primary', onClick: performImport, disabled: importing },
+              importing ? React.createElement(React.Fragment, null, React.createElement(Spinner), ' Importing…') : 'Import ' + rows.length + ' rows'
+            )
+          ) : null
+        )
+      );
+    }
+
+    function renderStep1(onPickFile) {
+      return React.createElement('div', null,
+        React.createElement('div', { className: 'import-step' },
+          React.createElement('span', { className: 'step-num' }, '1'),
+          React.createElement('div', null,
+            React.createElement('div', { className: 'step-title' }, 'Choose a file'),
+            React.createElement('div', { className: 'step-sub' }, 'CSV, TSV, or JSON (array of objects). Up to 10,000 rows.')
+          )
+        ),
+        React.createElement('label', {
+          className: 'btn btn-primary',
+          style: { display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }
+        },
+          React.createElement(Icon, { name: 'upload', size: 14 }),
+          'Select file…',
+          React.createElement('input', { type: 'file', accept: '.csv,.tsv,.json,text/csv,application/json', style: { display: 'none' }, onChange: onPickFile })
+        )
+      );
+    }
+
+    function renderStep2(state) {
+      const { fileName, mode, setMode, targetTable, setTargetTable, tables, headers, rows, mapping, updateMapping, destSchema, visibleRowsForPreview, onBack, onNext } = state;
+      return React.createElement('div', null,
+        React.createElement('div', { className: 'import-step' },
+          React.createElement('span', { className: 'step-num' }, '2'),
+          React.createElement('div', null,
+            React.createElement('div', { className: 'step-title' }, 'Choose target & map columns'),
+            React.createElement('div', { className: 'step-sub' }, 'Parsed ' + rows.length + ' rows from ' + fileName)
+          )
+        ),
+        React.createElement('div', { style: { display: 'flex', gap: 12, marginBottom: 12 } },
+          React.createElement('div', { style: { flex: 1 } },
+            React.createElement('label', { style: { fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 } }, 'Target mode'),
+            React.createElement('div', { style: { display: 'flex', gap: 6, marginTop: 4 } },
+              ['append', 'create'].map(function(m) {
+                const isActive = mode === m;
+                return React.createElement('button', {
+                  key: m,
+                  className: 'btn ' + (isActive ? 'btn-primary' : 'btn-ghost'),
+                  onClick: function() { setMode(m); },
+                  style: { flex: 1, height: 30, fontSize: 12 }
+                }, m === 'append' ? 'Append to existing' : 'Create new table');
+              })
+            )
+          ),
+          React.createElement('div', { style: { flex: 2 } },
+            React.createElement('label', { style: { fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 } },
+              mode === 'create' ? 'New table name' : 'Target table'
+            ),
+            mode === 'append'
+              ? React.createElement('select', {
+                  className: 'input',
+                  style: { width: '100%', marginTop: 4, height: 32, fontSize: 12 },
+                  value: targetTable,
+                  onChange: function(e) { setTargetTable(e.target.value); }
+                },
+                  React.createElement('option', { value: '' }, '— select a table —'),
+                  tables.map(function(t) { return React.createElement('option', { key: t, value: t }, t); })
+                )
+              : React.createElement('input', {
+                  className: 'input',
+                  style: { width: '100%', marginTop: 4, height: 32, fontSize: 12 },
+                  value: targetTable,
+                  placeholder: 'new_table_name',
+                  onChange: function(e) { setTargetTable(e.target.value.replace(/[^A-Za-z0-9_]/g, '_')); }
+                })
+          )
+        ),
+        React.createElement('table', { className: 'mapping-table' },
+          React.createElement('thead', null,
+            React.createElement('tr', null,
+              React.createElement('th', { style: { width: 28 } }, 'On'),
+              React.createElement('th', null, 'Source column'),
+              React.createElement('th', { style: { width: 110 } }, 'Sample'),
+              React.createElement('th', null, 'Target column'),
+              mode === 'create' ? React.createElement('th', { style: { width: 100 } }, 'Type') : null,
+              React.createElement('th', { style: { width: 50 } }, '')
+            )
+          ),
+          React.createElement('tbody', null,
+            mapping.map(function(m, idx) {
+              const sample = rows.slice(0, 3).map(function(r) { return r[m.source_index] != null ? String(r[m.source_index]) : ''; }).join(' · ');
+              const destColOptions = (destSchema || []).map(function(c) { return c.name; });
+              return React.createElement('tr', { key: idx, className: m.skip ? 'mapped-skip' : '' },
+                React.createElement('td', null,
+                  React.createElement('input', {
+                    type: 'checkbox',
+                    checked: !m.skip,
+                    onChange: function(e) { updateMapping(idx, { skip: !e.target.checked }); }
+                  })
+                ),
+                React.createElement('td', { style: { fontWeight: 600, color: 'var(--text)' } }, m.source),
+                React.createElement('td', null, React.createElement('span', { className: 'src-sample', title: sample }, sample || '—')),
+                React.createElement('td', null,
+                  mode === 'append'
+                    ? React.createElement('select', {
+                        className: 'input',
+                        value: m.target,
+                        onChange: function(e) { updateMapping(idx, { target: e.target.value }); }
+                      },
+                        React.createElement('option', { value: '' }, '— skip —'),
+                        destColOptions.map(function(name) { return React.createElement('option', { key: name, value: name }, name); })
+                      )
+                    : React.createElement('input', {
+                        className: 'input',
+                        value: m.target,
+                        onChange: function(e) { updateMapping(idx, { target: e.target.value.replace(/[^A-Za-z0-9_]/g, '_').toLowerCase() }); }
+                      })
+                ),
+                mode === 'create' ? React.createElement('td', null,
+                  React.createElement('select', {
+                    className: 'input',
+                    value: m.type,
+                    onChange: function(e) { updateMapping(idx, { type: e.target.value }); }
+                  },
+                    ['INT', 'FLOAT', 'VARCHAR'].map(function(t) { return React.createElement('option', { key: t, value: t }, t); })
+                  )
+                ) : null,
+                React.createElement('td', null,
+                  React.createElement('button', { className: 'btn btn-ghost btn-sm', onClick: function() { updateMapping(idx, { skip: true }); } }, '×')
+                )
+              );
+            })
+          )
+        ),
+        React.createElement('div', { style: { marginTop: 12 } },
+          React.createElement('div', { style: { fontSize: 11, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 } }, 'Preview (first 3 rows)'),
+          React.createElement('div', { style: { overflowX: 'auto' } },
+            React.createElement('table', { className: 'preview-table' },
+              React.createElement('thead', null,
+                React.createElement('tr', null,
+                  mapping.map(function(m, i) { return React.createElement('th', { key: i, title: m.source }, m.skip ? m.source + ' (skipped)' : m.target || '—'); })
+                )
+              ),
+              React.createElement('tbody', null,
+                visibleRowsForPreview().map(function(row, ri) {
+                  return React.createElement('tr', { key: ri },
+                    mapping.map(function(m, ci) {
+                      return React.createElement('td', { key: ci, title: String(row[m.source_index] || '') }, m.skip ? '—' : String(row[m.source_index] != null ? row[m.source_index] : ''));
+                    })
+                  );
+                })
+              )
+            )
+          )
+        )
+      );
+    }
+
+    function renderStep3(state) {
+      const { mode, targetTable, mapping, rows, visibleRowsForPreview, onBack, onImport, importing } = state;
+      const active = mapping.filter(function(m) { return !m.skip; });
+      return React.createElement('div', null,
+        React.createElement('div', { className: 'import-step' },
+          React.createElement('span', { className: 'step-num' }, '3'),
+          React.createElement('div', null,
+            React.createElement('div', { className: 'step-title' }, 'Confirm & import'),
+            React.createElement('div', { className: 'step-sub' }, 'Review the planned write before sending it to the database.')
+          )
+        ),
+        React.createElement('div', { style: { display: 'flex', gap: 12, marginBottom: 12 } },
+          React.createElement('div', { style: { flex: 1, padding: 10, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 } },
+            React.createElement('div', { style: { fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 } }, 'Mode'),
+            React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'var(--text)', marginTop: 2 } }, mode === 'create' ? 'Create new table' : 'Append to existing')
+          ),
+          React.createElement('div', { style: { flex: 2, padding: 10, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 } },
+            React.createElement('div', { style: { fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 } }, 'Target table'),
+            React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'var(--text)', marginTop: 2 } }, targetTable)
+          ),
+          React.createElement('div', { style: { flex: 1, padding: 10, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 } },
+            React.createElement('div', { style: { fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 } }, 'Rows / cols'),
+            React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'var(--text)', marginTop: 2 } }, rows.length + ' × ' + active.length)
+          )
+        ),
+        React.createElement('div', { style: { fontSize: 11, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 } }, 'Columns'),
+        React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 } },
+          active.map(function(m, i) {
+            return React.createElement('span', { key: i, className: 'badge badge-blue', style: { fontFamily: 'Fira Code, monospace' } },
+              (m.target || '?') + (mode === 'create' ? ' : ' + m.type : ''));
+          })
+        ),
+        React.createElement('div', { style: { fontSize: 11, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 } }, 'Preview'),
+        React.createElement('div', { style: { overflowX: 'auto', marginBottom: 8 } },
+          React.createElement('table', { className: 'preview-table' },
+            React.createElement('thead', null,
+              React.createElement('tr', null,
+                active.map(function(m, i) { return React.createElement('th', { key: i }, m.target); })
+              )
+            ),
+            React.createElement('tbody', null,
+              visibleRowsForPreview().map(function(row, ri) {
+                return React.createElement('tr', { key: ri },
+                  active.map(function(m, ci) {
+                    return React.createElement('td', { key: ci, title: String(row[m.source_index] || '') }, String(row[m.source_index] != null ? row[m.source_index] : ''));
+                  })
+                );
+              })
+            )
+          )
+        )
+      );
+    }
+
+    function renderStep4(result, onClose) {
+      return React.createElement('div', { style: { textAlign: 'center', padding: '20px 0' } },
+        React.createElement('div', { style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 48, height: 48, borderRadius: '50%', background: 'rgba(34, 197, 94, 0.15)', marginBottom: 12 } },
+          React.createElement(Icon, { name: 'check', size: 24, stroke: 'var(--green)' })
+        ),
+        React.createElement('h3', { style: { fontSize: 16, fontWeight: 700, margin: '0 0 4px' } }, 'Import complete'),
+        React.createElement('div', { style: { fontSize: 13, color: 'var(--muted)' } },
+          'Imported ', React.createElement('strong', { style: { color: 'var(--text)' } }, result.rows_imported), ' rows into ',
+          React.createElement('strong', { style: { color: 'var(--text)' } }, result.table),
+          ' (', result.mode, ').'
+        ),
+        React.createElement('button', { className: 'btn btn-primary', style: { marginTop: 16 }, onClick: onClose }, 'Done')
+      );
+    }
+
+
+
     function AIAssistantPage({ creds }) {
       const [models, setModels] = useState([]);
       const [selectedModel, setSelectedModel] = useState('');
@@ -3178,6 +3846,24 @@
           chatLoading ? React.createElement('div', { style: { alignSelf: 'flex-start', background: 'var(--card)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)' } }, React.createElement(Spinner), ' Thinking…') : null
         ),
         React.createElement('div', { style: { padding: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 } },
+          React.createElement('button', {
+            className: 'btn btn-ghost',
+            onClick: function() {
+              const fileInput = document.createElement('input');
+              fileInput.type = 'file';
+              fileInput.accept = '.csv,.txt,.json,text/csv,text/plain,application/json';
+              fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  handleFileUpload(file);
+                }
+              };
+              fileInput.click();
+            },
+            title: 'Upload a file (CSV, TXT, JSON) for the AI to analyze'
+          },
+            React.createElement(Icon, { name: 'upload', size: 14 })
+          ),
           React.createElement('input', {
             className: 'input',
             value: inputMsg,
@@ -3382,6 +4068,23 @@
             )
           )
         )
+        {showImport && React.createElement(ImportDataModal, {
+          creds: creds,
+          onClose: function() { setShowImport(false); },
+          onComplete: function(result) {
+            // Show a toast-like notification by updating the selected table preview
+            // and optionally refetching the table list if a new table was created
+            if (result.mode === 'create') {
+              fetchTables(); // refresh table list to show the new table
+            }
+            // Optionally select the imported table so the user can see it immediately
+            if (result.table) {
+              selectTable(result.table);
+            }
+          },
+          initialTable: importInitialTable,
+          initialMode: importInitialMode
+        })}
       );
     }
 
