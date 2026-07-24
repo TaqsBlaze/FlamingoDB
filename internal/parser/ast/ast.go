@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"fmt"
 	"github.com/TaqsBlaze/FlamingoDB/internal/parser/lexer"
 	"strings"
 )
@@ -344,6 +345,58 @@ type ShowTablesStatement struct {
 func (s *ShowTablesStatement) statementNode()       {}
 func (s *ShowTablesStatement) TokenLiteral() string { return s.Token.Literal }
 func (s *ShowTablesStatement) String() string       { return "SHOW TABLES;" }
+
+// CreateIndexStatement represents a CREATE INDEX query.
+type CreateIndexStatement struct {
+	Token      lexer.Token // the 'CREATE' token
+	IndexName  string      // name of the index
+	TableName  string      // name of the table
+	ColumnName string      // name of the column to index
+	IsUnique   bool        // whether the index is unique
+}
+
+func (s *CreateIndexStatement) statementNode()       {}
+func (s *CreateIndexStatement) TokenLiteral() string { return s.Token.Literal }
+func (s *CreateIndexStatement) String() string {
+	unique := ""
+	if s.IsUnique {
+		unique = "UNIQUE "
+	}
+	return fmt.Sprintf("CREATE %sINDEX %s ON %s (%s);", unique, s.IndexName, s.TableName, s.ColumnName)
+}
+
+// DropIndexStatement represents a DROP INDEX query.
+type DropIndexStatement struct {
+	Token     lexer.Token // the 'DROP' token
+	IndexName string      // name of the index to drop
+	TableName string      // name of the table
+	IfExists  bool        // whether to use IF EXISTS
+}
+
+func (s *DropIndexStatement) statementNode()       {}
+func (s *DropIndexStatement) TokenLiteral() string { return s.Token.Literal }
+func (s *DropIndexStatement) String() string {
+	ifExists := ""
+	if s.IfExists {
+		ifExists = "IF EXISTS "
+	}
+	return fmt.Sprintf("DROP INDEX %s%s ON %s;", ifExists, s.IndexName, s.TableName)
+}
+
+// ShowIndexesStatement represents a SHOW INDEXES query.
+type ShowIndexesStatement struct {
+	Token   lexer.Token // the 'SHOW' token
+	TableName string     // name of the table (optional)
+}
+
+func (s *ShowIndexesStatement) statementNode()       {}
+func (s *ShowIndexesStatement) TokenLiteral() string { return s.Token.Literal }
+func (s *ShowIndexesStatement) String() string {
+	if s.TableName == "" {
+		return "SHOW INDEXES;"
+	}
+	return fmt.Sprintf("SHOW INDEXES FROM %s;", s.TableName)
+}
 
 // ImaginaryLiteral represents an imaginary number literal (e.g. 3i, 4.5i).
 type ImaginaryLiteral struct {

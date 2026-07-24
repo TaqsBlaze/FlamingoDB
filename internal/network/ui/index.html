@@ -2898,6 +2898,7 @@
         if (chartRef.current) {
           chartRef.current.destroy();
         }
+        console.log('ChartViewer spec:', spec); // DEBUG
         try {
           const chart = new Chart(ctx, spec);
           chartRef.current = chart;
@@ -2906,6 +2907,7 @@
             if (chart) chart.destroy();
           };
         } catch (err) {
+          console.error('ChartViewer error:', err);
           setError('Failed to render chart: ' + err.message);
           return () => {
             if (chartRef.current) {
@@ -2922,7 +2924,7 @@
         }, error);
       }
 
-      return React.createElement('canvas', { ref: canvasRef, width: 400, height: 200 });
+      return React.createElement('canvas', { ref: canvasRef, width: 250, height: 150 });
     }
 
 
@@ -3518,65 +3520,17 @@
       const [editingMsgIdx, setEditingMsgIdx] = useState(null);
       const [editingMsgText, setEditingMsgText] = useState('');
       const [hoveredMsgIdx, setHoveredMsgIdx] = useState(null);
-      const [showImport, setShowImport] = useState(false);
-      const [importInitialMode, setImportInitialMode] = useState('append');
-      const [importInitialTable, setImportInitialTable] = useState('');
-
-      // Handle file upload for AI chat
-      const handleFileUpload = async (file) => {
-        if (!file) return;
-
+      const [chartSpecs, setChartSpecs] = useState(function() {
         try {
-          const text = await file.text();
-          let contentToDisplay = '';
+          const saved = localStorage.getItem('flamingodb_chart_specs');
+          return saved ? JSON.parse(saved) : {};
+        } catch(e) { return {}; }
+      }); // modelId -> spec
 
-          if (file.name.endsWith('.json')) {
-            try {
-              const parsed = JSON.parse(text);
-              // If it's an array of objects, show as table preview
-              if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
-                contentToDisplay = `Uploaded JSON file "${file.name}" (${parsed.length} records):\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
-              } else {
-                contentToDisplay = `Uploaded JSON file "${file.name}":\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
-              }
-            } catch (e) {
-              contentToDisplay = `Uploaded JSON file "${file.name}" (invalid JSON):\n\`\`\`\n${text}\n\`\`\``;
-            }
-          } else if (file.name.endsWith('.csv')) {
-            contentToDisplay = `Uploaded CSV file "${file.name}":\n\`\`\`\n${text}\n\`\`\``;
-          } else if (file.name.endsWith('.txt')) {
-            contentToDisplay = `Uploaded text file "${file.name}":\n\`\`\`\n${text}\n\`\`\``;
-          } else {
-            // For other files, show as text (but limit size)
-            const displayText = text.length > 5000 ? text.substring(0, 5000) + '\n...[truncated]' : text;
-            contentToDisplay = `Uploaded file "${file.name}":\n\`\`\`\n${displayText}\n\`\`\``;
-          }
-
-          // Add the file content as a user message
-          const newHistory = messages.concat({ role: 'user', text: contentToDisplay });
-          setMessages(newHistory);
-
-          // Clear input and send to get AI response
-          setInputMsg('');
-          setChatLoading(true);
-
-          const r = await apiFetch('/api/ai/chat', {
-            method: 'POST',
-            body: JSON.stringify({ model_id: selectedModel, message: contentToDisplay, history: newHistory })
-          }, creds);
-
-          setChatLoading(false);
-          const replyText = (r.ok && r.data.reply) ? r.data.reply : 'Error: ' + (r.data.error || 'Failed to get reply.');
-          setMessages(function(prev) { return prev.concat({ role: 'assistant', text: replyText }); });
-        } catch (err) {
-          setMessages(function(prev) {
-            return prev.concat({
-              role: 'assistant',
-              text: 'Error processing file: ' + err.message
-            });
-          });
-        }
-      };
+      // Persist chartSpecs to localStorage whenever they change
+      useEffect(function() {
+        try { localStorage.setItem('flamingodb_chart_specs', JSON.stringify(chartSpecs)); } catch(e) {}
+      }, [chartSpecs]);
 
       // Persist messages-by-model to localStorage whenever it changes.
       useEffect(function() {
@@ -3645,6 +3599,19 @@
         });
       };
 
+      // Extract chart specification from a message text
+      const extractChartSpec = (text) => {
+        const match = text.match(/```chart\s*([\s\S]*?)```/);
+        if (match && match[1]) {
+          try {
+            return JSON.parse(match[1].trim());
+          } catch (e) {
+            return null;
+          }
+        }
+        return null;
+      };
+
       const resendMessage = async function(idx, newText) {
           if (!newText.trim() || !selectedModel || chatLoading) return;
           const newHistory = messages.slice(0, idx);
@@ -3660,6 +3627,11 @@
 
           setChatLoading(false);
           const replyText = (r.ok && r.data.reply) ? r.data.reply : 'Error: ' + (r.data.error || 'Failed to get reply.');
+          // Extract and store chart spec for the current model
+          const chartSpec = extractChartSpec(replyText);
+          if (chartSpec) {
+            setChartSpecs(prev => ({ ...prev, [selectedModel]: chartSpec }));
+          }
           setMessages(function(prev) { return prev.concat({ role: 'assistant', text: replyText }); });
       };
 
@@ -3692,6 +3664,11 @@
 
         setChatLoading(false);
         const replyText = (r.ok && r.data.reply) ? r.data.reply : 'Error: ' + (r.data.error || 'Failed to get reply.');
+        // Extract and store chart spec for the current model
+        const chartSpec = extractChartSpec(replyText);
+        if (chartSpec) {
+          setChartSpecs(prev => ({ ...prev, [selectedModel]: chartSpec }));
+        }
         setMessages(function(prev) { return prev.concat({ role: 'assistant', text: replyText }); });
       };
 
@@ -3725,7 +3702,7 @@
           const lang = match[1] || 'text';
           const code = match[2].trim();
           const codeKey = match.index;
-          
+
           if (lang === 'json' || lang === 'chart') {
               try {
                   const parsed = JSON.parse(code);
@@ -3818,33 +3795,12 @@
           )
         ),
         React.createElement('div', { className: 'card-body', style: { flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, padding: 16 } },
-          (function() {
-            const activeModel = models.find(function(m) { return m.id === selectedModel; });
-            if (!activeModel) return null;
-            const turnCount = Math.max(0, messages.length - 1);
-            return React.createElement('div', {
-              key: 'session-banner',
-              style: {
-                fontSize: 11,
-                color: 'var(--muted)',
-                padding: '6px 10px',
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6
-              }
-            },
-              React.createElement(Icon, { name: 'history', size: 12, stroke: 'var(--muted)' }),
-              'Session: ',
-              React.createElement('strong', { style: { color: 'var(--text)' } }, activeModel.name),
-              ' (' + activeModel.provider.toUpperCase() + ')',
-              ' • ',
-              turnCount === 1 ? '1 message' : (turnCount + ' messages'),
-              ' in this session'
-            );
-          })(),
+          // Chart display for current model
+          chartSpecs[selectedModel] ? (
+            React.createElement('div', { style: { marginBottom: 12 } },
+              React.createElement(ChartViewer, { key: `chart-${selectedModel}`, spec: chartSpecs[selectedModel] })
+            )
+          ) : null,
           messages.map(function(m, idx) {
             const isAssistant = m.role === 'assistant';
             return React.createElement('div', {
@@ -3863,7 +3819,7 @@
                 position: 'relative'
               }
             },
-              editingMsgIdx === idx ? 
+              editingMsgIdx === idx ?
                 React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 300 } },
                   React.createElement('textarea', {
                     className: 'input',
