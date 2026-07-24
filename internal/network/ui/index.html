@@ -3522,6 +3522,62 @@
       const [importInitialMode, setImportInitialMode] = useState('append');
       const [importInitialTable, setImportInitialTable] = useState('');
 
+      // Handle file upload for AI chat
+      const handleFileUpload = async (file) => {
+        if (!file) return;
+
+        try {
+          const text = await file.text();
+          let contentToDisplay = '';
+
+          if (file.name.endsWith('.json')) {
+            try {
+              const parsed = JSON.parse(text);
+              // If it's an array of objects, show as table preview
+              if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
+                contentToDisplay = `Uploaded JSON file "${file.name}" (${parsed.length} records):\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
+              } else {
+                contentToDisplay = `Uploaded JSON file "${file.name}":\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
+              }
+            } catch (e) {
+              contentToDisplay = `Uploaded JSON file "${file.name}" (invalid JSON):\n\`\`\`\n${text}\n\`\`\``;
+            }
+          } else if (file.name.endsWith('.csv')) {
+            contentToDisplay = `Uploaded CSV file "${file.name}":\n\`\`\`\n${text}\n\`\`\``;
+          } else if (file.name.endsWith('.txt')) {
+            contentToDisplay = `Uploaded text file "${file.name}":\n\`\`\`\n${text}\n\`\`\``;
+          } else {
+            // For other files, show as text (but limit size)
+            const displayText = text.length > 5000 ? text.substring(0, 5000) + '\n...[truncated]' : text;
+            contentToDisplay = `Uploaded file "${file.name}":\n\`\`\`\n${displayText}\n\`\`\``;
+          }
+
+          // Add the file content as a user message
+          const newHistory = messages.concat({ role: 'user', text: contentToDisplay });
+          setMessages(newHistory);
+
+          // Clear input and send to get AI response
+          setInputMsg('');
+          setChatLoading(true);
+
+          const r = await apiFetch('/api/ai/chat', {
+            method: 'POST',
+            body: JSON.stringify({ model_id: selectedModel, message: contentToDisplay, history: newHistory })
+          }, creds);
+
+          setChatLoading(false);
+          const replyText = (r.ok && r.data.reply) ? r.data.reply : 'Error: ' + (r.data.error || 'Failed to get reply.');
+          setMessages(function(prev) { return prev.concat({ role: 'assistant', text: replyText }); });
+        } catch (err) {
+          setMessages(function(prev) {
+            return prev.concat({
+              role: 'assistant',
+              text: 'Error processing file: ' + err.message
+            });
+          });
+        }
+      };
+
       // Persist messages-by-model to localStorage whenever it changes.
       useEffect(function() {
         try { localStorage.setItem('flamingodb_chat_history_by_model', JSON.stringify(messagesByModel)); } catch(e) {}
@@ -3836,8 +3892,19 @@
         React.createElement('div', { style: { padding: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 } },
           React.createElement('button', {
             className: 'btn btn-ghost',
-            onClick: function() { setImportInitialMode('append'); setImportInitialTable(''); setShowImport(true); },
-            title: 'Import data from CSV/JSON file'
+            onClick: function() {
+              const fileInput = document.createElement('input');
+              fileInput.type = 'file';
+              fileInput.accept = '.csv,.txt,.json,text/csv,text/plain,application/json';
+              fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  handleFileUpload(file);
+                }
+              };
+              fileInput.click();
+            },
+            title: 'Upload a file (CSV, TXT, JSON) for the AI to analyze'
           },
             React.createElement(Icon, { name: 'upload', size: 14 })
           ),
