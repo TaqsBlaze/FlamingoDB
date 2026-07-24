@@ -143,7 +143,7 @@ func TestOptimizeBTreeIndexScan(t *testing.T) {
 	if err := tm.CreateTable(nil, "users", schema); err != nil {
 		t.Fatalf("CreateTable failed: %v", err)
 	}
-	if err := tm.CreateIndex(nil, "users", "id"); err != nil {
+	if err := tm.CreateIndex(nil, "users", "id", "id"); err != nil {
 		t.Fatalf("CreateIndex failed: %v", err)
 	}
 
@@ -224,7 +224,7 @@ func TestOptimizeE2EExecution(t *testing.T) {
 		}
 	}
 
-	if err := tm.CreateIndex(nil, "items", "score"); err != nil {
+	if err := tm.CreateIndex(nil, "items", "score", "score"); err != nil {
 		t.Fatalf("CreateIndex failed: %v", err)
 	}
 
