@@ -2817,26 +2817,105 @@
       const [models, setModels] = useState([]);
       const [selectedModel, setSelectedModel] = useState('');
       const [loading, setLoading] = useState(true);
-      const [messages, setMessages] = useState(function() {
+
+      // Per-model chat history. Each active model keeps its own session so
+      // switching models clears the visible window but preserves the prior
+      // model's transcript; switching back resumes it exactly.
+      const [messagesByModel, setMessagesByModel] = useState(function() {
         try {
-          const saved = localStorage.getItem('flamingodb_chat_history');
-          return saved ? JSON.parse(saved) : INITIAL_MESSAGES;
-        } catch(e) { return INITIAL_MESSAGES; }
+          const saved = localStorage.getItem('flamingodb_chat_history_by_model');
+          const parsed = saved ? JSON.parse(saved) : null;
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            return parsed;
+          }
+          // Migrate from the pre-fix single-history key, if present.
+          const legacy = localStorage.getItem('flamingodb_chat_history');
+          if (legacy) {
+            try {
+              const legacyParsed = JSON.parse(legacy);
+              if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
+                return { __legacy__: legacyParsed };
+              }
+            } catch(e) {}
+          }
+          return {};
+        } catch(e) { return {}; }
       });
+
+      // The currently displayed transcript — a view into messagesByModel[selectedModel].
+      const [messages, setMessages] = useState(INITIAL_MESSAGES);
+
       const [inputMsg, setInputMsg] = useState('');
       const [chatLoading, setChatLoading] = useState(false);
       const [editingMsgIdx, setEditingMsgIdx] = useState(null);
       const [editingMsgText, setEditingMsgText] = useState('');
       const [hoveredMsgIdx, setHoveredMsgIdx] = useState(null);
 
-      // Persist messages to localStorage whenever they change
+      // Persist messages-by-model to localStorage whenever it changes.
       useEffect(function() {
-        try { localStorage.setItem('flamingodb_chat_history', JSON.stringify(messages)); } catch(e) {}
-      }, [messages]);
+        try { localStorage.setItem('flamingodb_chat_history_by_model', JSON.stringify(messagesByModel)); } catch(e) {}
+      }, [messagesByModel]);
+
+      // Helper: read the transcript for a given model, defaulting to the
+      // initial greeting when no session exists.
+      const sessionFor = function(modelId) {
+        if (!modelId) return INITIAL_MESSAGES;
+        return (messagesByModel[modelId] && messagesByModel[modelId].length > 0)
+          ? messagesByModel[modelId]
+          : INITIAL_MESSAGES;
+      };
+
+      // Whenever the active model changes, swap the visible transcript to
+      // that model's saved session. The previously active model's session
+      // is already in messagesByModel (it was written on every update), so
+      // switching is purely a view change — no data is lost.
+      useEffect(function() {
+        if (!selectedModel) return;
+        setMessagesByModel(function(prev) {
+          // One-time migration: if a legacy pre-fix transcript exists and the
+          // newly selected model has no session yet, attach the legacy chat
+          // to this model. This preserves the user's prior conversation
+          // across the upgrade.
+          if (prev.__legacy__ && !prev[selectedModel]) {
+            const next = Object.assign({}, prev);
+            next[selectedModel] = next.__legacy__;
+            delete next.__legacy__;
+            try { localStorage.removeItem('flamingodb_chat_history'); } catch(e) {}
+            return next;
+          }
+          return prev;
+        });
+        setMessages(sessionFor(selectedModel));
+        setInputMsg('');
+        setEditingMsgIdx(null);
+        setEditingMsgText('');
+      }, [selectedModel]);
+
+      // Write the current transcript back into the model-keyed store
+      // whenever it changes. A small effect (rather than touching every
+      // setMessages call site) keeps the persistence logic in one place.
+      useEffect(function() {
+        if (!selectedModel) return;
+        setMessagesByModel(function(prev) {
+          const current = prev[selectedModel];
+          // Skip the write if the slot already matches — avoids render loops
+          // when the value was just loaded in by the [selectedModel] effect.
+          if (current === messages) return prev;
+          const next = Object.assign({}, prev);
+          next[selectedModel] = messages;
+          return next;
+        });
+      }, [messages, selectedModel]);
 
       const startNewChat = function() {
+        if (!selectedModel) return;
+        // Reset ONLY the active model's session; other models keep theirs.
         setMessages(INITIAL_MESSAGES);
-        try { localStorage.removeItem('flamingodb_chat_history'); } catch(e) {}
+        setMessagesByModel(function(prev) {
+          const next = Object.assign({}, prev);
+          delete next[selectedModel];
+          return next;
+        });
       };
 
       const resendMessage = async function(idx, newText) {
@@ -2990,12 +3069,14 @@
             React.createElement('span', { style: { style: { fontSize: 12, color: 'var(--muted)' } } }, 'Active Model:'),
             React.createElement('select', {
               className: 'input',
-              style: { width: 200, height: 32, padding: '0 8px', fontSize: 12 },
+              style: { width: 220, height: 32, padding: '0 8px', fontSize: 12 },
               value: selectedModel,
               onChange: function(e) { setSelectedModel(e.target.value); }
             },
               models.map(function(m) {
-                return React.createElement('option', { key: m.id, value: m.id }, m.name + ' (' + m.provider.toUpperCase() + ')');
+                const hasSession = messagesByModel[m.id] && messagesByModel[m.id].length > 0;
+                const label = m.name + ' (' + m.provider.toUpperCase() + ')' + (hasSession ? ' • saved' : '');
+                return React.createElement('option', { key: m.id, value: m.id }, label);
               })
             ),
             React.createElement('button', {
@@ -3010,6 +3091,33 @@
           )
         ),
         React.createElement('div', { className: 'card-body', style: { flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, padding: 16 } },
+          (function() {
+            const activeModel = models.find(function(m) { return m.id === selectedModel; });
+            if (!activeModel) return null;
+            const turnCount = Math.max(0, messages.length - 1);
+            return React.createElement('div', {
+              key: 'session-banner',
+              style: {
+                fontSize: 11,
+                color: 'var(--muted)',
+                padding: '6px 10px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }
+            },
+              React.createElement(Icon, { name: 'history', size: 12, stroke: 'var(--muted)' }),
+              'Session: ',
+              React.createElement('strong', { style: { color: 'var(--text)' } }, activeModel.name),
+              ' (' + activeModel.provider.toUpperCase() + ')',
+              ' • ',
+              turnCount === 1 ? '1 message' : (turnCount + ' messages'),
+              ' in this session'
+            );
+          })(),
           messages.map(function(m, idx) {
             const isAssistant = m.role === 'assistant';
             return React.createElement('div', {
