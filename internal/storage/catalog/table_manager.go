@@ -319,7 +319,7 @@ func (tm *TableManager) ReadRecords(tx *transaction.Transaction, tableName strin
 
 // CreateIndex registers a B+ Tree index on the specified column. It allocates a root page,
 // populates the index with existing records, and updates the table catalog metadata.
-func (tm *TableManager) CreateIndex(tx *transaction.Transaction, tableName string, columnName string) (err error) {
+func (tm *TableManager) CreateIndex(tx *transaction.Transaction, tableName string, indexName string, columnName string) (err error) {
 	isAutoCommit := (tx == nil)
 	if isAutoCommit {
 		tx, err = tm.Begin()
@@ -367,8 +367,8 @@ func (tm *TableManager) CreateIndex(tx *transaction.Transaction, tableName strin
 		return fmt.Errorf("indexes not supported on type %v", colType)
 	}
 
-	if _, exists := meta.Indexes[columnName]; exists {
-		return fmt.Errorf("index already exists on column %s.%s", tableName, columnName)
+	if _, exists := meta.Indexes[indexName]; exists {
+		return fmt.Errorf("index %q already exists on table %s", indexName, tableName)
 	}
 
 	bt, err := btree.New(tm.pager, tm.pager.PageSize(), keyType)
@@ -427,7 +427,7 @@ func (tm *TableManager) CreateIndex(tx *transaction.Transaction, tableName strin
 		currPageID = page.PageID(nextID)
 	}
 
-	meta.Indexes[columnName] = &IndexMetadata{
+	meta.Indexes[indexName] = &IndexMetadata{
 		ColumnName: columnName,
 		RootPageID: bt.RootID(),
 		KeyType:    keyType,
@@ -492,6 +492,64 @@ func (tm *TableManager) NextSequenceValue(tx *transaction.Transaction, tableName
 	}
 
 	return nextSeq, nil
+}
+
+// DropIndex removes an index from the catalog and frees its associated B+ tree pages.
+// Note: This implementation does not actually free the B+ tree pages - it only removes
+// the metadata. A full implementation would need to traverse and free the B+ tree nodes.
+func (tm *TableManager) DropIndex(tx *transaction.Transaction, tableName string, indexName string, ifExists bool) (err error) {
+	isAutoCommit := (tx == nil)
+	if isAutoCommit {
+		tx, err = tm.Begin()
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if err != nil {
+				tm.Rollback(tx)
+			}
+		}()
+	}
+
+	meta, err := tm.catalog.GetTable(tableName)
+	if err != nil {
+		if !ifExists {
+			return err
+		}
+		// If table doesn't exist and IF EXISTS is specified, do nothing
+		if isAutoCommit {
+			return tm.Commit(tx)
+		}
+		return nil
+	}
+
+	// Find the index by name
+	_, exists := meta.Indexes[indexName]
+	if !exists {
+		if !ifExists {
+			return fmt.Errorf("index %q on table %q does not exist", indexName, tableName)
+		}
+		// If index doesn't exist and IF EXISTS is specified, do nothing
+		if isAutoCommit {
+			return tm.Commit(tx)
+		}
+		return nil
+	}
+
+	// Remove the index from metadata
+	delete(meta.Indexes, indexName)
+
+	// TODO: In a full implementation, we would also free the B+ tree pages
+	// associated with this index. For now, we just remove the metadata.
+
+	if err := tm.catalog.persist(tx); err != nil {
+		return err
+	}
+
+	if isAutoCommit {
+		return tm.Commit(tx)
+	}
+	return nil
 }
 
 // ReadRecordsIndexed performs a range scan on the B+ Tree index, gets physical PageIDs,

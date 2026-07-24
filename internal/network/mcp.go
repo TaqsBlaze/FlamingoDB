@@ -224,7 +224,7 @@ func (s *Server) handleMCPToolsCall(id any, name string, args json.RawMessage, p
 					return
 				}
 				if (strings.HasPrefix(qUpper, "DELETE")) && !policy.CanDelete {
-					s.sendMCPToolResult(id, "Error: permission denied for DROP by policy", true)
+					s.sendMCPToolResult(id, "Error: permission denied for DELETE by policy", true)
 					return
 				}
 				if (strings.HasPrefix(qUpper, "CREATE")) && !policy.CanCreate {
@@ -232,7 +232,7 @@ func (s *Server) handleMCPToolsCall(id any, name string, args json.RawMessage, p
 					return
 				}
 				if (strings.HasPrefix(qUpper, "DROP")) && !policy.CanDrop {
-					s.sendMCPToolResult(id, "Error: permission denied for DROP by policy", true)
+					s.sendMCPToolResult(id, "Error: permission denied for DELETE by policy", true)
 					return
 				}
 			}

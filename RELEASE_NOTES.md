@@ -1,36 +1,62 @@
-# FlamingoDB v1.2.0 — Release Notes
+# FlamingoDB v1.3.0 "Plumage" Release Notes
 
-FlamingoDB version `1.2.0` introduces major user-facing improvements, including schema discovery, data integrity guarantees, and a completely revamped, secure web administration interface. 
+**Release Date:** July 23, 2026
 
----
+## Overview
+FlamingoDB v1.3.0 "Plumage" introduces significant enhancements to AI-assisted database interactions, featuring expanded AI model support, improved Model Context Protocol (MCP) integration, and advanced data visualization capabilities.
 
-## 🖥️ Web Administration Dashboard
-The **Web Administration Dashboard** is now fully integrated and embedded directly into the database engine. It offers a beautiful, modern, and dark-themed graphical interface to manage and interact with your FlamingoDB server.
+## New Features
 
-### Key Capabilities:
-*   **Visual SQL Console**: Run database queries interactively and view beautifully formatted data tables with full support for advanced scientific, geospatial, and numerical data types.
-*   **Table & Schema Browser**: Explore all tables in the database catalog, inspect column configurations, and check column data types without writing SQL queries.
-*   **Access Control & Roles**: Create named security policies (e.g. read-only, read-write, schema-admin) and grant granular permissions (Select, Insert, Update, Delete, Create, Drop) directly through a visual settings panel.
-*   **User Account Administration**: Register new users, manage active permissions, and safely update user passwords in real time.
-*   **Live Server Monitor**: Keep track of the server's online status, active connection counts, and transactional states.
+### 🤖 Expanded AI Model Support
+- **Multi-provider AI integration**: Seamless connectivity to leading AI providers including:
+  - OpenAI (ChatGPT GPT-4o, GPT-4o-mini, o1/o3 series)
+  - Anthropic (Claude 3.5 Haiku and Sonnet)
+  - Google (Gemini 1.5 Flash/Pro, 2.0 Flash)
+  - DeepSeek (Chat V3 and Reasoner R1)
+- **Configurable thinking levels**: Adjust reasoning effort for supported models (OpenAI o1/o3, Gemini 2.0 Thinking, DeepSeek R1)
+- **Per-model policy assignment**: Assign custom security policies to each AI model configuration
+- **Enhanced model management**: Improved UI for adding, editing, and configuring AI models in Settings
 
----
+### 🔌 Model Context Protocol (MCP) Enhancements
+- **Standardized tool interface**: Robust MCP implementation for secure AI-database communication
+- **Expanded toolset**: 
+  - `list_tables`: Discover available database tables
+  - `describe_table`: Examine table schemas and column details
+  - `execute_query`: Execute SQL queries with policy-based authorization
+  - `generate_chart`: Create chart specifications for data visualization (new in this release)
+- **Improved error handling**: Clearer permission messages and better tool execution feedback
 
-## 🚀 Key Database Features & Enhancements
+### 📊 Advanced Data Visualization
+- **AI-generated charts**: Natural language to chart generation via MCP `generate_chart` tool
+- **Per-model chart persistence**: Each AI model maintains its own chart collection that persists across sessions and model switches
+- **Interactive chart rendering**: 
+  - Inline chart display within AI chat messages for immediate feedback
+  - Dedicated persistent chart view that updates when switching models
+  - Support for multiple chart types: bar, line, pie, doughnut, radar, polarArea, scatter, bubble
+- **LocalStorage persistence**: Chart configurations survive page reloads and browser restarts
 
-### 1. Schema Discovery (`SHOW TABLES`)
-*   **Functional Change**: Users can now execute the standard `SHOW TABLES;` SQL query in the console or terminal client.
-*   **User Benefit**: Retrieve a clean, alphabetically sorted list of all active tables currently registered in the database catalog.
+### 💬 AI Assistant Improvements
+- **Enhanced chat persistence**: Conversation history automatically saved to localStorage
+- **Model switching**: Seamless transition between AI models with preserved context
+- **Message editing**: Ability to edit and resend messages for refined queries
+- **Query integration**: Direct SQL execution from chat interface with results formatting
+- **Improved UI/UX**: Refined chat interface with better loading states and message actions
 
-### 2. Auto-Enforced Unique Record IDs
-*   **Functional Change**: The storage engine now automatically detects the presence of an `id`/`ID` column in any table schema.
-*   **User Benefit**: It prevents duplicate rows with identical IDs. Attempting to insert a record with an ID that already exists will safely abort the transaction and raise a clear duplicate key error, ensuring robust data integrity.
+## Technical Improvements
+- **Performance optimizations**: Reduced chart rendering footprint for better chat window integration
+- **Security enhancements**: Improved policy enforcement for MCP tool execution
+- **Stability fixes**: Resolved various edge cases in chat history and chart state management
+- **Code quality**: Updated dependencies and improved error logging throughout
 
----
+## Getting Started
+To use the new AI features:
+1. Navigate to Settings → AI Models to configure your preferred AI providers
+2. Add API keys for ChatGPT, Gemini, Claude, or DeepSeek as desired
+3. Visit the AI Assistant page to start querying your database with natural language
+4. Request visualizations by asking for charts - e.g., "Show me a bar chart of sales by region"
+5. Switch between models to compare responses while preserving individual chart collections
 
-## 🔒 Security Improvements
+## Compatibility
+FlamingoDB v1.3.0 maintains backward compatibility with existing configurations and databases. No migration steps are required for upgrading from previous versions.
 
-### SHA-256 Password Hashing
-*   **Functional Change**: User passwords stored on disk (`users.json`) are now secured using standard SHA-256 encryption instead of plain text.
-*   **User Benefit**: Complete peace of mind for account credentials. 
-*   **Zero-Overhead Upgrade**: When starting up with version `1.2.0`, the server daemon automatically scans the user database, encrypts any legacy plain-text passwords on-the-fly, and commits the secured hashes back to disk.
+This release represents our commitment to making database interaction more intuitive, powerful, and accessible through AI-assisted tools while maintaining the security and reliability FlamingoDB is known for.
