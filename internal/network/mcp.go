@@ -252,9 +252,54 @@ func (s *Server) handleMCPToolsCall(id any, name string, args json.RawMessage, p
 		s.sendMCPToolResult(id, string(jsonData), false)
 
 	case "generate_chart":
-		// For now, we simply echo back the input as the chart specification.
-		// In the future, we could process the data to ensure it's in the correct format.
-		s.sendMCPToolResult(id, string(args), false)
+		var params struct {
+			Type   string         `json:"type"`
+			Data   map[string]any `json:"data"`
+			Options map[string]any `json:"options"`
+		}
+		if err := json.Unmarshal(args, &params); err != nil {
+			s.sendMCPToolResult(id, fmt.Sprintf("Error: invalid generate_chart arguments: %v", err), true)
+			return
+		}
+
+		allowedTypes := map[string]bool{
+			"bar": true, "line": true, "pie": true, "doughnut": true,
+			"radar": true, "polarArea": true, "scatter": true, "bubble": true,
+		}
+		if !allowedTypes[params.Type] {
+			s.sendMCPToolResult(id, fmt.Sprintf("Error: unsupported chart type %q (allowed: bar, line, pie, doughnut, radar, polarArea, scatter, bubble)", params.Type), true)
+			return
+		}
+
+		if params.Data == nil {
+			params.Data = map[string]any{}
+		}
+		if params.Options == nil {
+			params.Options = map[string]any{
+				"responsive": true,
+				"plugins": map[string]any{
+					"legend": map[string]any{"position": "top"},
+					"title":  map[string]any{"display": true, "text": "Chart"},
+				},
+			}
+		}
+
+		chartSpec := map[string]any{
+			"type":    params.Type,
+			"data":    params.Data,
+			"options": params.Options,
+		}
+		specJSON, err := json.MarshalIndent(chartSpec, "", "  ")
+		if err != nil {
+			s.sendMCPToolResult(id, fmt.Sprintf("Error: failed to encode chart spec: %v", err), true)
+			return
+		}
+
+		// Wrap the validated chart spec in a ```chart fenced block so the UI's
+		// markdown parser renders it as an actual Chart.js visualization
+		// instead of plain text.
+		rendered := "```chart\n" + string(specJSON) + "\n```"
+		s.sendMCPToolResult(id, rendered, false)
 
 	default:
 		s.sendMCPError(id, -32601, fmt.Sprintf("Tool %s not found", name), nil)
