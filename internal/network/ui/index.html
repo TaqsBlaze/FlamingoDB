@@ -2815,8 +2815,8 @@
                       fontSize: '12px',
                       color: 'var(--text)'
                     }
-                  }, parseInlineMarkdown(cell.trim())))))
-                  ))
+                  }, parseInlineMarkdown(cell.trim()))))
+                  )
                 )
               )
             )
@@ -4153,7 +4153,7 @@
             )
           )
         )
-        {showImport && React.createElement(ImportDataModal, {
+        showImport && React.createElement(ImportDataModal, {
           creds: creds,
           onClose: function() { setShowImport(false); },
           onComplete: function(result) {
