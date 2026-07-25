@@ -1,6 +1,9 @@
-echo "Building...."
+echo "Installing...."
 
 go install ./cmd/flamingodbd
 go install ./cmd/flamingo
 
+echo "Cleaning up...."
+
+go clean cache
 echo "Done"
