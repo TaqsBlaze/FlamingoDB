@@ -4152,8 +4152,8 @@
               )
             )
           )
-        )
-        showImport && React.createElement(ImportDataModal, {
+        ),
+        {showImport && React.createElement(ImportDataModal, {
           creds: creds,
           onClose: function() { setShowImport(false); },
           onComplete: function(result) {
