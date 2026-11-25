@@ -1,62 +1,29 @@
-# FlamingoDB v1.3.0 "Plumage" Release Notes
+# FlamingoDB v1.3.0 "Plumage" release notes
 
-**Release Date:** July 23, 2026
+FlamingoDB 1.3.0 expands the web interface, adds database import options and a Windows installer, and improves AI-assisted analysis. This release also fixes SQL pagination and makes documentation available before sign-in.
 
-## Overview
-FlamingoDB v1.3.0 "Plumage" introduces significant enhancements to AI-assisted database interactions, featuring expanded AI model support, improved Model Context Protocol (MCP) integration, and advanced data visualization capabilities.
+## Web interface and data import
 
-## New Features
+- Import CSV, TSV, and flat JSON files into a new table or append them to an existing table. Review the preview, column mappings, and inferred `INT`, `FLOAT`, and `VARCHAR` types before importing.
+- Import one table at a time from a SQLite database or a MySQL database. SQLite is read in the browser using a reader loaded from a CDN. MySQL connections are initiated by the server, require a FlamingoDB administrator, and use TLS by default; use a read-only MySQL account.
+- The database importer supports nonempty tables of up to 10,000 rows. NULL and binary values are not supported, and indexes and constraints are not copied. SQLite files are limited to 32 MiB and MySQL source data to 16 MiB. Validate the mapped types, particularly for large integers and precision-sensitive values. An insertion error can leave previously inserted rows in the destination.
+- Query History saves up to 30 statements and their results in the browser for the signed-in username. Selecting an entry restores the saved output without executing the query again.
+- Expanded in-app documentation covers getting started, SQL, imports, users, policies, AI models, profiles, and engine internals. It can also be opened from the sign-in page.
+- The `samples/` directory contains synthetic spatial, weather, scientific, and medical CSV datasets and an import guide.
 
-### 🤖 Expanded AI Model Support
-- **Multi-provider AI integration**: Seamless connectivity to leading AI providers including:
-  - OpenAI (ChatGPT GPT-4o, GPT-4o-mini, o1/o3 series)
-  - Anthropic (Claude 3.5 Haiku and Sonnet)
-  - Google (Gemini 1.5 Flash/Pro, 2.0 Flash)
-  - DeepSeek (Chat V3 and Reasoner R1)
-- **Configurable thinking levels**: Adjust reasoning effort for supported models (OpenAI o1/o3, Gemini 2.0 Thinking, DeepSeek R1)
-- **Per-model policy assignment**: Assign custom security policies to each AI model configuration
-- **Enhanced model management**: Improved UI for adding, editing, and configuring AI models in Settings
+## AI assistant and MCP
 
-### 🔌 Model Context Protocol (MCP) Enhancements
-- **Standardized tool interface**: Robust MCP implementation for secure AI-database communication
-- **Expanded toolset**: 
-  - `list_tables`: Discover available database tables
-  - `describe_table`: Examine table schemas and column details
-  - `execute_query`: Execute SQL queries with policy-based authorization
-  - `generate_chart`: Create chart specifications for data visualization (new in this release)
-- **Improved error handling**: Clearer permission messages and better tool execution feedback
+- The AI chat keeps multiple conversations per model, with a side panel for switching conversations. Existing browser-saved per-model histories are carried over. Conversation history remains in the browser, not on the server.
+- New messages scroll into view. Chart handling supports bar, line, pie, doughnut, radar, polar-area, scatter, and bubble configurations, with visible defaults and improved handling of model-generated tool calls.
+- Added `calculate_vector` for addition, subtraction, dot product, cross product, and norm, and `calculate_distance` for planar distance or approximate geographic distance in kilometers. Geographic distance uses a spherical haversine calculation.
+- The MCP server reports version 1.3.0.
 
-### 📊 Advanced Data Visualization
-- **AI-generated charts**: Natural language to chart generation via MCP `generate_chart` tool
-- **Per-model chart persistence**: Each AI model maintains its own chart collection that persists across sessions and model switches
-- **Interactive chart rendering**: 
-  - Inline chart display within AI chat messages for immediate feedback
-  - Dedicated persistent chart view that updates when switching models
-  - Support for multiple chart types: bar, line, pie, doughnut, radar, polarArea, scatter, bubble
-- **LocalStorage persistence**: Chart configurations survive page reloads and browser restarts
+## SQL and Windows
 
-### 💬 AI Assistant Improvements
-- **Enhanced chat persistence**: Conversation history automatically saved to localStorage
-- **Model switching**: Seamless transition between AI models with preserved context
-- **Message editing**: Ability to edit and resend messages for refined queries
-- **Query integration**: Direct SQL execution from chat interface with results formatting
-- **Improved UI/UX**: Refined chat interface with better loading states and message actions
+- Fixed parsing of `LIMIT`, `OFFSET`, and `ORDER BY` expressions and preserved result column names through pagination. For consistent pages, specify an ordering, for example: `SELECT * FROM stars ORDER BY id LIMIT 10 OFFSET 10;`.
+- Added a per-user Windows installer and launcher. The launcher starts the server on loopback and opens the browser; the Start menu includes a Stop FlamingoDB shortcut. Database files remain under `%LOCALAPPDATA%\FlamingoDB\data` when uninstalling. Stop the server before upgrading or uninstalling.
+- Build the 64-bit installer with `packaging/windows/build.ps1` on Windows or `packaging/windows/build.sh` with Go and NSIS available. The installer and launcher should be verified on the target Windows environment before distribution.
 
-## Technical Improvements
-- **Performance optimizations**: Reduced chart rendering footprint for better chat window integration
-- **Security enhancements**: Improved policy enforcement for MCP tool execution
-- **Stability fixes**: Resolved various edge cases in chat history and chart state management
-- **Code quality**: Updated dependencies and improved error logging throughout
+## Upgrade notes
 
-## Getting Started
-To use the new AI features:
-1. Navigate to Settings → AI Models to configure your preferred AI providers
-2. Add API keys for ChatGPT, Gemini, Claude, or DeepSeek as desired
-3. Visit the AI Assistant page to start querying your database with natural language
-4. Request visualizations by asking for charts - e.g., "Show me a bar chart of sales by region"
-5. Switch between models to compare responses while preserving individual chart collections
-
-## Compatibility
-FlamingoDB v1.3.0 maintains backward compatibility with existing configurations and databases. No migration steps are required for upgrading from previous versions.
-
-This release represents our commitment to making database interaction more intuitive, powerful, and accessible through AI-assisted tools while maintaining the security and reliability FlamingoDB is known for.
+The initial Windows login for a new installation is `admin` / `admin`; change it in My Profile. Existing stored user credentials are not overwritten by the daemon's startup flags. Browser-stored query results and conversations are local to that browser and may be lost when browser data is cleared. Keep database files and configuration backed up before upgrading.

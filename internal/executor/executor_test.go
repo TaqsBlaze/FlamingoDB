@@ -146,16 +146,15 @@ func TestExecuteInsertRowsAffected(t *testing.T) {
 	}
 }
 
-
 func TestExecuteScientificTypes(t *testing.T) {
 	exec := setupExecutor(t)
 
 	execSQL(t, exec, "CREATE TABLE sci (id INT, c COMPLEX, v VECTOR, m MATRIX, ten TENSOR);")
-	
+
 	// Test basic INSERT with scientific literals
 	execSQL(t, exec, "INSERT INTO sci VALUES (1, 1.2+3.4i, [1.0, 2.5, 3.0], [[1, 2], [3, 4]], [[[1.0, 2.0]], [[3.0, 4.0]]]);")
 	execSQL(t, exec, "INSERT INTO sci VALUES (2, -4.5i, [0.0, -1.0], [[5, 6, 7]], [[[9.0]]]);")
-	
+
 	// Test SELECT
 	result := execSQL(t, exec, "SELECT * FROM sci;")
 	if len(result.Rows) != 2 {
@@ -253,17 +252,17 @@ func TestExecuteGeospatialTypes(t *testing.T) {
 		t.Fatalf("expected 1 row, got %d", len(funcRes.Rows))
 	}
 	fRow := funcRes.Rows[0]
-	
+
 	// DISTANCE(POINT(3,4), POINT(0,0)) -> 5.0
 	if fRow.Values[0].Flt != 5.0 {
 		t.Errorf("expected distance 5.0, got %f", fRow.Values[0].Flt)
 	}
-	
+
 	// AREA(POLYGON(...)) -> 100.0
 	if fRow.Values[1].Flt != 100.0 {
 		t.Errorf("expected area 100.0, got %f", fRow.Values[1].Flt)
 	}
-	
+
 	// INTERSECTS(POINT(5,5), POLYGON(...)) -> 1
 	if fRow.Values[2].Int != 1 {
 		t.Errorf("expected intersects 1 (true), got %d", fRow.Values[2].Int)
@@ -320,5 +319,31 @@ func TestExecuteInsertWithColumns(t *testing.T) {
 	}
 	if result.Rows[1].Values[2].Flt != 0.0 {
 		t.Errorf("expected magnitude=0.0, got %f", result.Rows[1].Values[2].Flt)
+	}
+}
+
+func TestSelectLimitOffset(t *testing.T) {
+	exec := setupExecutor(t)
+	execSQL(t, exec, "CREATE TABLE items (id INT, name VARCHAR);")
+	execSQL(t, exec, "INSERT INTO items VALUES (1, 'one'), (2, 'two'), (3, 'three');")
+	for _, tc := range []struct {
+		query string
+		want  []int32
+	}{
+		{"SELECT * FROM items ORDER BY id LIMIT 2;", []int32{1, 2}},
+		{"SELECT * FROM items ORDER BY id LIMIT 1 OFFSET 1;", []int32{2}},
+		{"SELECT * FROM items LIMIT 0;", []int32{}},
+		{"SELECT * FROM items LIMIT 5 OFFSET 9;", []int32{}},
+		{"SELECT * FROM items ORDER BY id DESC LIMIT 2;", []int32{3, 2}},
+	} {
+		result := execSQL(t, exec, tc.query)
+		if len(result.Rows) != len(tc.want) {
+			t.Fatalf("%s: got %d rows, want %d", tc.query, len(result.Rows), len(tc.want))
+		}
+		for i, want := range tc.want {
+			if result.Rows[i].Values[0].Int != want {
+				t.Fatalf("%s: row %d got %v, want %d", tc.query, i, result.Rows[i].Values[0], want)
+			}
+		}
 	}
 }

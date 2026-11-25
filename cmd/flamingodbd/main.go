@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -23,6 +24,7 @@ func main() {
 	dataDir := flag.String("dir", "./data", "Database data directory")
 	dbName := flag.String("db", "flamingo", "Database name")
 	mcpMode := flag.Bool("mcp", false, "Run in stdio Model Context Protocol (MCP) server mode")
+	shutdownStdin := flag.Bool("shutdown-stdin", false, "Shut down when standard input closes")
 	policyName := flag.String("policy", "", "Policy name to enforce for MCP server queries")
 	flag.Parse()
 
@@ -103,6 +105,12 @@ func main() {
 	// 5. Wait for termination signals for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	if *shutdownStdin {
+		go func() {
+			_, _ = io.Copy(io.Discard, os.Stdin)
+			sigChan <- os.Interrupt
+		}()
+	}
 
 	sig := <-sigChan
 	log.Info("Received signal %v, shutting down...", sig)

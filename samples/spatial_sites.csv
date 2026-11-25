@@ -1,0 +1,145 @@
+id,site_code,site_type,nearest_city,latitude_deg,longitude_deg,elevation_m,observation_score
+1,SITE_001,monitoring_station,Harare,-17.785064,31.051474,1564.9,32.15
+2,SITE_002,water_sample_site,Bulawayo,-19.99873,28.60175,1126.9,80.95
+3,SITE_003,weather_station,Victoria Falls,-18.053112,25.721758,1087.8,63.55
+4,SITE_004,research_plot,Mutare,-19.114642,32.716557,1525.7,94.49
+5,SITE_005,monitoring_station,Gweru,-19.538661,29.780127,1686.7,42.74
+6,SITE_006,water_sample_site,Masvingo,-20.097086,30.89888,1299.6,84.97
+7,SITE_007,weather_station,Harare,-17.677219,30.945922,1003.5,49.24
+8,SITE_008,research_plot,Bulawayo,-20.076408,28.577523,1571.7,8.05
+9,SITE_009,monitoring_station,Victoria Falls,-17.787736,25.987199,1473.6,2.92
+10,SITE_010,water_sample_site,Mutare,-18.957551,32.691699,1662.4,28.58
+11,SITE_011,weather_station,Gweru,-19.513624,29.771095,1629.2,11.62
+12,SITE_012,research_plot,Masvingo,-19.949614,30.721721,1322.8,90.52
+13,SITE_013,monitoring_station,Harare,-17.704599,30.968754,1564.1,35.2
+14,SITE_014,water_sample_site,Bulawayo,-20.194774,28.656508,1251.1,7.98
+15,SITE_015,weather_station,Victoria Falls,-17.86726,25.930444,1506.9,29.92
+16,SITE_016,research_plot,Mutare,-18.960949,32.732865,1105.7,16.78
+17,SITE_017,monitoring_station,Gweru,-19.528038,29.845287,1753.6,70.78
+18,SITE_018,water_sample_site,Masvingo,-20.002179,30.809287,1585.6,77.24
+19,SITE_019,weather_station,Harare,-17.775106,31.060369,1630.6,15.1
+20,SITE_020,research_plot,Bulawayo,-20.200654,28.747297,1431.7,38.93
+21,SITE_021,monitoring_station,Victoria Falls,-18.001243,25.942794,1155.7,63.38
+22,SITE_022,water_sample_site,Mutare,-18.83485,32.571388,1455.6,29.23
+23,SITE_023,weather_station,Gweru,-19.310463,29.833789,1702.1,33.86
+24,SITE_024,research_plot,Masvingo,-20.196213,30.696667,1683.3,78.02
+25,SITE_025,monitoring_station,Harare,-17.949798,30.889712,1323.0,6.56
+26,SITE_026,water_sample_site,Bulawayo,-20.063417,28.766661,1127.1,98.08
+27,SITE_027,weather_station,Victoria Falls,-17.846179,25.994453,1292.5,17.2
+28,SITE_028,research_plot,Mutare,-18.856566,32.809683,1304.6,13.41
+29,SITE_029,monitoring_station,Gweru,-19.459445,29.889276,1703.6,40.85
+30,SITE_030,water_sample_site,Masvingo,-20.17805,30.915048,953.8,10.02
+31,SITE_031,weather_station,Harare,-17.68482,31.010257,1044.1,63.06
+32,SITE_032,research_plot,Bulawayo,-20.009548,28.667062,1319.8,65.61
+33,SITE_033,monitoring_station,Victoria Falls,-17.786211,25.762174,1538.3,71.23
+34,SITE_034,water_sample_site,Mutare,-18.87853,32.702096,1488.0,21.84
+35,SITE_035,weather_station,Gweru,-19.511857,29.950811,1615.0,80.01
+36,SITE_036,research_plot,Masvingo,-19.990637,30.742756,1401.1,97.95
+37,SITE_037,monitoring_station,Harare,-17.951975,30.938172,897.0,8.35
+38,SITE_038,water_sample_site,Bulawayo,-20.068445,28.707861,898.6,5.72
+39,SITE_039,weather_station,Victoria Falls,-18.071527,25.841612,1466.2,30.75
+40,SITE_040,research_plot,Mutare,-19.005453,32.817358,1259.3,94.88
+41,SITE_041,monitoring_station,Gweru,-19.504668,29.815781,1194.5,94.18
+42,SITE_042,water_sample_site,Masvingo,-19.95923,30.685687,1186.3,40.23
+43,SITE_043,weather_station,Harare,-17.738325,31.097158,1547.9,30.9
+44,SITE_044,research_plot,Bulawayo,-20.087411,28.667393,1257.0,27.09
+45,SITE_045,monitoring_station,Victoria Falls,-17.986196,25.884161,1464.9,84.34
+46,SITE_046,water_sample_site,Mutare,-19.013576,32.522869,1602.8,96.32
+47,SITE_047,weather_station,Gweru,-19.355241,29.690376,963.0,90.13
+48,SITE_048,research_plot,Masvingo,-20.126012,30.742471,1751.7,41.34
+49,SITE_049,monitoring_station,Harare,-17.801941,30.89644,1108.0,59.18
+50,SITE_050,water_sample_site,Bulawayo,-20.025781,28.490848,924.7,74.27
+51,SITE_051,weather_station,Victoria Falls,-17.994367,25.984357,935.8,87.8
+52,SITE_052,research_plot,Mutare,-18.943341,32.664386,1549.2,40.45
+53,SITE_053,monitoring_station,Gweru,-19.336623,29.860054,960.9,97.24
+54,SITE_054,water_sample_site,Masvingo,-20.154153,30.905458,1044.6,64.05
+55,SITE_055,weather_station,Harare,-17.856184,31.05644,1462.6,90.63
+56,SITE_056,research_plot,Bulawayo,-20.109018,28.715288,1755.1,47.82
+57,SITE_057,monitoring_station,Victoria Falls,-17.941538,25.818677,956.2,30.92
+58,SITE_058,water_sample_site,Mutare,-19.001771,32.796468,860.6,14.02
+59,SITE_059,weather_station,Gweru,-19.409673,29.856652,1163.4,87.15
+60,SITE_060,research_plot,Masvingo,-20.20467,30.796984,1083.5,49.73
+61,SITE_061,monitoring_station,Harare,-17.710107,30.97334,1200.2,50.4
+62,SITE_062,water_sample_site,Bulawayo,-20.082366,28.738129,1490.5,3.34
+63,SITE_063,weather_station,Victoria Falls,-17.808644,25.91854,1608.8,11.71
+64,SITE_064,research_plot,Mutare,-19.064249,32.669567,1599.4,69.18
+65,SITE_065,monitoring_station,Gweru,-19.304118,29.933863,1386.3,29.36
+66,SITE_066,water_sample_site,Masvingo,-20.129095,30.71647,1641.5,80.91
+67,SITE_067,weather_station,Harare,-17.958762,30.909028,977.5,66.91
+68,SITE_068,research_plot,Bulawayo,-20.195048,28.703111,1633.1,4.72
+69,SITE_069,monitoring_station,Victoria Falls,-17.920862,25.995012,1006.9,51.1
+70,SITE_070,water_sample_site,Mutare,-19.027365,32.541981,1061.6,55.43
+71,SITE_071,weather_station,Gweru,-19.432626,29.862445,1642.1,10.94
+72,SITE_072,research_plot,Masvingo,-20.198852,30.92374,1260.5,41.04
+73,SITE_073,monitoring_station,Harare,-17.816626,30.950659,918.0,66.49
+74,SITE_074,water_sample_site,Bulawayo,-20.085436,28.492315,1083.5,1.34
+75,SITE_075,weather_station,Victoria Falls,-17.85135,25.891868,968.2,87.29
+76,SITE_076,research_plot,Mutare,-19.044604,32.617221,860.2,49.89
+77,SITE_077,monitoring_station,Gweru,-19.326159,29.827525,1568.3,64.86
+78,SITE_078,water_sample_site,Masvingo,-20.027255,30.973987,1667.2,47.79
+79,SITE_079,weather_station,Harare,-17.926119,31.009789,1373.5,98.25
+80,SITE_080,research_plot,Bulawayo,-20.009453,28.597751,1074.6,56.4
+81,SITE_081,monitoring_station,Victoria Falls,-17.837703,25.845261,926.9,82.67
+82,SITE_082,water_sample_site,Mutare,-19.09444,32.689494,1646.9,51.95
+83,SITE_083,weather_station,Gweru,-19.445127,29.806872,1248.1,72.13
+84,SITE_084,research_plot,Masvingo,-20.191282,30.823168,1162.1,11.64
+85,SITE_085,monitoring_station,Harare,-17.74125,31.021819,1039.8,85.64
+86,SITE_086,water_sample_site,Bulawayo,-20.069656,28.567979,928.8,65.82
+87,SITE_087,weather_station,Victoria Falls,-17.809152,25.848371,1155.6,35.24
+88,SITE_088,research_plot,Mutare,-18.914363,32.796653,1244.6,34.33
+89,SITE_089,monitoring_station,Gweru,-19.56564,29.961149,1657.4,3.62
+90,SITE_090,water_sample_site,Masvingo,-20.1215,30.811478,1280.9,30.24
+91,SITE_091,weather_station,Harare,-17.898858,31.004801,1715.0,33.93
+92,SITE_092,research_plot,Bulawayo,-20.174214,28.77242,1550.2,32.57
+93,SITE_093,monitoring_station,Victoria Falls,-17.887952,25.849342,1549.3,10.75
+94,SITE_094,water_sample_site,Mutare,-19.116603,32.58851,1272.6,16.62
+95,SITE_095,weather_station,Gweru,-19.559761,29.801496,1739.1,57.81
+96,SITE_096,research_plot,Masvingo,-20.099921,30.772495,1193.4,4.59
+97,SITE_097,monitoring_station,Harare,-17.707695,30.923718,1654.2,44.93
+98,SITE_098,water_sample_site,Bulawayo,-19.998862,28.565344,1416.4,22.73
+99,SITE_099,weather_station,Victoria Falls,-18.017585,25.753612,1209.7,99.24
+100,SITE_100,research_plot,Mutare,-18.916737,32.795382,1015.4,94.6
+101,SITE_101,monitoring_station,Gweru,-19.476717,29.84139,1280.6,51.63
+102,SITE_102,water_sample_site,Masvingo,-19.947701,30.918051,1281.9,23.68
+103,SITE_103,weather_station,Harare,-17.741252,31.070441,1019.9,45.32
+104,SITE_104,research_plot,Bulawayo,-20.188747,28.690755,1534.7,71.4
+105,SITE_105,monitoring_station,Victoria Falls,-17.849895,25.986752,1142.8,84.95
+106,SITE_106,water_sample_site,Mutare,-18.875582,32.545662,1367.4,2.97
+107,SITE_107,weather_station,Gweru,-19.550567,29.774153,1581.1,65.68
+108,SITE_108,research_plot,Masvingo,-20.185527,30.685904,1723.2,19.7
+109,SITE_109,monitoring_station,Harare,-17.891027,30.907126,1170.3,60.78
+110,SITE_110,water_sample_site,Bulawayo,-20.268497,28.724066,1481.1,88.77
+111,SITE_111,weather_station,Victoria Falls,-17.997587,25.903933,862.7,39.58
+112,SITE_112,research_plot,Mutare,-19.091237,32.576884,1329.4,55.01
+113,SITE_113,monitoring_station,Gweru,-19.565955,29.829481,1016.9,48.13
+114,SITE_114,water_sample_site,Masvingo,-20.173306,30.788569,1768.0,51.66
+115,SITE_115,weather_station,Harare,-17.847318,31.076303,1437.1,87.32
+116,SITE_116,research_plot,Bulawayo,-20.158686,28.636965,1075.2,21.92
+117,SITE_117,monitoring_station,Victoria Falls,-17.991823,25.964663,1392.2,84.48
+118,SITE_118,water_sample_site,Mutare,-18.920683,32.580312,893.2,96.56
+119,SITE_119,weather_station,Gweru,-19.319552,29.823335,1745.8,89.29
+120,SITE_120,research_plot,Masvingo,-20.099121,30.855185,1762.7,21.86
+121,SITE_121,monitoring_station,Harare,-17.878237,31.131004,1264.3,3.49
+122,SITE_122,water_sample_site,Bulawayo,-20.281215,28.747743,922.6,58.99
+123,SITE_123,weather_station,Victoria Falls,-17.887421,25.821325,979.9,38.13
+124,SITE_124,research_plot,Mutare,-19.111775,32.69695,1334.5,55.4
+125,SITE_125,monitoring_station,Gweru,-19.455792,29.890536,1248.2,0.57
+126,SITE_126,water_sample_site,Masvingo,-20.080192,30.969488,1401.0,47.42
+127,SITE_127,weather_station,Harare,-17.949452,31.052116,1162.1,11.17
+128,SITE_128,research_plot,Bulawayo,-20.269017,28.699055,1290.3,46.5
+129,SITE_129,monitoring_station,Victoria Falls,-17.997332,26.003599,855.5,8.99
+130,SITE_130,water_sample_site,Mutare,-18.872701,32.774769,1041.8,62.59
+131,SITE_131,weather_station,Gweru,-19.345201,29.938433,1755.9,48.53
+132,SITE_132,research_plot,Masvingo,-20.032701,30.836863,1785.4,74.97
+133,SITE_133,monitoring_station,Harare,-17.688726,30.998702,1363.2,21.04
+134,SITE_134,water_sample_site,Bulawayo,-20.279684,28.738892,1225.3,69.87
+135,SITE_135,weather_station,Victoria Falls,-17.94723,25.995378,1263.1,80.56
+136,SITE_136,research_plot,Mutare,-19.039434,32.64078,1127.2,70.66
+137,SITE_137,monitoring_station,Gweru,-19.592817,29.852578,1000.9,95.32
+138,SITE_138,water_sample_site,Masvingo,-20.115785,30.837097,1734.5,59.88
+139,SITE_139,weather_station,Harare,-17.961043,31.009876,1118.1,20.31
+140,SITE_140,research_plot,Bulawayo,-20.006616,28.661752,870.7,6.6
+141,SITE_141,monitoring_station,Victoria Falls,-17.907688,25.941592,1557.6,85.94
+142,SITE_142,water_sample_site,Mutare,-19.04416,32.620963,1159.0,24.99
+143,SITE_143,weather_station,Gweru,-19.338676,29.771551,1501.1,82.81
+144,SITE_144,research_plot,Masvingo,-20.147768,30.742483,1105.1,5.91
