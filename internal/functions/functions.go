@@ -15,21 +15,21 @@ type Function func(args []record.Value) (record.Value, error)
 
 // Registry maps function names (in uppercase) to their implementation.
 var Registry = map[string]Function{
-	"SIN":   evalSin,
-	"COS":   evalCos,
-	"TAN":   evalTan,
-	"ASIN":  evalAsin,
-	"ACOS":  evalAcos,
-	"ATAN":  evalAtan,
-	"EXP":   evalExp,
-	"LOG":   evalLog,
-	"LN":    evalLog,
-	"SQRT":  evalSqrt,
-	"ABS":   evalAbs,
-	"POW":   evalPow,
-	"DOT":   evalDot,
-	"CROSS": evalCross,
-	"NORM":  evalNorm,
+	"SIN":             evalSin,
+	"COS":             evalCos,
+	"TAN":             evalTan,
+	"ASIN":            evalAsin,
+	"ACOS":            evalAcos,
+	"ATAN":            evalAtan,
+	"EXP":             evalExp,
+	"LOG":             evalLog,
+	"LN":              evalLog,
+	"SQRT":            evalSqrt,
+	"ABS":             evalAbs,
+	"POW":             evalPow,
+	"DOT":             evalDot,
+	"CROSS":           evalCross,
+	"NORM":            evalNorm,
 	"POINT":           evalPoint,
 	"POLYGON":         evalPolygon,
 	"ST_GEOMFROMTEXT": evalGeomFromText,
@@ -52,6 +52,9 @@ func toFloat(val record.Value) (float64, error) {
 
 // parseVector parses a vector from a string format: e.g. "[1.0, 2.0, 3.0]" or "1.0, 2.0, 3.0"
 func parseVector(val record.Value) ([]float64, error) {
+	if val.Type == record.Vector {
+		return val.Vec, nil
+	}
 	if val.Type != record.Varchar {
 		return nil, fmt.Errorf("expected vector to be represented as a VARCHAR string, got type %v", val.Type)
 	}
@@ -281,6 +284,9 @@ func evalCross(args []record.Value) (record.Value, error) {
 		v1[2]*v2[0] - v1[0]*v2[2],
 		v1[0]*v2[1] - v1[1]*v2[0],
 	}
+	if args[0].Type == record.Vector || args[1].Type == record.Vector {
+		return record.Value{Type: record.Vector, Vec: cross}, nil
+	}
 	return record.Value{Type: record.Varchar, Str: formatVector(cross)}, nil
 }
 
@@ -420,4 +426,3 @@ func evalArea(args []record.Value) (record.Value, error) {
 	area := args[0].Poly.Area()
 	return record.Value{Type: record.Float, Flt: area}, nil
 }
-

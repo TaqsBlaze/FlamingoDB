@@ -40,7 +40,7 @@ type WAL struct {
 
 // Open opens or creates a WAL file.
 func Open(filename string) (*WAL, error) {
-	file, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		return nil, err
 	}
@@ -81,6 +81,12 @@ func (w *WAL) Append(txID uint64, recType RecordType, pageID page.PageID, data [
 		return 0, err
 	}
 
+	// ReadAllRecords changes the file position. Seek under the same lock as
+	// the write so appends remain at the end without O_APPEND, which prevents
+	// truncation on Windows.
+	if _, err = w.file.Seek(0, io.SeekEnd); err != nil {
+		return 0, err
+	}
 	_, err = w.file.Write(bytes)
 	if err != nil {
 		return 0, err
