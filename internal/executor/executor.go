@@ -380,8 +380,8 @@ func typeOfExpression(expr ast.Expression, schema *record.Schema) (record.TypeID
 				return 0, err
 			}
 			if fnName == "NORM" {
-				if argType != record.Varchar {
-					return 0, fmt.Errorf("NORM expects VARCHAR argument (vector format), got %v", argType)
+				if argType != record.Varchar && argType != record.Vector {
+					return 0, fmt.Errorf("NORM expects VECTOR or bracketed VARCHAR, got %v", argType)
 				}
 			} else {
 				if argType != record.Integer && argType != record.Float {
@@ -421,40 +421,27 @@ func typeOfExpression(expr ast.Expression, schema *record.Schema) (record.TypeID
 			}
 			return record.Float, nil
 
-		case "DOT":
+		case "DOT", "CROSS":
 			if len(e.Args) != 2 {
-				return 0, fmt.Errorf("DOT expects 2 arguments, got %d", len(e.Args))
+				return 0, fmt.Errorf("%s expects two vectors", fnName)
 			}
-			arg0Type, err := typeOfExpression(e.Args[0], schema)
-			if err != nil {
-				return 0, err
+			resultType := record.Varchar
+			for _, arg := range e.Args {
+				t, err := typeOfExpression(arg, schema)
+				if err != nil {
+					return 0, err
+				}
+				if t != record.Vector && t != record.Varchar {
+					return 0, fmt.Errorf("%s expects VECTOR or bracketed VARCHAR", fnName)
+				}
+				if t == record.Vector {
+					resultType = record.Vector
+				}
 			}
-			arg1Type, err := typeOfExpression(e.Args[1], schema)
-			if err != nil {
-				return 0, err
+			if fnName == "DOT" {
+				return record.Float, nil
 			}
-			if arg0Type != record.Varchar || arg1Type != record.Varchar {
-				return 0, fmt.Errorf("DOT expects VARCHAR arguments (vector format), got %v and %v", arg0Type, arg1Type)
-			}
-			return record.Float, nil
-
-		case "CROSS":
-			if len(e.Args) != 2 {
-				return 0, fmt.Errorf("CROSS expects 2 arguments, got %d", len(e.Args))
-			}
-			arg0Type, err := typeOfExpression(e.Args[0], schema)
-			if err != nil {
-				return 0, err
-			}
-			arg1Type, err := typeOfExpression(e.Args[1], schema)
-			if err != nil {
-				return 0, err
-			}
-			if arg0Type != record.Varchar || arg1Type != record.Varchar {
-				return 0, fmt.Errorf("CROSS expects VARCHAR arguments (vector format), got %v and %v", arg0Type, arg1Type)
-			}
-			return record.Varchar, nil
-
+			return resultType, nil
 		case "POINT":
 			if len(e.Args) != 2 {
 				return 0, fmt.Errorf("POINT expects 2 arguments, got %d", len(e.Args))
@@ -625,6 +612,18 @@ func (e *Executor) schemaFromChild(child planner.PlanNode) (*record.Schema, erro
 		return e.tm.GetSchema(n.Table)
 	case *planner.FilterNode:
 		return e.schemaFromChild(n.Child)
+	case *planner.SortNode:
+		return e.schemaFromChild(n.Child)
+	case *planner.LimitOffsetNode:
+		return e.schemaFromChild(n.Child)
+	case *planner.DistinctNode:
+		return e.schemaFromChild(n.Child)
+	case *planner.AggregateNode:
+		input, err := e.schemaFromChild(n.Child)
+		if err != nil {
+			return nil, err
+		}
+		return e.aggregateSchema(n, input)
 	default:
 		return nil, fmt.Errorf("cannot resolve schema from node type %T", child)
 	}
@@ -1202,6 +1201,14 @@ func compareValues(left record.Value, op string, right record.Value) (bool, erro
 		switch op {
 		case "=", "==":
 			return l == r, nil
+		case "<":
+			return l < r, nil
+		case "<=":
+			return l <= r, nil
+		case ">":
+			return l > r, nil
+		case ">=":
+			return l >= r, nil
 		case "!=":
 			return l != r, nil
 		}
@@ -1362,134 +1369,137 @@ func (e *Executor) executeAggregate(tx *transaction.Transaction, n *planner.Aggr
 		return nil, err
 	}
 
-	// Get schema from child
 	schema, err := e.schemaFromChild(n.Child)
 	if err != nil {
 		return nil, err
 	}
-
-	// Group the rows
-	groups := make(map[string][]Row)
-
-	// If no GROUP BY, treat all rows as one group
+	if _, err = e.aggregateSchema(n, schema); err != nil {
+		return nil, err
+	}
+	groups := map[string][]Row{}
 	if len(n.GroupBy) == 0 {
 		groups[""] = childResult.Rows
-	} else {
-		// Group by the specified columns
-		for _, row := range childResult.Rows {
-			// Create a key from the GROUP BY values
-			var keyParts []string
-			for _, expr := range n.GroupBy {
-				val, err := evalRowExpression(expr, row, schema)
-				if err != nil {
-					return nil, fmt.Errorf("failed to evaluate GROUP BY expression: %w", err)
-				}
-				keyParts = append(keyParts, fmt.Sprintf("%v", val))
+	}
+	for _, row := range childResult.Rows {
+		if len(n.GroupBy) == 0 {
+			break
+		}
+		var key strings.Builder
+		for _, expr := range n.GroupBy {
+			v, err := evalRowExpression(expr, row, schema)
+			if err != nil {
+				return nil, err
 			}
-			key := strings.Join(keyParts, "|")
-			groups[key] = append(groups[key], row)
+			fmt.Fprintf(&key, "%#v;", v)
+		}
+		k := key.String()
+		groups[k] = append(groups[k], row)
+	}
+	result := &Result{}
+	for _, rows := range groups {
+		r := Row{}
+		for _, expr := range n.GroupBy {
+			v, err := evalRowExpression(expr, rows[0], schema)
+			if err != nil {
+				return nil, err
+			}
+			r.Values = append(r.Values, v)
+		}
+		for _, expr := range n.Aggregates {
+			call := expr.(*ast.CallExpression)
+			if len(rows) == 0 && call.Function != "COUNT" {
+				return result, nil
+			} // No SQL NULL type.
+			v, err := reduceGroup(call, rows, schema)
+			if err != nil {
+				return nil, err
+			}
+			r.Values = append(r.Values, v)
+		}
+		result.Rows = append(result.Rows, r)
+	}
+	return result, nil
+}
+
+func (e *Executor) aggregateSchema(n *planner.AggregateNode, input *record.Schema) (*record.Schema, error) {
+	out := &record.Schema{}
+	for _, expr := range n.GroupBy {
+		t, err := typeOfExpression(expr, input)
+		if err != nil {
+			return nil, err
+		}
+		out.Columns = append(out.Columns, record.Column{Name: expr.String(), Type: t})
+	}
+	for _, expr := range n.Aggregates {
+		call := expr.(*ast.CallExpression)
+		if len(call.Args) != 1 {
+			return nil, fmt.Errorf("%s expects one argument", call.Function)
+		}
+		t, err := typeOfExpression(call.Args[0], input)
+		if err != nil {
+			return nil, err
+		}
+		switch call.Function {
+		case "COUNT":
+			t = record.Integer
+		case "AVG", "SUM":
+			if t != record.Integer && t != record.Float {
+				return nil, fmt.Errorf("%s requires a numeric argument", call.Function)
+			}
+			t = record.Float
+		case "MIN", "MAX":
+			if call.Args[0].String() == "*" || (t != record.Integer && t != record.Float && t != record.Varchar) {
+				return nil, fmt.Errorf("%s requires a sortable argument", call.Function)
+			}
+		}
+		out.Columns = append(out.Columns, record.Column{Name: call.String(), Type: t})
+	}
+	return out, nil
+}
+
+func reduceGroup(call *ast.CallExpression, rows []Row, schema *record.Schema) (record.Value, error) {
+	if call.Function == "COUNT" {
+		return record.Value{Type: record.Integer, Int: int32(len(rows))}, nil
+	}
+	var best record.Value
+	var sum float64
+	for i, row := range rows {
+		v, err := evalRowExpression(call.Args[0], row, schema)
+		if err != nil {
+			return record.Value{}, err
+		}
+		switch call.Function {
+		case "MIN", "MAX":
+			if i == 0 {
+				best = v
+				continue
+			}
+			op := "<"
+			if call.Function == "MAX" {
+				op = ">"
+			}
+			replace, err := compareValues(v, op, best)
+			if err != nil {
+				return record.Value{}, err
+			}
+			if replace {
+				best = v
+			}
+		default:
+			if v.Type == record.Integer {
+				sum += float64(v.Int)
+			} else {
+				sum += v.Flt
+			}
 		}
 	}
-
-	// Calculate aggregates for each group
-	var resultRows []Row
-
-	// For each group
-	for _, groupRows := range groups {
-		if len(groupRows) == 0 {
-			continue
-		}
-
-		// Initialize aggregation values
-		var count int64 = 0
-		var sumValues []float64 = make([]float64, len(n.Aggregates))
-		var countValues []int64 = make([]int64, len(n.Aggregates))
-
-		// Process each row in the group
-		for _, row := range groupRows {
-			count++
-
-			// Evaluate each aggregate expression for this row
-			for i, aggExpr := range n.Aggregates {
-				val, err := evalRowExpression(aggExpr, row, schema)
-				if err != nil {
-					return nil, fmt.Errorf("failed to evaluate aggregate expression: %w", err)
-				}
-
-				// For SUM and AVG, we need numeric values
-				if val.Type == record.Integer || val.Type == record.Float {
-					floatVal := 0.0
-					if val.Type == record.Integer {
-						floatVal = float64(val.Int)
-					} else {
-						floatVal = val.Flt
-					}
-					sumValues[i] += floatVal
-					countValues[i]++
-				}
-				// For COUNT, we count non-null values (or * for COUNT(*))
-				// For simplicity, we'll handle COUNT(*) separately in the planner
-				// For now, COUNT(expression) counts non-null values
-			}
-		}
-
-		// Build result row: GROUP BY values + aggregate values
-		// First, get the GROUP BY values from the first row in the group
-		var groupByValues []record.Value
-		if len(n.GroupBy) > 0 {
-			firstRow := groupRows[0]
-			for _, expr := range n.GroupBy {
-				val, err := evalRowExpression(expr, firstRow, schema)
-				if err != nil {
-					return nil, fmt.Errorf("failed to evaluate GROUP BY expression for result: %w", err)
-				}
-				groupByValues = append(groupByValues, val)
-			}
-		}
-
-		// Compute aggregate values
-		var aggValues []record.Value
-		for i, aggExpr := range n.Aggregates {
-			// Determine the aggregate function type from the expression
-			var aggFunc string
-			if callExpr, ok := aggExpr.(*ast.CallExpression); ok {
-				aggFunc = strings.ToUpper(callExpr.Function)
-			}
-
-			switch aggFunc {
-			case "COUNT":
-				// COUNT(*) counts rows, COUNT(expression) counts non-null values
-				// For simplicity, we'll use the row count for all COUNT aggregates
-				// A more accurate implementation would distinguish COUNT(*) from COUNT(column)
-				aggValues = append(aggValues, record.Value{Type: record.Integer, Int: int32(count)})
-			case "SUM":
-				if countValues[i] > 0 {
-					// Determine if we should return int or float based on input types
-					// For simplicity, always return float64 for SUM
-					aggValues = append(aggValues, record.Value{Type: record.Float, Flt: sumValues[i]})
-				} else {
-					aggValues = append(aggValues, record.Value{Type: record.Float, Flt: 0.0})
-				}
-			case "AVG":
-				if countValues[i] > 0 {
-					avg := sumValues[i] / float64(countValues[i])
-					aggValues = append(aggValues, record.Value{Type: record.Float, Flt: avg})
-				} else {
-					aggValues = append(aggValues, record.Value{Type: record.Float, Flt: 0.0})
-				}
-			default:
-				// Unknown aggregate function, use 0
-				aggValues = append(aggValues, record.Value{Type: record.Integer, Int: 0})
-			}
-		}
-
-		// Combine GROUP BY and aggregate values
-		resultValues := append([]record.Value{}, groupByValues...)
-		resultValues = append(resultValues, aggValues...)
-		resultRows = append(resultRows, Row{Values: resultValues})
+	if call.Function == "MIN" || call.Function == "MAX" {
+		return best, nil
 	}
-
-	return &Result{Rows: resultRows}, nil
+	if call.Function == "AVG" {
+		sum /= float64(len(rows))
+	}
+	return record.Value{Type: record.Float, Flt: sum}, nil
 }
 
 // executeSort sorts rows according to the ORDER BY specification.
@@ -1881,9 +1891,9 @@ func (e *Executor) executeShowIndexes(tx *transaction.Transaction, n *planner.Sh
 
 		rows = append(rows, Row{
 			Values: []record.Value{
-				{Type: record.Varchar, Str: indexName},          // IndexName
-				{Type: record.Varchar, Str: n.TableName},        // TableName
-				{Type: record.Varchar, Str: indexMeta.ColumnName}, // ColumnName
+				{Type: record.Varchar, Str: indexName},                  // IndexName
+				{Type: record.Varchar, Str: n.TableName},                // TableName
+				{Type: record.Varchar, Str: indexMeta.ColumnName},       // ColumnName
 				{Type: record.Integer, Int: int32(boolToInt(isUnique))}, // IndexType (0=Non-unique, 1=Unique)
 			},
 		})

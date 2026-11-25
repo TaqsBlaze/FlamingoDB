@@ -1,14 +1,11 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/TaqsBlaze/FlamingoDB/internal/parser/parser"
-	"github.com/TaqsBlaze/FlamingoDB/internal/planner"
 	"github.com/TaqsBlaze/FlamingoDB/internal/storage/catalog"
 	"github.com/TaqsBlaze/FlamingoDB/internal/storage/pager"
 	"github.com/TaqsBlaze/FlamingoDB/internal/storage/record"

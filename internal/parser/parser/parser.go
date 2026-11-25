@@ -60,6 +60,9 @@ func New(l *lexer.Lexer) *Parser {
 
 	p.prefixParseFns = make(map[lexer.TokenType]prefixParseFn)
 	p.registerPrefix(lexer.IDENT, p.parseIdentifier)
+	for _, token := range []lexer.TokenType{lexer.COUNT, lexer.SUM, lexer.AVG} {
+		p.registerPrefix(token, p.parseCallExpression)
+	}
 	p.registerPrefix(lexer.INT, p.parseIntegerLiteral)
 	p.registerPrefix(lexer.FLOAT, p.parseFloatLiteral)
 	p.registerPrefix(lexer.STRING, p.parseStringLiteral)
@@ -379,6 +382,7 @@ func (p *Parser) parseSelectStatement() *ast.SelectStatement {
 		if !p.expectPeek(lexer.BY) {
 			return nil
 		}
+		p.nextToken() // first grouping expression
 		// Parse GROUP BY expressions
 		for {
 			expr := p.parseExpression(LOWEST)
@@ -397,6 +401,7 @@ func (p *Parser) parseSelectStatement() *ast.SelectStatement {
 	// Parse HAVING clause
 	if p.peekTokenIs(lexer.HAVING) {
 		p.nextToken() // Move to HAVING
+		p.nextToken()
 		stmt.Having = p.parseExpression(LOWEST)
 	}
 

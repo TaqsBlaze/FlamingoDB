@@ -130,6 +130,8 @@ FlamingoDB follows a strict **Clean Architecture** each layer communicates only 
 
 ## 🚀 Quick Start
 
+[Download the FlamingoDB technical guide (PDF)](docs/FlamingoDB-Technical-Guide.pdf) for installation, a first database, SQL and dashboard examples, integration APIs, and recovery procedures.
+
 The following demonstrates a full SQL pipeline across the **scientific data management** stack from raw SQL string to persisted records and filtered results.
 
 ```go
@@ -464,7 +466,7 @@ http://localhost:8080/ui
 
 #### Windows installer
 
-Run `FlamingoDB-Setup-1.3.0-x64.exe` on 64-bit Windows. The installer adds a desktop launcher and Start menu shortcuts. Open **FlamingoDB** to start the local server and open the dashboard; use **Stop FlamingoDB** in the Start menu to shut it down. The initial login is `admin` / `admin`; change the password in My Profile after signing in. The server listens on `127.0.0.1` and stores the database and settings in `%LOCALAPPDATA%\FlamingoDB\data`. Uninstalling keeps this data. Stop the server before upgrading or uninstalling.
+Run `FlamingoDB-Setup-1.3.1-x64.exe` on 64-bit Windows. The installer adds a desktop launcher and Start menu shortcuts. Open **FlamingoDB** to start the local server and open the dashboard; use **Stop FlamingoDB** in the Start menu to shut it down. The initial login is `admin` / `admin`; change the password in My Profile after signing in. The server listens on `127.0.0.1` and stores the database and settings in `%LOCALAPPDATA%\FlamingoDB\data`. Uninstalling keeps this data. Stop the server before upgrading or uninstalling.
 
 To build the installer from source, install Go and NSIS, then run `packaging/windows/build.ps1` in PowerShell (or `packaging/windows/build.sh` on a machine with a cross-compiling Go toolchain and NSIS). The installer is written to `build/`.
 

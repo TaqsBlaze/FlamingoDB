@@ -1,7 +1,7 @@
 Unicode true
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
-!define APP_VERSION "1.3.0"
+!define APP_VERSION "1.3.1"
 !ifndef BUILD_DIR
   !define BUILD_DIR "../../build/windows"
 !endif

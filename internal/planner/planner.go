@@ -243,8 +243,8 @@ func (n *JoinNode) String() string {
 type AggregateNode struct {
 	GroupBy    []ast.Expression
 	Having     ast.Expression
-	AggFuncs   map[string]bool   // Aggregate function names that are present
-	Aggregates []ast.Expression  // Aggregate expressions extracted from SELECT
+	AggFuncs   map[string]bool  // Aggregate function names that are present
+	Aggregates []ast.Expression // Aggregate expressions extracted from SELECT
 	Child      PlanNode
 }
 
@@ -386,9 +386,9 @@ func (n *CreateIndexNode) String() string {
 
 // DropIndexNode represents a DROP INDEX operation.
 type DropIndexNode struct {
-	IndexName  string
-	TableName  string
-	IfExists   bool
+	IndexName string
+	TableName string
+	IfExists  bool
 }
 
 // Type returns PlanDropIndex.
@@ -545,27 +545,62 @@ func (p *Planner) planSelect(stmt *ast.SelectStatement) (PlanNode, error) {
 		}
 	}
 
-	// Apply GROUP BY and aggregation
-	if len(stmt.GroupBy) > 0 || stmt.Having != nil {
-		// Determine which aggregates are present in the SELECT clause
-		aggFuncs := make(map[string]bool)
-		var aggregates []ast.Expression
-		for _, field := range stmt.Fields {
-			if callExpr, ok := field.(*ast.CallExpression); ok {
-				switch strings.ToUpper(callExpr.Function) {
-				case "COUNT", "SUM", "AVG", "MIN", "MAX":
-					aggFuncs[strings.ToUpper(callExpr.Function)] = true
-					aggregates = append(aggregates, field)
-				}
+	// Collect aggregate calls and reference their computed values in later operators.
+	agg := &AggregateNode{GroupBy: stmt.GroupBy, Child: node, AggFuncs: map[string]bool{}}
+	var bind func(ast.Expression) ast.Expression
+	bind = func(expr ast.Expression) ast.Expression {
+		if expr == nil {
+			return nil
+		}
+		for _, key := range stmt.GroupBy {
+			if key.String() == expr.String() {
+				return &ast.Identifier{Value: key.String()}
 			}
 		}
-
-		node = &AggregateNode{
-			GroupBy:    stmt.GroupBy,
-			Having:     stmt.Having,
-			AggFuncs:   aggFuncs,
-			Aggregates: aggregates,
-			Child:      node,
+		switch v := expr.(type) {
+		case *ast.CallExpression:
+			switch v.Function {
+			case "AVG", "COUNT", "SUM", "MIN", "MAX":
+				for _, existing := range agg.Aggregates {
+					if existing.String() == v.String() {
+						return &ast.Identifier{Value: v.String()}
+					}
+				}
+				agg.Aggregates = append(agg.Aggregates, v)
+				agg.AggFuncs[v.Function] = true
+				return &ast.Identifier{Value: v.String()}
+			}
+			call := *v
+			call.Args = make([]ast.Expression, len(v.Args))
+			for i, arg := range v.Args {
+				call.Args[i] = bind(arg)
+			}
+			return &call
+		case *ast.InfixExpression:
+			copy := *v
+			copy.Left = bind(v.Left)
+			copy.Right = bind(v.Right)
+			return &copy
+		case *ast.PrefixExpression:
+			copy := *v
+			copy.Right = bind(v.Right)
+			return &copy
+		}
+		return expr
+	}
+	fields := make([]ast.Expression, len(stmt.Fields))
+	for i, field := range stmt.Fields {
+		fields[i] = bind(field)
+	}
+	having := bind(stmt.Having)
+	order := append([]ast.OrderBy(nil), stmt.OrderBy...)
+	for i := range order {
+		order[i].Expression = bind(order[i].Expression)
+	}
+	if len(agg.GroupBy) > 0 || len(agg.Aggregates) > 0 || having != nil {
+		node = agg
+		if having != nil {
+			node = &FilterNode{Child: node, Condition: having}
 		}
 	}
 
@@ -579,7 +614,7 @@ func (p *Planner) planSelect(stmt *ast.SelectStatement) (PlanNode, error) {
 	// Apply ORDER BY
 	if len(stmt.OrderBy) > 0 {
 		node = &SortNode{
-			OrderBy: stmt.OrderBy,
+			OrderBy: order,
 			Child:   node,
 		}
 	}
@@ -597,7 +632,7 @@ func (p *Planner) planSelect(stmt *ast.SelectStatement) (PlanNode, error) {
 	if len(stmt.Fields) > 0 {
 		node = &ProjectNode{
 			Child:  node,
-			Fields: stmt.Fields,
+			Fields: fields,
 		}
 	}
 
