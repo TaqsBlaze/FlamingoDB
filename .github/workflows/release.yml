@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 name: Publish FlamingoDB release
 on:
   push:
@@ -38,4 +39,23 @@ jobs:
           gh release create "$GITHUB_REF_NAME" --verify-tag \
             --title "FlamingoDB $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md \
             "build/FlamingoDB-Setup-${GITHUB_REF_NAME#v}-x64.exe" \
+=======
+name: Publish verified v1.3.1 artifacts
+on:
+  push:
+    branches: [publish-v1.3.1]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish the existing tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v1.3.1 --verify-tag --title "FlamingoDB v1.3.1" \
+            --notes-file RELEASE_NOTES.md release-assets/FlamingoDB-Setup-1.3.1-x64.exe \
+>>>>>>> ce8c6e2d7abed0931b0bf617f531bc404e24e289
             docs/FlamingoDB-Technical-Guide.pdf
