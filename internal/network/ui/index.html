@@ -16,6 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/framer-motion@10.16.4/dist/framer-motion.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
 
   <style>
     *,
@@ -1340,6 +1341,73 @@
     .font-mono {
       font-family: 'Fira Code', monospace;
     }
+    /* Engine reference */
+    .docs-layout { display: grid; grid-template-columns: 245px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; min-height: 75vh; border: 1px solid var(--border); background: #0d1626; border-radius: 14px; overflow: hidden; }
+    .docs-nav { background: #101a2b; border-right: 1px solid var(--border); padding: 28px 16px; display: flex; flex-direction: column; }
+    .docs-nav-heading { color: var(--pink2); font-size: 10px; font-weight: 800; letter-spacing: .16em; margin: 0 10px 20px; }
+    .docs-search { display: flex; align-items: center; gap: 9px; background: #0a1321; border: 1px solid var(--border2); border-radius: 7px; padding: 9px 10px; color: var(--muted2); }
+    .docs-search:focus-within { border-color: var(--pink); }
+    .docs-search input { width: 100%; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--text); font: inherit; font-size: 12px; }
+    .docs-nav-label { font-size: 10px; font-weight: 700; letter-spacing: .13em; color: var(--muted); margin: 30px 10px 10px; }
+    .docs-links { display: grid; gap: 3px; }
+    .docs-link { display: flex; align-items: center; gap: 10px; text-align: left; width: 100%; border: 0; border-radius: 7px; padding: 10px; background: transparent; color: var(--muted2); cursor: pointer; font: inherit; font-size: 12px; }
+    .docs-link:hover { color: var(--text); background: #19263a; }
+    .docs-link.active { color: #fff; background: rgba(244,63,135,.12); }
+    .docs-link-number { font-family: 'Fira Code', monospace; font-size: 10px; color: #65778e; }
+    .docs-link.active .docs-link-number { color: var(--pink2); }
+    .docs-link-arrow { margin-left: auto; color: var(--pink2); opacity: 0; }
+    .docs-link.active .docs-link-arrow { opacity: 1; }
+    .docs-no-results { font-size: 12px; line-height: 1.6; color: var(--muted2); padding: 10px; }
+    .docs-nav-footer { border-top: 1px solid var(--border); margin: auto 10px 0; padding-top: 20px; color: var(--muted); font-size: 11px; }
+    .docs-status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green2); margin-right: 8px; }
+    .docs-article { min-width: 0; }
+    .docs-hero { padding: 54px clamp(26px, 6vw, 80px) 38px; background: radial-gradient(ellipse at 85% 0%, rgba(244,63,135,.15), transparent 47%), linear-gradient(135deg, #17243a, #101a2b); border-bottom: 1px solid var(--border); }
+    .docs-eyebrow { display: flex; align-items: center; gap: 9px; font-size: 10px; font-weight: 800; color: var(--pink2); letter-spacing: .16em; }
+    .docs-eyebrow span { width: 20px; height: 2px; background: var(--pink); }
+    .docs-hero h1 { color: #f5f7fb; font-size: clamp(32px, 4vw, 48px); letter-spacing: -.045em; line-height: 1.1; margin: 20px 0 16px; }
+    .docs-hero p { max-width: 670px; color: #aebdd0; font-size: 15px; line-height: 1.75; }
+    .docs-hero-meta { display: flex; gap: 20px; flex-wrap: wrap; color: #6f829b; font-family: 'Fira Code', monospace; font-size: 9px; letter-spacing: .08em; margin-top: 30px; }
+    .docs-body { max-width: 900px; padding: 12px clamp(26px, 6vw, 80px) 36px; }
+    .docs-section { display: grid; grid-template-columns: 38px minmax(0, 1fr); padding: 30px 0; border-bottom: 1px solid var(--border); }
+    .docs-section-index { color: #53647a; font: 10px 'Fira Code', monospace; padding-top: 5px; }
+    .docs-section h2 { color: #f1f5f9; font-size: 17px; letter-spacing: -.02em; margin-bottom: 12px; }
+    .docs-section p, .docs-detail span { color: #a8b7c9; font-size: 13px; line-height: 1.8; }
+    .docs-detail-list { border-top: 1px solid var(--border); }
+    .docs-detail { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; gap: 20px; padding: 13px 0; border-bottom: 1px solid var(--border); }
+    .docs-detail strong { color: #e5edf8; font-size: 12px; line-height: 1.8; }
+    .docs-section pre { overflow-x: auto; background: #080f1c; border: 1px solid #263650; border-radius: 8px; padding: 20px; color: #c5d8ed; font: 12px/1.8 'Fira Code', monospace; }
+    .docs-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 20px 0; }
+    .docs-flow span { padding: 9px 11px; border: 1px solid #30415b; border-radius: 6px; background: #17253a; color: #dbe7f5; font-size: 11px; font-weight: 600; }
+    .docs-flow b { color: var(--pink2); font-weight: 400; }
+    .docs-note { display: flex; gap: 12px; align-items: flex-start; background: rgba(59,130,246,.08); color: #8cb8ef; border: 1px solid rgba(96,165,250,.2); border-radius: 8px; padding: 16px; margin-top: 26px; }
+    .docs-note svg { flex-shrink: 0; margin-top: 2px; }
+    .docs-note p { color: #a9c1db; font-size: 12px; line-height: 1.7; }
+    .docs-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--border); padding: 22px clamp(26px, 6vw, 80px); color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .1em; }
+    .docs-bottom button { border: 0; background: none; color: var(--pink2); font: 600 12px 'Inter', sans-serif; cursor: pointer; }
+    .docs-link:focus-visible, .docs-bottom button:focus-visible { outline: 2px solid var(--pink2); outline-offset: 2px; }
+    @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .docs-nav { border-right: 0; border-bottom: 1px solid var(--border); padding: 20px; } .docs-nav-heading { margin-bottom: 12px; } .docs-nav-label { margin-top: 18px; } .docs-links { display: flex; flex-wrap: wrap; } .docs-link { width: auto; } .docs-nav-footer { display: none; } }
+    @media (max-width: 560px) { .docs-detail { grid-template-columns: 1fr; gap: 3px; } .docs-section { grid-template-columns: 26px minmax(0, 1fr); } }
+    button.history-item { width: 100%; text-align: left; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+    button.history-item:hover { background: var(--card2); }
+    .chat-workspace { display: flex; flex: 1; min-height: 0; }
+    .chat-conversation { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; }
+    .chat-history { width: 230px; flex: 0 0 230px; background: #101a2a; border-right: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
+    .chat-history.collapsed { width: 44px; flex-basis: 44px; }
+    .chat-history.collapsed .chat-history-heading > div { display: none; }
+    .chat-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 18px 14px 12px; }
+    .chat-history-heading strong { display: block; color: var(--text); font-size: 12px; }
+    .chat-history-heading span { display: block; color: var(--muted2); font-size: 10px; margin-top: 5px; }
+    .chat-history-toggle { border: 1px solid var(--border2); border-radius: 5px; color: var(--muted2); background: transparent; cursor: pointer; font-size: 20px; line-height: 22px; width: 24px; flex: 0 0 24px; }
+    .chat-history-list { overflow-y: auto; padding: 4px 8px 12px; display: grid; align-content: start; gap: 3px; }
+    .chat-history-item { display: flex; align-items: flex-start; gap: 9px; width: 100%; text-align: left; padding: 11px 10px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--muted2); cursor: pointer; font: inherit; }
+    .chat-history-item:hover { background: var(--card2); color: var(--text); }
+    .chat-history-item.active { color: var(--pink2); border-color: rgba(244,63,135,.22); background: rgba(244,63,135,.09); }
+    .chat-history-item:disabled { opacity: .65; cursor: wait; }
+    .chat-history-item span { min-width: 0; flex: 1; }
+    .chat-history-item strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; }
+    .chat-history-item small { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; }
+    @media (max-width: 900px) { .chat-history { width: 180px; flex-basis: 180px; } }
+    @media (max-width: 650px) { .chat-history { width: 135px; flex-basis: 135px; } }
   </style>
 </head>
 
@@ -1545,10 +1613,18 @@
       const [loading, setLoading] = useState(false);
       const [results, setResults] = useState(null);
       const [error, setError] = useState('');
-      const [history, setHistory] = useState([]);
+      const historyKey = 'flamingodb_query_history_v1:' + creds.username;
+      const [history, setHistory] = useState(function() {
+        try { const saved = JSON.parse(localStorage.getItem(historyKey) || '[]'); return Array.isArray(saved) ? saved : []; } catch(e) { return []; }
+      });
+      const [historyError, setHistoryError] = useState(false);
+      useEffect(function() {
+        try { localStorage.setItem(historyKey, JSON.stringify(history)); setHistoryError(false); }
+        catch(e) { setHistoryError(true); }
+      }, [history, historyKey]);
 
       const run = async function () {
-        if (!query.trim()) return;
+        if (!query.trim() || loading) return;
         setLoading(true); setError(''); setResults(null);
         const ts = Date.now();
         const { ok, data } = await apiFetch('/query', { method: 'POST', body: JSON.stringify({ query: query.trim() }) }, creds);
@@ -1562,7 +1638,9 @@
         } else {
           setError('Unexpected response');
         }
-        setHistory(function (h) { return [{ q: query.trim(), ts, ok: !!(data && data.results) }].concat(h.slice(0, 29)); });
+        const savedResults = data && Array.isArray(data.results) ? data.results : null;
+        const savedError = savedResults ? '' : ((data && data.error) || (!ok ? 'Query failed' : 'Unexpected response'));
+        setHistory(function (h) { return [{ q: query.trim(), ts: ts, ok: !!savedResults && !savedResults.some(function(r) { return !!r.error; }), results: savedResults, error: savedError }].concat(h.slice(0, 29)); });
         setLoading(false);
       };
 
@@ -1623,19 +1701,19 @@
                     ? React.createElement(Banner, { type: 'error' }, res.error)
                     : res.message
                       ? React.createElement('div', { className: 'result-msg' }, '✓ ' + res.message)
-                      : (res.columns && res.rows)
+                      : res.columns
                         ? React.createElement('div', { className: 'card' },
                           React.createElement('div', { className: 'card-header' },
                             React.createElement(Icon, { name: 'table', size: 15, stroke: 'var(--blue2)' }),
                             React.createElement('h3', null, 'Result Set'),
-                            React.createElement('span', { className: 'badge badge-blue' }, res.rows.length + ' row' + (res.rows.length !== 1 ? 's' : '')),
+                            React.createElement('span', { className: 'badge badge-blue' }, (res.rows || []).length + ' row' + ((res.rows || []).length !== 1 ? 's' : '')),
                             React.createElement('span', { className: 'badge badge-gray' }, res.columns.length + ' col' + (res.columns.length !== 1 ? 's' : ''))
                           ),
                           React.createElement('div', { className: 'table-wrap', style: { borderRadius: 0, border: 'none', maxHeight: 340, overflowY: 'auto' } },
                             React.createElement('table', null,
                               React.createElement('thead', null, React.createElement('tr', null, res.columns.map(function (c) { return React.createElement('th', { key: c }, c); }))),
                               React.createElement('tbody', null,
-                                res.rows.length === 0
+                                (!res.rows || res.rows.length === 0)
                                   ? React.createElement('tr', null, React.createElement('td', { colSpan: res.columns.length }, React.createElement(Empty, { icon: 'inbox', title: 'No rows returned' })))
                                   : res.rows.map(function (row, ri) { return React.createElement('tr', { key: ri }, row.map(function (v, ci) { return React.createElement('td', { key: ci }, fmt(v)); })); })
                               )
@@ -1665,11 +1743,13 @@
                   )
                   : null
               ),
+              historyError ? React.createElement('div', { style: { padding: 12 } }, React.createElement(Banner, { type: 'error' }, 'Could not save query history in this browser.')) : null,
+              React.createElement('div', { style: { padding: '8px 12px', fontSize: 11, color: 'var(--muted2)' } }, 'Saved in this browser · select an entry to restore its results'),
               React.createElement('div', { style: { maxHeight: 500, overflowY: 'auto' } },
                 history.length === 0
                   ? React.createElement(Empty, { icon: 'clock', title: 'No history yet' })
                   : history.map(function (h, i) {
-                    return React.createElement('div', { key: i, className: 'history-item', onClick: function () { setQuery(h.q); } },
+                    return React.createElement('button', { key: i, type: 'button', className: 'history-item', title: 'Restore query and its saved result', onClick: function () { setQuery(h.q); setResults(h.results || null); setError(h.error || ''); } },
                       React.createElement('span', { className: 'h-ok', style: { background: h.ok ? 'var(--green)' : 'var(--red)' } }),
                       React.createElement('code', null, h.q.replace(/\s+/g, ' ').slice(0, 60) + (h.q.length > 60 ? '…' : '')),
                       React.createElement('span', { className: 'h-time' }, ago(h.ts))
@@ -1742,7 +1822,7 @@
                 React.createElement('button', {
                   className: 'btn btn-ghost btn-sm',
                   style: { display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', fontSize: 12 },
-                  onClick: function() { setImportInitialMode('append'); setImportInitialTable(''); setShowImport(true); },
+                  onClick: function() { setImportInitialMode('create'); setImportInitialTable(''); setShowImport(true); },
                   title: 'Import a CSV / JSON file into a table'
                 },
                   React.createElement(Icon, { name: 'upload', size: 13 }),
@@ -1826,7 +1906,8 @@
                       : React.createElement(Empty, { icon: 'database', title: 'No preview available' })
                 )
               )
-          )
+          ),
+          showImport ? React.createElement(ImportDataModal, { creds: creds, initialMode: importInitialMode, initialTable: importInitialTable, onClose: function() { setShowImport(false); }, onComplete: function(result) { fetchTables(); selectTable(result.table); } }) : null
         )
       );
     }
@@ -2816,7 +2897,7 @@
                       color: 'var(--text)'
                     }
                   }, parseInlineMarkdown(cell.trim())))
-                  )
+                  ))
                 )
               )
             )
@@ -2886,46 +2967,97 @@
     }
 
 
-    // Chart viewer component
-    const ChartViewer = function({ spec, key }) {
-      const canvasRef = useRef(null);
-      const chartRef = useRef(null);
-      const [error, setError] = useState(null);
-      useEffect(() => {
-        if (!canvasRef.current) return;
-        const ctx = canvasRef.current.getContext('2d');
-        if (chartRef.current) {
-          chartRef.current.destroy();
+    // Accept chart blocks from tool responses and common model formatting variations.
+    function readChartJSON(text, start) {
+      let depth = 0, quoted = false, escaped = false;
+      for (let i = start; i < text.length; i++) {
+        const ch = text[i];
+        if (quoted) {
+          if (escaped) escaped = false;
+          else if (ch === '\\') escaped = true;
+          else if (ch === '"') quoted = false;
+        } else if (ch === '"') quoted = true;
+        else if (ch === '{') depth++;
+        else if (ch === '}' && --depth === 0) {
+          try {
+            const spec = JSON.parse(text.slice(start, i + 1));
+            if (spec && ['bar', 'line', 'pie', 'doughnut', 'radar', 'polarArea', 'scatter', 'bubble'].includes(spec.type) && spec.data && Array.isArray(spec.data.datasets)) return { spec: spec, end: i + 1 };
+          } catch (e) {}
+          return null;
         }
-        console.log('ChartViewer spec:', spec); // DEBUG
-        try {
-          const chart = new Chart(ctx, spec);
-          chartRef.current = chart;
-          setError(null);
-          return () => {
-            if (chart) chart.destroy();
-          };
-        } catch (err) {
-          console.error('ChartViewer error:', err);
-          setError('Failed to render chart: ' + err.message);
-          return () => {
-            if (chartRef.current) {
-              chartRef.current.destroy();
-              chartRef.current = null;
-            }
-          };
-        }
-      }, [spec]);
-
-      if (error) {
-        return React.createElement('div', {
-          style: { padding: '12px', color: 'var(--red)', textAlign: 'center', fontSize: '14px' }
-        }, error);
       }
-
-      return React.createElement('canvas', { ref: canvasRef, width: 250, height: 150 });
+      return null;
     }
 
+    function normalizeChartBlocks(text) {
+      // Models sometimes add whitespace to a fence or output "chart" on its
+      // own line followed by a JSON object instead of using a code fence.
+      text = text.replace(/```[ \t]*(?:\r?\n[ \t]*)?chart[ \t]*\r?\n/gi, '```chart\n');
+      const fenced = /```[\s\S]*?```/g;
+      let result = '', last = 0, match;
+      function normalizePlain(part) {
+        const marker = /(^|\n)[ \t]*(?:chart[ \t]*\r?\n[ \t]*)?(?=\{)/gi;
+        let output = '', pos = 0, found;
+        while ((found = marker.exec(part))) {
+          const start = marker.lastIndex;
+          const chart = readChartJSON(part, start);
+          if (!chart) { marker.lastIndex = start + 1; continue; }
+          output += part.slice(pos, found.index) + found[1] + '```chart\n' + part.slice(start, chart.end) + '\n```';
+          pos = chart.end;
+          marker.lastIndex = pos;
+        }
+        return output + part.slice(pos);
+      }
+      while ((match = fenced.exec(text))) {
+        result += normalizePlain(text.slice(last, match.index)) + match[0];
+        last = fenced.lastIndex;
+      }
+      return result + normalizePlain(text.slice(last));
+    }
+
+    function prepareChartConfig(spec) {
+      const config = JSON.parse(JSON.stringify(spec));
+      const palette = ['#fb7bb2', '#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#fb923c', '#22d3ee', '#f87171'];
+      config.options = Object.assign({ color: '#cbd5e1' }, config.options || {}, { responsive: true, maintainAspectRatio: false });
+      // Model output is data, never executable JavaScript. Chart.js expects
+      // functions in callback slots; stringified functions break chart drawing.
+      function removeCallbacks(value) {
+        if (!value || typeof value !== 'object') return;
+        Object.keys(value).forEach(function(key) {
+          if (key === 'callbacks' || key === 'callback') delete value[key];
+          else removeCallbacks(value[key]);
+        });
+      }
+      removeCallbacks(config.options);
+      (config.data.datasets || []).forEach(function(dataset, i) {
+        const color = palette[i % palette.length];
+        if (!dataset.backgroundColor) dataset.backgroundColor = ['pie', 'doughnut', 'polarArea'].includes(config.type) ? palette : color;
+        if (!dataset.borderColor) dataset.borderColor = color;
+        if ((config.type === 'scatter' || config.type === 'bubble') && dataset.pointRadius == null && config.type === 'scatter') dataset.pointRadius = 5;
+      });
+      return config;
+    }
+
+    const ChartViewer = function({ spec }) {
+      const canvasRef = useRef(null);
+      const [error, setError] = useState(null);
+      useEffect(function() {
+        let chart;
+        try {
+          if (!window.Chart) throw new Error('Chart.js could not be loaded. Check your connection and reload the page.');
+          // Chart.js mutates the configuration; avoid modifying persisted state.
+          const config = prepareChartConfig(spec);
+          chart = new window.Chart(canvasRef.current.getContext('2d'), config);
+          setError(null);
+        } catch (err) { setError('Failed to render chart: ' + err.message); }
+        return function() { if (chart) chart.destroy(); };
+      }, [spec]);
+      return React.createElement('div', { style: { width: '100%', minWidth: 0 } },
+        error ? React.createElement('div', { style: { padding: 12, color: 'var(--red2)', fontSize: 13 } }, error) : null,
+        React.createElement('div', { style: { position: 'relative', height: 300, width: '100%', minWidth: 0, display: error ? 'none' : 'block' } },
+          React.createElement('canvas', { ref: canvasRef, role: 'img', 'aria-label': 'Data chart' }))
+      );
+    };
 
     // ── Import data: parsing + modal ──────────────────────────────────────────────
     // The import flow runs entirely on the client. The server receives an
@@ -2938,7 +3070,7 @@
       const lower = (filename || '').toLowerCase();
       if (lower.endsWith('.json')) return { format: 'json', hasHeader: false };
       if (lower.endsWith('.tsv')) return { format: 'tsv', hasHeader: guessHasHeader(sample, '\t') };
-      if (lower.endsWith('.csv')) return { format: 'csv', hasHeader: guessHasHeader(sample, ',') };
+      if (lower.endsWith('.csv')) return { format: 'csv', hasHeader: true };
       // No extension: look at the first non-empty line.
       const firstLine = (sample || '').split(/\r?\n/).find(function(l) { return l.trim().length > 0; }) || '';
       const trimmed = firstLine.trim();
@@ -2988,6 +3120,7 @@
           else { field += ch; }
         }
       }
+      if (inQuotes) throw new Error('Unclosed quoted field in CSV.');
       if (field.length > 0 || cur.length > 0) { cur.push(field); rows.push(cur); }
       // Drop trailing empty rows.
       while (rows.length > 0 && rows[rows.length - 1].length === 1 && rows[rows.length - 1][0] === '') {
@@ -3000,21 +3133,17 @@
     // newline-delimited JSON stream. Returns { headers, rows }.
     function parseJsonImport(text) {
       const trimmed = text.trim();
-      // Try a single top-level array first.
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object' && !Array.isArray(parsed[0])) {
-          return jsonObjectsToGrid(parsed);
-        }
-      } catch (e) { /* fall through to NDJSON */ }
-      // Newline-delimited JSON objects.
-      const lines = trimmed.split(/\r?\n/).filter(function(l) { return l.trim().length > 0; });
-      const objects = [];
-      for (const line of lines) {
-        try { objects.push(JSON.parse(line)); } catch (e) { /* skip bad line */ }
+      let objects;
+      try { objects = JSON.parse(trimmed); }
+      catch (e) {
+        try { objects = trimmed.split(/\r?\n/).filter(function(l) { return l.trim(); }).map(JSON.parse); }
+        catch (err) { throw new Error('Invalid JSON: ' + err.message); }
       }
-      if (objects.length > 0) return jsonObjectsToGrid(objects);
-      return { headers: [], rows: [] };
+      if (!Array.isArray(objects)) objects = [objects];
+      if (!objects.length || objects.some(function(o) { return !o || typeof o !== 'object' || Array.isArray(o) || Object.values(o).some(function(v) { return v !== null && typeof v === 'object'; }); })) {
+        throw new Error('JSON must contain flat objects.');
+      }
+      return jsonObjectsToGrid(objects);
     }
 
     function jsonObjectsToGrid(objects) {
@@ -3072,16 +3201,64 @@
       const [busy, setBusy] = useState(false);
       const [result, setResult] = useState(null);
       const [importing, setImporting] = useState(false);
+      const [sourceKind, setSourceKind] = useState('file');
+      const [sourceTables, setSourceTables] = useState([]);
+      const [sourceTable, setSourceTable] = useState('');
+      const [mysqlConfig, setMysqlConfig] = useState({ host: '127.0.0.1', port: 3306, database: '', username: '', password: '', tls: true });
+      const sqliteRef = useRef(null);
+      useEffect(function() { return function() { if (sqliteRef.current) sqliteRef.current.close(); }; }, []);
+      const acceptSource = function(headers, data, name) {
+        if (!headers.length || !data.length) throw new Error('The selected table has no data rows.');
+        if (data.length > 10000) throw new Error('The source table exceeds 10,000 rows.');
+        if (data.some(function(row) { return row.some(function(v) { return v == null || typeof v === 'object' || (typeof v === 'number' && Number.isInteger(v) && !Number.isSafeInteger(v)); }); })) throw new Error('NULL, binary values, and integers outside JavaScript’s safe range cannot be imported.');
+        setHeaders(headers); setRows(data); setFileName(name); setMode('create');
+        setTargetTable(name.replace(/[^A-Za-z0-9_]/g, '_').replace(/^[^A-Za-z_]/, '_').toLowerCase()); setStep(2);
+      };
+      const openSQLite = async function(file) {
+        setBusy(true); setError('');
+        try {
+          if (file.size > 32 * 1024 * 1024) throw new Error('SQLite files must be 32 MiB or smaller.');
+          if (!window.initSqlJs) throw new Error('SQLite reader could not load. Check your internet connection.');
+          const SQL = await window.initSqlJs({ locateFile: function(name) { return 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/' + name; } });
+          const db = new SQL.Database(new Uint8Array(await file.arrayBuffer()));
+          if (sqliteRef.current) sqliteRef.current.close();
+          sqliteRef.current = db;
+          const result = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name");
+          const names = result.length ? result[0].values.map(function(row) { return row[0]; }) : [];
+          if (!names.length) throw new Error('No tables found in this SQLite file.');
+          setSourceKind('sqlite'); setSourceTables(names); setSourceTable(names[0]); setStep(1.5);
+        } catch(e) { setError('Could not open SQLite: ' + e.message); } finally { setBusy(false); }
+      };
+      const connectMySQL = async function(table) {
+        setBusy(true); setError('');
+        const result = await apiFetch('/api/import/mysql', { method: 'POST', body: JSON.stringify(Object.assign({}, mysqlConfig, { port: Number(mysqlConfig.port), table: table || '' })) }, creds);
+        setBusy(false);
+        if (!result.ok || !result.data.success) { setError(result.data.error || 'MySQL connection failed.'); return; }
+        if (!table) { if (!result.data.tables || !result.data.tables.length) { setError('No tables found in the MySQL database.'); return; } setSourceTables(result.data.tables); setSourceTable(result.data.tables[0]); setSourceKind('mysql'); setStep(1.5); }
+        else { try { acceptSource(result.data.headers, result.data.rows, table); } catch(e) { setError(e.message); } }
+      };
+      const readSourceTable = function() {
+        if (!sourceTable) return;
+        if (sourceKind === 'mysql') { connectMySQL(sourceTable); return; }
+        try {
+          const quoted = '"' + sourceTable.replace(/"/g, '""') + '"';
+          const result = sqliteRef.current.exec('SELECT * FROM ' + quoted + ' LIMIT 10001');
+          if (!result.length) throw new Error('The selected table has no data rows.');
+          acceptSource(result[0].columns, result[0].values, sourceTable);
+        } catch(e) { setError(e.message); }
+      };
+
 
       const onPickFile = function(e) {
         const file = e.target.files && e.target.files[0];
         if (!file) return;
         setError('');
         setFileName(file.name);
+        if (/\.(sqlite|sqlite3|db)$/i.test(file.name)) { openSQLite(file); return; }
         const reader = new FileReader();
         reader.onload = function(ev) {
           try {
-            const text = String(ev.target.result || '');
+            const text = String(ev.target.result || '').replace(/^\uFEFF/, '');
             const sample = text.length > 4000 ? text.slice(0, 4000) : text;
             const detected = detectImportFormat(file.name, sample);
             let parsed;
@@ -3101,6 +3278,9 @@
               hdrs = parsed[0].map(function(_, i) { return 'col_' + (i + 1); });
               body = parsed;
             }
+            if (!body.length) throw new Error('No data rows found in the file.');
+            if (body.some(function(row) { return row.length !== hdrs.length; })) throw new Error('Every row must have the same number of columns as the header.');
+            if (body.length > 10000) throw new Error('The row limit is 10,000 per import.');
             setHeaders(hdrs);
             setRows(body);
             setStep(2);
@@ -3150,7 +3330,7 @@
             source: h,
             source_index: i,
             target: target,
-            type: mode === 'create' ? inferred : 'VARCHAR',
+            type: inferred,
             skip: false
           };
         }));
@@ -3185,7 +3365,7 @@
               source: m.source,
               source_index: m.source_index,
               target: m.target,
-              type: mode === 'create' ? m.type : 'VARCHAR',
+              type: m.type,
               skip: m.skip
             };
           }),
@@ -3221,7 +3401,22 @@
           ),
           React.createElement('div', { className: 'modal-body' },
             error ? React.createElement('div', { className: 'mb-4' }, React.createElement(Banner, { type: 'error' }, error)) : null,
-            step === 1 ? renderStep1(onPickFile) : null,
+            step === 1 ? React.createElement(React.Fragment, null, renderStep1(onPickFile),
+              React.createElement('div', { style: { marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border)' } },
+                React.createElement('h3', { style: { marginBottom: 10 } }, 'Import from MySQL'),
+                React.createElement('p', { style: { color: 'var(--muted2)', fontSize: 12, marginBottom: 12 } }, 'Administrator access required. Connect with a read-only MySQL account; credentials are used only for this import.'),
+                React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 } },
+                  [['host','Host'],['port','Port'],['database','Database'],['username','Username'],['password','Password']].map(function(field) { return React.createElement('label', { key: field[0], style: { fontSize: 11, color: 'var(--muted2)' } }, field[1], React.createElement('input', { className: 'input', type: field[0] === 'password' ? 'password' : (field[0] === 'port' ? 'number' : 'text'), value: mysqlConfig[field[0]], onChange: function(e) { setMysqlConfig(function(prev) { return Object.assign({}, prev, { [field[0]]: e.target.value }); }); }, style: { width: '100%', marginTop: 4 } })); })
+                ),
+                React.createElement('label', { style: { display: 'block', margin: '12px 0', fontSize: 12 } }, React.createElement('input', { type: 'checkbox', checked: mysqlConfig.tls, onChange: function(e) { setMysqlConfig(function(prev) { return Object.assign({}, prev, { tls: e.target.checked }); }); } }), ' Require TLS'),
+                React.createElement('button', { className: 'btn btn-secondary', disabled: busy, onClick: function() { connectMySQL(''); } }, busy ? 'Connecting…' : 'Connect to MySQL')
+              )) : null,
+            step === 1.5 ? React.createElement('div', null,
+              React.createElement('h3', null, 'Choose a source table'),
+              React.createElement('p', { style: { color: 'var(--muted2)', margin: '8px 0 12px', fontSize: 12 } }, 'Choose one table to preview and import. Repeat the process for additional tables.'),
+              React.createElement('select', { className: 'input', value: sourceTable, onChange: function(e) { setSourceTable(e.target.value); }, style: { width: '100%' } }, sourceTables.map(function(t) { return React.createElement('option', { key: t, value: t }, t); })),
+              React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 16 } }, React.createElement('button', { className: 'btn btn-ghost', onClick: function() { setStep(1); setError(''); }, disabled: busy }, 'Back'), React.createElement('button', { className: 'btn btn-primary', onClick: readSourceTable, disabled: busy }, busy ? 'Loading…' : 'Preview table'))
+            ) : null,
             step === 2 ? renderStep2({
               fileName: fileName, mode: mode, setMode: setMode,
               targetTable: targetTable, setTargetTable: setTargetTable,
@@ -3268,7 +3463,7 @@
           React.createElement('span', { className: 'step-num' }, '1'),
           React.createElement('div', null,
             React.createElement('div', { className: 'step-title' }, 'Choose a file'),
-            React.createElement('div', { className: 'step-sub' }, 'CSV, TSV, or JSON (array of objects). Up to 10,000 rows.')
+            React.createElement('div', { className: 'step-sub' }, 'CSV, TSV, JSON, or SQLite database. Up to 10,000 rows per table.')
           )
         ),
         React.createElement('label', {
@@ -3277,7 +3472,7 @@
         },
           React.createElement(Icon, { name: 'upload', size: 14 }),
           'Select file…',
-          React.createElement('input', { type: 'file', accept: '.csv,.tsv,.json,text/csv,application/json', style: { display: 'none' }, onChange: onPickFile })
+          React.createElement('input', { type: 'file', accept: '.csv,.tsv,.json,.sqlite,.sqlite3,.db,text/csv,application/json', style: { display: 'none' }, onChange: onPickFile })
         )
       );
     }
@@ -3482,40 +3677,76 @@
 
 
 
+    function makeConversation(messages) {
+      return { id: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2), messages: messages.slice(), updatedAt: Date.now() };
+    }
+    function conversationTitle(chat) {
+      const first = chat.messages.find(function(m) { return m.role === 'user' && m.text && m.text.trim(); });
+      return first ? first.text.trim().replace(/\s+/g, ' ').slice(0, 55) : 'New conversation';
+    }
+
     function AIAssistantPage({ creds }) {
       const [models, setModels] = useState([]);
       const [selectedModel, setSelectedModel] = useState('');
       const [loading, setLoading] = useState(true);
 
-      // Per-model chat history. Each active model keeps its own session so
-      // switching models clears the visible window but preserves the prior
-      // model's transcript; switching back resumes it exactly.
-      const [messagesByModel, setMessagesByModel] = useState(function() {
+      // One store owns both the active conversation and its messages, avoiding
+      // effects that can accidentally copy one conversation into another.
+      const [conversations, setConversations] = useState(function() {
         try {
-          const saved = localStorage.getItem('flamingodb_chat_history_by_model');
-          const parsed = saved ? JSON.parse(saved) : null;
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            return parsed;
+          const saved = JSON.parse(localStorage.getItem('flamingodb_conversations_v1') || 'null');
+          if (saved && typeof saved === 'object' && !Array.isArray(saved)) return saved;
+          const old = JSON.parse(localStorage.getItem('flamingodb_chat_history_by_model') || '{}');
+          const migrated = {};
+          Object.keys(old).forEach(function(modelId) {
+            if (Array.isArray(old[modelId]) && old[modelId].length) {
+              const chat = makeConversation(old[modelId]);
+              migrated[modelId] = { activeId: chat.id, chats: [chat] };
+            }
+          });
+          if (!migrated.__legacy__) {
+            const legacy = JSON.parse(localStorage.getItem('flamingodb_chat_history') || 'null');
+            if (Array.isArray(legacy) && legacy.length) { const chat = makeConversation(legacy); migrated.__legacy__ = { activeId: chat.id, chats: [chat] }; }
           }
-          // Migrate from the pre-fix single-history key, if present.
-          const legacy = localStorage.getItem('flamingodb_chat_history');
-          if (legacy) {
-            try {
-              const legacyParsed = JSON.parse(legacy);
-              if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
-                return { __legacy__: legacyParsed };
-              }
-            } catch(e) {}
-          }
-          return {};
+          return migrated;
         } catch(e) { return {}; }
       });
-
-      // The currently displayed transcript — a view into messagesByModel[selectedModel].
-      const [messages, setMessages] = useState(INITIAL_MESSAGES);
+      const modelChats = conversations[selectedModel];
+      const activeChat = modelChats && modelChats.chats.find(function(c) { return c.id === modelChats.activeId; });
+      const messages = activeChat ? activeChat.messages : INITIAL_MESSAGES;
+      const setMessages = function(update) {
+        const modelId = selectedModel, chatId = activeChat && activeChat.id;
+        if (!modelId || !chatId) return;
+        setConversations(function(prev) {
+          const group = prev[modelId];
+          if (!group) return prev;
+          const chats = group.chats.map(function(chat) {
+            if (chat.id !== chatId) return chat;
+            const next = typeof update === 'function' ? update(chat.messages) : update;
+            return Object.assign({}, chat, { messages: next, updatedAt: Date.now() });
+          });
+          return Object.assign({}, prev, { [modelId]: Object.assign({}, group, { chats: chats }) });
+        });
+      };
+      const [showChats, setShowChats] = useState(true);
+      const [historyError, setHistoryError] = useState(false);
 
       const [inputMsg, setInputMsg] = useState('');
       const [chatLoading, setChatLoading] = useState(false);
+      const chatScrollRef = useRef(null);
+      const chatPinnedRef = useRef(true);
+      useEffect(function() {
+        chatPinnedRef.current = true;
+        const element = chatScrollRef.current;
+        if (element) element.scrollTop = element.scrollHeight;
+      }, [messages, chatLoading, selectedModel, loading]);
+      useEffect(function() {
+        const element = chatScrollRef.current;
+        if (!element || typeof ResizeObserver === 'undefined') return;
+        const observer = new ResizeObserver(function() { if (chatPinnedRef.current) element.scrollTop = element.scrollHeight; });
+        if (element.firstElementChild) observer.observe(element.firstElementChild);
+        return function() { observer.disconnect(); };
+      }, [loading, models.length]);
       const [editingMsgIdx, setEditingMsgIdx] = useState(null);
       const [editingMsgText, setEditingMsgText] = useState('');
       const [hoveredMsgIdx, setHoveredMsgIdx] = useState(null);
@@ -3537,7 +3768,8 @@
 
       // Handle file upload for AI chat
       const handleFileUpload = async (file) => {
-        if (!file) return;
+        if (!file || chatLoading || !activeChat) return;
+        setChatLoading(true);
 
         try {
           const text = await file.text();
@@ -3582,6 +3814,7 @@
           const replyText = (r.ok && r.data.reply) ? r.data.reply : 'Error: ' + (r.data.error || 'Failed to get reply.');
           setMessages(function(prev) { return prev.concat({ role: 'assistant', text: replyText }); });
         } catch (err) {
+          setChatLoading(false);
           setMessages(function(prev) {
             return prev.concat({
               role: 'assistant',
@@ -3591,79 +3824,48 @@
         }
       };
 
-      // Persist messages-by-model to localStorage whenever it changes.
-      useEffect(function() {
-        try { localStorage.setItem('flamingodb_chat_history_by_model', JSON.stringify(messagesByModel)); } catch(e) {}
-      }, [messagesByModel]);
-
-      // Helper: read the transcript for a given model, defaulting to the
-      // initial greeting when no session exists.
-      const sessionFor = function(modelId) {
-        if (!modelId) return INITIAL_MESSAGES;
-        return (messagesByModel[modelId] && messagesByModel[modelId].length > 0)
-          ? messagesByModel[modelId]
-          : INITIAL_MESSAGES;
-      };
-
-      // Whenever the active model changes, swap the visible transcript to
-      // that model's saved session. The previously active model's session
-      // is already in messagesByModel (it was written on every update), so
-      // switching is purely a view change — no data is lost.
+      // Preserve the older per-model history on first use and create one
+      // empty conversation for models without an existing transcript.
       useEffect(function() {
         if (!selectedModel) return;
-        setMessagesByModel(function(prev) {
-          // One-time migration: if a legacy pre-fix transcript exists and the
-          // newly selected model has no session yet, attach the legacy chat
-          // to this model. This preserves the user's prior conversation
-          // across the upgrade.
-          if (prev.__legacy__ && !prev[selectedModel]) {
-            const next = Object.assign({}, prev);
-            next[selectedModel] = next.__legacy__;
-            delete next.__legacy__;
-            try { localStorage.removeItem('flamingodb_chat_history'); } catch(e) {}
-            return next;
-          }
-          return prev;
+        setConversations(function(prev) {
+          if (prev[selectedModel]) return prev;
+          const next = Object.assign({}, prev);
+          if (next.__legacy__) { next[selectedModel] = next.__legacy__; delete next.__legacy__; }
+          else { const chat = makeConversation(INITIAL_MESSAGES); next[selectedModel] = { activeId: chat.id, chats: [chat] }; }
+          return next;
         });
-        setMessages(sessionFor(selectedModel));
-        setInputMsg('');
-        setEditingMsgIdx(null);
-        setEditingMsgText('');
+        setInputMsg(''); setEditingMsgIdx(null); setEditingMsgText('');
       }, [selectedModel]);
-
-      // Write the current transcript back into the model-keyed store
-      // whenever it changes. A small effect (rather than touching every
-      // setMessages call site) keeps the persistence logic in one place.
       useEffect(function() {
-        if (!selectedModel) return;
-        setMessagesByModel(function(prev) {
-          const current = prev[selectedModel];
-          // Skip the write if the slot already matches — avoids render loops
-          // when the value was just loaded in by the [selectedModel] effect.
-          if (current === messages) return prev;
-          const next = Object.assign({}, prev);
-          next[selectedModel] = messages;
-          return next;
-        });
-      }, [messages, selectedModel]);
-
+        try { localStorage.setItem('flamingodb_conversations_v1', JSON.stringify(conversations)); setHistoryError(false); } catch(e) { setHistoryError(true); }
+      }, [conversations]);
       const startNewChat = function() {
-        if (!selectedModel) return;
-        // Reset ONLY the active model's session; other models keep theirs.
-        setMessages(INITIAL_MESSAGES);
-        setMessagesByModel(function(prev) {
-          const next = Object.assign({}, prev);
-          delete next[selectedModel];
-          return next;
+        if (!selectedModel || chatLoading) return;
+        const chat = makeConversation(INITIAL_MESSAGES);
+        setConversations(function(prev) {
+          const group = prev[selectedModel] || { chats: [] };
+          return Object.assign({}, prev, { [selectedModel]: { activeId: chat.id, chats: [chat].concat(group.chats) } });
         });
+        setInputMsg(''); setEditingMsgIdx(null); setEditingMsgText('');
+      };
+      const selectChat = function(id) {
+        if (chatLoading) return;
+        setConversations(function(prev) {
+          const group = prev[selectedModel];
+          if (!group || !group.chats.some(function(c) { return c.id === id; })) return prev;
+          return Object.assign({}, prev, { [selectedModel]: Object.assign({}, group, { activeId: id }) });
+        });
+        setInputMsg(''); setEditingMsgIdx(null); setEditingMsgText('');
       };
 
       // Extract chart specification from a message text
       const extractChartSpec = (text) => {
-        const match = text.match(/```chart\s*([\s\S]*?)```/);
+        const match = normalizeChartBlocks(text).match(/```(?:chart|json)\s*([\s\S]*?)```/i);
         if (match && match[1]) {
           try {
-            return JSON.parse(match[1].trim());
+            const raw = match[1].trim();
+            return raw.startsWith('{') ? (readChartJSON(raw, 0) || {}).spec || null : null;
           } catch (e) {
             return null;
           }
@@ -3707,7 +3909,7 @@
       }, []);
 
       const sendMessage = async function() {
-        if (!inputMsg.trim() || !selectedModel || chatLoading) return;
+        if (!inputMsg.trim() || !selectedModel || !activeChat || chatLoading) return;
         const userText = inputMsg;
         setInputMsg('');
 
@@ -3732,10 +3934,13 @@
       };
 
       const runQueryDirectly = async function(sql) {
+        if (chatLoading) return;
+        setChatLoading(true);
         const r = await apiFetch('/query', {
           method: 'POST',
           body: JSON.stringify({ query: sql })
         }, creds);
+        setChatLoading(false);
         if (r.ok && r.data.results) {
           const formatted = JSON.stringify(r.data.results, null, 2);
           setMessages(function(prev) {
@@ -3750,7 +3955,9 @@
 
       const parseMessageText = function(text) {
         const parts = [];
-        const regex = /```(sql|json|chart)?([\s\S]*?)```/g;
+        const renderedCharts = new Set();
+        text = normalizeChartBlocks(text);
+        const regex = /```[ \t]*(sql|json|chart)?[ \t]*\r?\n?([\s\S]*?)```/gi;
         let lastIdx = 0;
         let match;
         while ((match = regex.exec(text)) !== null) {
@@ -3758,11 +3965,12 @@
             const normalText = text.substring(lastIdx, match.index);
             parts.push(parseBlockMarkdown(normalText, 'text-' + lastIdx));
           }
-          const lang = match[1] || 'text';
-          const code = match[2].trim();
+          let lang = (match[1] || 'text').toLowerCase();
+          let code = match[2].trim();
+          if (lang === 'text' && /^[a-zA-Z0-9_-]+\s*\n\s*\{/.test(code)) { code = code.replace(/^[a-zA-Z0-9_-]+\s*\n/, ''); }
           const codeKey = match.index;
 
-          if (lang === 'json' || lang === 'chart') {
+          if (lang === 'json' || lang === 'chart' || lang === 'text') {
               try {
                   const parsed = JSON.parse(code);
 
@@ -3784,7 +3992,8 @@
                   // Case C: Chart specification (e.g. {type: 'bar', data: {...}, options: {...}})
                   if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.type &&
                       ['bar', 'line', 'pie', 'doughnut', 'radar', 'polarArea', 'scatter', 'bubble'].includes(parsed.type)) {
-                      parts.push(React.createElement(ChartViewer, { key: 'chart-' + codeKey, spec: parsed }));
+                      const signature = JSON.stringify(parsed);
+                      if (!renderedCharts.has(signature)) { parts.push(React.createElement(ChartViewer, { key: 'chart-' + codeKey, spec: parsed })); renderedCharts.add(signature); }
                       lastIdx = regex.lastIndex;
                       continue;
                   }
@@ -3834,10 +4043,11 @@
               className: 'input',
               style: { width: 220, height: 32, padding: '0 8px', fontSize: 12 },
               value: selectedModel,
-              onChange: function(e) { setSelectedModel(e.target.value); }
+              onChange: function(e) { setSelectedModel(e.target.value); },
+              disabled: chatLoading
             },
               models.map(function(m) {
-                const hasSession = messagesByModel[m.id] && messagesByModel[m.id].length > 0;
+                const hasSession = conversations[m.id] && conversations[m.id].chats.length > 0;
                 const label = m.name + ' (' + m.provider.toUpperCase() + ')' + (hasSession ? ' • saved' : '');
                 return React.createElement('option', { key: m.id, value: m.id }, label);
               })
@@ -3845,7 +4055,7 @@
             React.createElement('button', {
               className: 'btn btn-ghost',
               style: { height: 32, padding: '0 12px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', borderRadius: 6 },
-              onClick: startNewChat,
+              onClick: startNewChat, disabled: chatLoading,
               title: 'Start a new chat'
             },
               React.createElement(Icon, { name: 'plus', size: 13 }),
@@ -3853,7 +4063,18 @@
             )
           )
         ),
-        React.createElement('div', { className: 'card-body', style: { flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, padding: 16 } },
+        React.createElement('div', { className: 'chat-workspace' },
+          React.createElement('aside', { className: 'chat-history' + (showChats ? '' : ' collapsed'), 'aria-label': 'Conversation history' },
+            React.createElement('div', { className: 'chat-history-heading' }, React.createElement('div', null, React.createElement('strong', null, 'Conversations'), React.createElement('span', null, 'Saved on this browser')), React.createElement('button', { className: 'chat-history-toggle', onClick: function() { setShowChats(!showChats); }, 'aria-expanded': showChats, title: showChats ? 'Hide conversations' : 'Show conversations' }, showChats ? '‹' : '›')),
+            showChats ? React.createElement('div', { className: 'chat-history-list' }, (modelChats ? modelChats.chats : []).map(function(chat) {
+              return React.createElement('button', { key: chat.id, className: 'chat-history-item' + (activeChat && activeChat.id === chat.id ? ' active' : ''), onClick: function() { selectChat(chat.id); }, disabled: chatLoading, 'aria-current': activeChat && activeChat.id === chat.id ? 'true' : undefined },
+                React.createElement(Icon, { name: 'message-square', size: 14 }), React.createElement('span', null, React.createElement('strong', null, conversationTitle(chat)), React.createElement('small', null, new Date(chat.updatedAt).toLocaleDateString())));
+            })) : null
+          ),
+          React.createElement('div', { className: 'chat-conversation' },
+        historyError ? React.createElement('div', { style: { padding: '8px 16px' } }, React.createElement(Banner, { type: 'error' }, 'Could not save conversations in this browser. New messages may be lost when you leave this page.')) : null,
+        React.createElement('div', { className: 'card-body', ref: chatScrollRef, onScroll: function(e) { const el = e.currentTarget; chatPinnedRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60; }, style: { flex: 1, minHeight: 0, overflowY: 'auto', padding: 16 } },
+          React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
           (function() {
             const activeModel = models.find(function(m) { return m.id === selectedModel; });
             if (!activeModel) return null;
@@ -3881,11 +4102,6 @@
               ' in this session'
             );
           })(),
-          chartSpecs[selectedModel] ? (
-            React.createElement('div', { style: { marginBottom: 12 } },
-              React.createElement(ChartViewer, { key: `chart-${selectedModel}`, spec: chartSpecs[selectedModel] })
-            )
-          ) : null,
           messages.map(function(m, idx) {
             const isAssistant = m.role === 'assistant';
             return React.createElement('div', {
@@ -3899,6 +4115,8 @@
                 padding: '10px 14px',
                 borderRadius: 10,
                 maxWidth: '85%',
+                width: isAssistant ? 'min(100%, 760px)' : 'auto',
+                minWidth: 0,
                 fontSize: 13,
                 lineHeight: 1.5,
                 position: 'relative'
@@ -3929,10 +4147,11 @@
             );
           }),
           chatLoading ? React.createElement('div', { style: { alignSelf: 'flex-start', background: 'var(--card)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)' } }, React.createElement(Spinner), ' Thinking…') : null
+          )
         ),
         React.createElement('div', { style: { padding: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 } },
           React.createElement('button', {
-            className: 'btn btn-ghost',
+            className: 'btn btn-ghost', disabled: chatLoading || !activeChat,
             onClick: function() {
               const fileInput = document.createElement('input');
               fileInput.type = 'file';
@@ -3955,14 +4174,16 @@
             onChange: function(e){ setInputMsg(e.target.value); },
             onKeyDown: function(e){ if (e.key === 'Enter') sendMessage(); },
             placeholder: 'Ask the assistant a question...',
-            disabled: chatLoading,
+            disabled: chatLoading || !activeChat,
             style: { flex: 1 }
           }),
           React.createElement('button', {
             className: 'btn btn-primary',
             onClick: sendMessage,
-            disabled: chatLoading || !inputMsg.trim()
+            disabled: chatLoading || !activeChat || !inputMsg.trim()
           }, 'Send')
+        )
+          )
         )
       );
     }
@@ -4152,31 +4373,14 @@
               )
             )
           )
-        ),
-        {showImport && React.createElement(ImportDataModal, {
-          creds: creds,
-          onClose: function() { setShowImport(false); },
-          onComplete: function(result) {
-            // Show a toast-like notification by updating the selected table preview
-            // and optionally refetching the table list if a new table was created
-            if (result.mode === 'create') {
-              fetchTables(); // refresh table list to show the new table
-            }
-            // Optionally select the imported table so the user can see it immediately
-            if (result.table) {
-              selectTable(result.table);
-            }
-          },
-          initialTable: importInitialTable,
-          initialMode: importInitialMode
-        })}
+        )
       );
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
     // Login
     // ─────────────────────────────────────────────────────────────────────────────
-    function LoginPage({ onLogin }) {
+    function LoginPage({ onLogin, onOpenDocs }) {
       const [username, setUsername] = useState('');
       const [password, setPassword] = useState('');
       const [loading, setLoading] = useState(false);
@@ -4216,7 +4420,126 @@
             loading ? React.createElement(Spinner) : React.createElement(Icon, { name: 'plug', size: 16 }),
             loading ? ' Connecting…' : ' Connect'
           ),
-          React.createElement('div', { style: { marginTop: 20, textAlign: 'center', fontSize: 11, color: 'var(--muted)' } }, 'Secure connection via HTTP Basic Auth')
+          React.createElement('button', { className: 'btn btn-ghost w-full', onClick: onOpenDocs, style: { marginTop: 12, justifyContent: 'center', height: 40 } }, React.createElement(Icon, { name: 'book-open', size: 15 }), 'Read documentation'),
+          React.createElement('div', { style: { marginTop: 16, textAlign: 'center', fontSize: 11, color: 'var(--muted)' } }, 'Sign in with your database account')
+        )
+      );
+    }
+
+    // Engine documentation is kept with the embedded interface so it ships with the daemon.
+    const ENGINE_DOCS = [
+      { id: 'first-steps', label: 'Getting started', eyebrow: 'USER GUIDE / 01', title: 'Your first steps', intro: 'FlamingoDB stores data in tables and lets you explore it with SQL or the AI assistant. This guide walks through the dashboard from sign-in to your first query.', sections: [
+        { title: 'Start and sign in', items: [['Windows', 'Launch FlamingoDB from the desktop or Start menu. It starts the server and opens your browser. Use the Stop FlamingoDB shortcut to shut it down.'], ['Browser', 'Open http://localhost:8080 if the page does not open. Sign in with your database username and password. A fresh default installation starts with admin / admin; change the password in My Profile.'], ['Navigation', 'The left sidebar opens SQL Console, Table Browser, AI Assistant, Users, Settings, My Profile, and this documentation. Available actions depend on your account permissions.']] },
+        { title: 'Create and query a table', text: 'Open SQL Console, enter the statements below and run them. CREATE defines the table and its columns; INSERT adds a row; SELECT reads it back. Run statements individually when learning, and inspect the result or error for each statement.', code: "CREATE TABLE stars (id INT, name VARCHAR, magnitude FLOAT);\nINSERT INTO stars VALUES (1, 'Sirius', -1.46);\nSELECT * FROM stars LIMIT 10;" },
+        { title: 'Explore data', text: 'Open Table Browser and select a table to see its schema and first rows. Import Data accepts CSV, TSV, or flat JSON objects and lets you create a table or append to an existing one. Review the detected types, destination names, and preview before importing.' },
+        { note: 'The browser interface requires a running server. Your database data is stored by the server; AI chat history is saved in the current browser, not shared between devices.' }
+      ] },
+      { id: 'console-guide', label: 'SQL & table browser', eyebrow: 'USER GUIDE / 02', title: 'Explore and query data', intro: 'Use the SQL Console for queries and the Table Browser for schemas, previews, and imports.', sections: [
+        { title: 'SQL Console', text: 'Type SQL into the editor and select Run Query or press Ctrl+Enter. The results area shows rows, messages, and errors. Query History saves the latest 30 statements and their results in this browser for the signed-in username; select an entry to restore it without executing it again. The clear button removes saved history. CREATE TABLE defines columns; INSERT adds data; SELECT reads; UPDATE changes existing rows; DELETE removes rows. WHERE narrows which rows are affected.' },
+        { title: 'Limit and paginate results', text: 'LIMIT caps the number of returned rows. OFFSET skips rows first. Use ORDER BY for a predictable order when moving between pages. LIMIT 0 returns no rows; an offset beyond the result returns an empty set.', code: 'SELECT * FROM stars ORDER BY id LIMIT 10;\nSELECT * FROM stars ORDER BY id LIMIT 10 OFFSET 10;' },
+        { title: 'Import a dataset', items: [['Choose a file', 'Select Import Data in Table Browser. CSV uses the first row as headers; JSON accepts flat objects. The import limit is 10,000 rows per table. SQLite files can be opened locally in the browser (the SQLite reader requires an internet connection); import one table at a time. MySQL imports require an administrator, a reachable MySQL server, and a read-only source account. TLS is enabled by default. NULL and binary values are not supported.'], ['Map columns', 'Choose Create new table or Append to existing. Check names, choose INT, FLOAT, or VARCHAR for new columns, and skip any unwanted columns.'], ['Review', 'Check the preview, continue, and select Import. Empty or invalid numeric values are rejected. If a write fails, some earlier rows may already have been inserted.']] },
+        { note: 'The importer creates basic numeric and text columns; latitude and longitude can be imported as numeric fields. Unit-aware values and native spatial types are not created by the import wizard.' }
+      ] },
+      { id: 'users-guide', label: 'Users & permissions', eyebrow: 'USER GUIDE / 03', title: 'Users and permissions', intro: 'Users authenticate to the database. Policies control which categories of operations a non-admin account can perform.', sections: [
+        { title: 'Understand permissions', items: [['SELECT', 'Read table data.'], ['INSERT', 'Add rows to tables.'], ['UPDATE / DELETE', 'Change or remove existing rows.'], ['CREATE / DROP', 'Create or delete tables and other schema objects.'], ['Administrator', 'Administrators bypass operation policy checks. Assign this role only to users who need administrative access.']] },
+        { title: 'Add a user', text: 'Sign in as an administrator, open Users, and choose Add User. Enter a username and password. Choose Administrator for full administrative access, or select a named policy for a non-admin user. Save the user and provide the credentials to them securely.' },
+        { title: 'Change access', text: 'In Users, select an existing user. Choose a named policy or Custom, adjust the available permission switches when using Custom, and save. An administrator can also delete users from this page. Verify access by signing in as the affected user.' },
+        { title: 'Create a reusable policy', text: 'Open Settings → System Policies and select New Policy. Name it, turn on the required SELECT, INSERT, UPDATE, DELETE, CREATE, and DROP switches, and create it. Return to Users to assign it. For example, enable only SELECT for a read-only account.' },
+        { note: 'Named policy selection in the user form copies the chosen permissions to the user. Review and reassign users when changing policy definitions; do not assume an existing user automatically receives later changes.' }
+      ] },
+      { id: 'models-guide', label: 'AI models & chat', eyebrow: 'USER GUIDE / 04', title: 'Configure the AI assistant', intro: 'An administrator can configure a model and the policy used by its database tools. The assistant can then answer questions and work with the database through MCP.', sections: [
+        { title: 'Add a model', items: [['1 · Open Settings', 'Choose AI Models, then Add Model.'], ['2 · Provider and model', 'Enter a display name, select a provider and model, or supply a custom model name. Add an optional description and thinking level where supported.'], ['3 · Access and credentials', 'Select a System Policy and enter the provider API key, then save. The provider must be reachable and the key must have access to the selected model.'], ['4 · Start a chat', 'Open AI Assistant, select the model, and ask a question. Try asking for a table summary or a chart of a numeric column.']] },
+        { title: 'Model policies', text: 'The selected System Policy is passed to the MCP server for the model’s database tools. Choose a named read-only policy for a model that should inspect data without changing it. The None option is labelled Unrestricted / Admin and does not impose a named model policy. The signed-in user’s permissions and model policy are separate configuration concepts.' },
+        { title: 'Chat history', text: 'New Chat creates another conversation for the selected model. Select a conversation from the side panel to resume its context. Histories are saved in this browser’s local storage; clearing browser data or changing browsers can remove access to them. Wait for a response before switching chats or models.' },
+        { title: 'MCP and visualizations', text: 'MCP exposes tools for listing and describing tables, executing queries, generating chart specifications, calculating vector add, subtract, dot, cross, and norm operations, and calculating planar or approximate geographic distance. Geographic distance accepts latitude and longitude in degrees and returns kilometers; planar distance uses coordinate units. For a chart, ask the assistant to visualize a dataset. Charts need the chart library to load in the browser. Review generated queries and results.' },
+        { note: 'AI responses depend on the configured provider and model. If configuration fails, check the provider, model identifier, API key, network access, and chosen policy.' }
+      ] },
+      { id: 'profile-guide', label: 'My profile & settings', eyebrow: 'USER GUIDE / 05', title: 'Manage your account', intro: 'My Profile shows your account and permissions and lets you change your password. Settings holds administrative policies and model configurations.', sections: [
+        { title: 'My Profile', text: 'Open My Profile from the sidebar or your avatar. Review your username, administrator status, assigned policy, and permission switches. Use Update Password to enter and confirm a new password; the interface updates the credentials used by your current session.' },
+        { title: 'Policy overrides', text: 'My Profile displays permission switches and a Save Policy Overrides action. Policy updates use the user policy endpoint, which requires administrator access. Administrators bypass operation policy checks even when individual switches appear off; non-admin users cannot grant themselves permissions through this endpoint.' },
+        { title: 'Settings', items: [['System Policies', 'Administrators can create and delete named permission sets for assignment to users and AI models.'], ['AI Models', 'Administrators can add, edit, and delete provider configurations, API keys, model identifiers, thinking levels, and model policies.'], ['Connection', 'Disconnect from the sidebar to remove the current browser session credentials and return to sign-in.']] },
+        { note: 'User, policy, and model configuration is stored by the server in its data directory. Chat conversations are stored separately in the browser.' }
+      ] },
+      { id: 'overview', label: 'Architecture overview', eyebrow: '01 / START HERE', title: 'Inside the engine', intro: 'Follow a request from the client to durable pages on disk. FlamingoDB combines a SQL execution pipeline with a page-oriented storage engine and a network server.', sections: [
+        { title: 'The request lifecycle', text: 'A client sends SQL to the server or calls the embedded Go engine. The lexer produces tokens, the parser builds an abstract syntax tree, the planner constructs a tree of operators, and the optimizer applies rewrite rules. The executor evaluates that plan through the table manager, which coordinates the catalog, heap tables, indexes, transactions, and pages.' },
+        { flow: ['SQL request', 'Lexer + parser', 'Planner', 'Optimizer', 'Executor', 'Storage + WAL'] },
+        { title: 'Where to look', items: [['Entry points', 'cmd/flamingodbd starts the network daemon; engine.go exposes the embedded Go API.'], ['Query engine', 'internal/parser, internal/planner, internal/optimizer, and internal/executor implement the SQL pipeline.'], ['Persistence', 'internal/storage, internal/index/btree, internal/transaction, and internal/wal manage data on disk.'], ['Interfaces', 'internal/network serves HTTP, TCP, MCP, and this embedded web interface.']] },
+        { note: 'This guide describes the implementation in this source tree. SQL coverage and operational guarantees are defined by the code, not by a claim of full SQL compatibility.' }
+      ] },
+      { id: 'query', label: 'Query processing', eyebrow: '02 / QUERY ENGINE', title: 'From SQL to results', intro: 'The engine processes a statement in distinct stages, keeping syntax, plan construction, optimization, and execution separate.', sections: [
+        { title: 'Parse and plan', text: 'The lexer identifies keywords, identifiers, literals, and operators. A Pratt parser handles expression precedence and produces AST statements. The planner translates those statements into plan nodes such as Scan, Filter, Project, Insert, Join, Aggregate, Sort, and LimitOffset.' },
+        { title: 'Optimize and execute', text: 'The optimizer recursively visits supported nodes and applies rules including filter pushdown, projection merging, wildcard projection removal, and index scan selection for eligible predicates. The executor runs the resulting tree and returns rows, affected-row counts, messages, or per-statement errors.' },
+        { title: 'A minimal example', code: "CREATE TABLE stars (id INT, name VARCHAR, magnitude FLOAT);\nINSERT INTO stars VALUES (1, 'Sirius', -1.46);\nSELECT name, magnitude FROM stars WHERE magnitude < 0;" },
+        { title: 'Query behavior', text: 'ProcessQuery parses a SQL string, then plans and executes its statements sequentially. Parse errors stop the request; individual planning or execution errors are reported in the results. Inspect each result for an error even when the HTTP response itself succeeds.' },
+        { note: 'The parser implements a subset of SQL. Check internal/parser and the integration tests for the precise syntax supported by your version.' }
+      ] },
+      { id: 'storage', label: 'Storage & records', eyebrow: '03 / PERSISTENCE', title: 'How data is stored', intro: 'A table is represented by catalog metadata and a linked set of heap pages. The storage stack moves typed records between memory and a database file.', sections: [
+        { title: 'Layers on disk', items: [['Disk manager', 'Reads and writes fixed-size pages in the database file and provides synchronization.'], ['Pager', 'Caches pages, allocates new pages, and flushes modified pages to disk. The default configured page size is 8 KiB.'], ['Catalog', 'Stores table schemas and metadata, including index metadata; the catalog is rooted at page 0.'], ['Heap tables', 'Store serialized records across linked pages. The table manager coordinates schema lookup, reads, writes, and index maintenance.']] },
+        { title: 'Records and encoding', text: 'A schema defines ordered columns and their type IDs. Records hold typed values and serialize according to that schema. Integers are stored as int32, floats as float64, and variable-length data includes length information. Binary encoding helpers use little-endian representations.' },
+        { title: 'Files', text: 'The daemon opens <data directory>/<database name>.db and the transaction manager uses an associated WAL file. User, policy, and model configuration is stored separately in the data directory.' },
+        { note: 'Records must fit the engine’s page format. Storage and index behavior should be evaluated against the current implementation before relying on it for production workloads.' }
+      ] },
+      { id: 'indexes', label: 'Indexes', eyebrow: '04 / ACCESS PATHS', title: 'Finding rows faster', intro: 'The page-backed B+ tree provides an alternative access path for supported indexed values.', sections: [
+        { title: 'Structure', text: 'B+ tree nodes live in pages. The implementation supports integer, float, and varchar keys, node splits, point lookups, and range scans. Index metadata is associated with the table in the catalog, and the table manager maintains indexes as records change.' },
+        { title: 'Selection', text: 'The optimizer can replace a table scan under a filter with an index scan when it recognizes a compatible indexed comparison. It retains the filter to evaluate the predicate against the returned rows. Index selection is rule-based rather than a cost-based optimizer.' },
+        { title: 'Working with indexes', code: 'CREATE INDEX idx_stars_name ON stars (name);\nSHOW INDEXES FROM stars;\nDROP INDEX idx_stars_name ON stars;' },
+        { note: 'An index is useful only when a supported predicate and data type match the optimizer’s rules. Verify plans and behavior against the source for complex expressions.' }
+      ] },
+      { id: 'transactions', label: 'Transactions & recovery', eyebrow: '05 / DURABILITY', title: 'Transactions and the WAL', intro: 'Transactions maintain private dirty pages and use a write-ahead log to support commit, rollback, and recovery.', sections: [
+        { title: 'Transaction lifecycle', items: [['Begin', 'The manager acquires a database-level transaction lock, assigns an ID, and records and syncs BEGIN.'], ['Write', 'Modified page images are kept in the transaction’s private workspace and appended to the WAL as updates.'], ['Commit', 'COMMIT is appended and the WAL is synced before dirty pages are written and flushed to the database file.'], ['Rollback', 'ABORT is recorded and synced; private dirty pages are discarded and the lock is released.']] },
+        { title: 'Recovery', text: 'At startup the transaction manager scans the WAL and replays updates belonging to committed transactions. WAL records include checksums. This is a page-image redo mechanism; inspect internal/transaction and internal/wal for the exact recovery and error-handling behavior.' },
+        { title: 'Concurrency', text: 'The transaction manager uses a global database-level lock for transaction isolation. Long-running transactions can therefore hold up other work. Operations with no supplied transaction generally use an automatic transaction in the table manager.' },
+        { note: 'The web import validates rows before writing, but inserts are performed individually. An insertion error can leave a created table and a partial set of rows; the response reports how many were inserted.' }
+      ] },
+      { id: 'types', label: 'Types & functions', eyebrow: '06 / DATA MODEL', title: 'Types for scientific data', intro: 'Alongside basic relational values, the engine defines scientific and geospatial types and a registry of functions.', sections: [
+        { title: 'Column types', items: [['INT / INTEGER', 'Signed 32-bit integer.'], ['FLOAT / DOUBLE / REAL', 'Double-precision floating-point value.'], ['VARCHAR / STRING / TEXT', 'Variable-length text.'], ['COMPLEX, VECTOR, MATRIX, TENSOR', 'Scientific values represented by dedicated internal types.'], ['POINT, POLYGON', 'Two-dimensional geometric values.']] },
+        { title: 'Functions', text: 'The functions package registers mathematical and scientific operations including trigonometric functions, EXP, LOG, SQRT, ABS, POW, DOT, CROSS, and NORM. Geospatial support includes point and polygon operations. Function argument and expression support is enforced by the executor.' },
+        { title: 'Scientific example', code: 'CREATE TABLE research_runs (run_id INT, embedding VECTOR);\nINSERT INTO research_runs VALUES (1, [1.0, 2.0, 3.0]);\nSELECT run_id, NORM(embedding) FROM research_runs;' },
+        { note: 'The import wizard creates INT, FLOAT, and VARCHAR columns. JSON imports accept flat objects; nested objects and arrays are not imported as scientific values.' }
+      ] },
+      { id: 'interfaces', label: 'HTTP, TCP & MCP', eyebrow: '07 / INTERFACES', title: 'Connect to FlamingoDB', intro: 'The daemon exposes the embedded web dashboard and programmatic interfaces over HTTP and TCP. It can also run an MCP server over standard input and output.', sections: [
+        { title: 'HTTP endpoints', items: [['POST /query', 'Execute SQL with a JSON body containing query and, optionally, tx_id.'], ['POST /tx/begin', 'Start a transaction and receive a transaction ID.'], ['POST /tx/commit · /tx/rollback', 'Complete a transaction with a JSON body containing tx_id.'], ['GET /api/tables · /api/describe?table=…', 'List tables or inspect a table schema.'], ['POST /api/import', 'Create or append to a table from an already-parsed mapping and rows.'], ['/api/users · /api/policies · /api/models', 'Manage users, named policies, and AI model configuration through their respective endpoints.']] },
+        { title: 'HTTP query example', code: "curl -u admin:password -X POST http://localhost:8080/query \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"query\":\"SELECT * FROM stars;\"}'" },
+        { title: 'TCP and MCP', text: 'The TCP server exchanges JSON requests and responses and supports authentication, queries, transactions, and metadata commands. Start the daemon with -mcp to use its stdio MCP mode; -policy selects a policy for that mode.' },
+        { title: 'Authentication and policies', text: 'HTTP uses Basic authentication. The server stores users and policies in its data directory; administrators bypass the operation policy checks. Non-admin operations are subject to the server’s policy checks. Use transport protection and deployment controls appropriate to your environment.' }
+      ] },
+      { id: 'operations', label: 'Running & importing', eyebrow: '08 / OPERATIONS', title: 'Run and work with data', intro: 'Start the daemon, connect to the dashboard, and use the table browser to inspect or import data.', sections: [
+        { title: 'Start the server', code: 'go run ./cmd/flamingodbd -dir ./data -db flamingo -http :8080 -tcp :4080 -user admin -pass your-password' },
+        { title: 'Configuration', text: 'The daemon accepts -dir, -db, -http, -tcp, -user, -pass, -mcp, and -policy flags. Open http://localhost:8080/ to use the dashboard. The configured credentials seed the admin account when the user store is created; an existing stored admin is not overwritten on startup.' },
+        { title: 'Import a file', items: [['1 · Choose data', 'Open Table Browser → Import Data and select CSV, TSV, or JSON. CSV uses its first row as column names; JSON accepts flat objects.'], ['2 · Map columns', 'Choose a new table or an existing destination, review names and inferred types, and skip columns if needed.'], ['3 · Review and import', 'Inspect the preview and start the import. The limit is 10,000 rows per import. Numeric values must match their destination type.']] },
+        { title: 'Source and verification', text: 'The Go source is organized by subsystem under internal/. Run go test ./... from the repository root to exercise the available package tests. Check the daemon logs and returned per-statement errors when diagnosing failures.' }
+      ] }
+    ];
+
+    function EngineDocsPage() {
+      const [chapter, setChapter] = useState('first-steps');
+      const [search, setSearch] = useState('');
+      useEffect(function() { const container = document.querySelector('.page-content'); if (container) container.scrollTop = 0; }, [chapter]);
+      const query = search.trim().toLowerCase();
+      const matches = ENGINE_DOCS.filter(function(doc) { return !query || JSON.stringify(doc).toLowerCase().includes(query); });
+      const active = ENGINE_DOCS.find(function(doc) { return doc.id === chapter; }) || ENGINE_DOCS[0];
+      return React.createElement('div', { className: 'docs-layout' },
+        React.createElement('aside', { className: 'docs-nav', 'aria-label': 'Documentation chapters' },
+          React.createElement('div', { className: 'docs-nav-heading' }, 'ENGINE REFERENCE'),
+          React.createElement('label', { className: 'docs-search' }, React.createElement(Icon, { name: 'search', size: 15 }), React.createElement('input', { value: search, onChange: function(e) { setSearch(e.target.value); }, placeholder: 'Search documentation', 'aria-label': 'Search documentation' })),
+          React.createElement('div', { className: 'docs-nav-label' }, query ? matches.length + ' MATCHING CHAPTERS' : 'CONTENTS'),
+          React.createElement('div', { className: 'docs-links' }, matches.length ? matches.map(function(doc, i) {
+            return React.createElement('button', { key: doc.id, className: 'docs-link' + (chapter === doc.id ? ' active' : ''), onClick: function() { setChapter(doc.id); }, 'aria-current': chapter === doc.id ? 'page' : undefined }, React.createElement('span', { className: 'docs-link-number' }, String(ENGINE_DOCS.indexOf(doc) + 1).padStart(2, '0')), doc.label, React.createElement('span', { className: 'docs-link-arrow' }, '↗'));
+          }) : React.createElement('p', { className: 'docs-no-results' }, 'No chapters match your search.')),
+          React.createElement('div', { className: 'docs-nav-footer' }, React.createElement('span', { className: 'docs-status-dot' }), 'Built into your server')
+        ),
+        React.createElement('article', { className: 'docs-article', key: active.id },
+          React.createElement('div', { className: 'docs-hero' },
+            React.createElement('div', { className: 'docs-eyebrow' }, React.createElement('span', null), active.eyebrow),
+            React.createElement('h1', null, active.title), React.createElement('p', null, active.intro),
+            React.createElement('div', { className: 'docs-hero-meta' }, React.createElement('span', null, 'FLAMINGODB'), React.createElement('span', null, 'ENGINE REFERENCE'), React.createElement('span', null, 'GO / SQL'))
+          ),
+          React.createElement('div', { className: 'docs-body' }, active.sections.map(function(section, i) {
+            if (section.flow) return React.createElement('div', { className: 'docs-flow', key: i }, section.flow.map(function(item, n) { return React.createElement(React.Fragment, { key: item }, React.createElement('span', null, item), n < section.flow.length - 1 ? React.createElement('b', { 'aria-hidden': 'true' }, '→') : null); }));
+            if (section.note) return React.createElement('div', { className: 'docs-note', key: i }, React.createElement(Icon, { name: 'info', size: 17 }), React.createElement('p', null, section.note));
+            return React.createElement('section', { className: 'docs-section', key: i }, React.createElement('div', { className: 'docs-section-index' }, String(i + 1).padStart(2, '0')), React.createElement('div', { className: 'docs-section-content' }, React.createElement('h2', null, section.title), section.text ? React.createElement('p', null, section.text) : null, section.code ? React.createElement('pre', null, React.createElement('code', null, section.code)) : null, section.items ? React.createElement('div', { className: 'docs-detail-list' }, section.items.map(function(item) { return React.createElement('div', { className: 'docs-detail', key: item[0] }, React.createElement('strong', null, item[0]), React.createElement('span', null, item[1])); })) : null));
+          })),
+          React.createElement('div', { className: 'docs-bottom' }, React.createElement('span', null, 'END OF CHAPTER'), ENGINE_DOCS.indexOf(active) < ENGINE_DOCS.length - 1 ? React.createElement('button', { onClick: function() { setChapter(ENGINE_DOCS[ENGINE_DOCS.indexOf(active) + 1].id); } }, 'Next: ' + ENGINE_DOCS[ENGINE_DOCS.indexOf(active) + 1].label + '  →') : React.createElement('button', { onClick: function() { setChapter('overview'); } }, 'Back to overview  ↑'))
         )
       );
     }
@@ -4227,6 +4550,7 @@
     const PAGES = [
       { id: 'console', label: 'SQL Console', icon: 'terminal' },
       { id: 'tables', label: 'Table Browser', icon: 'database' },
+      { id: 'docs', label: 'Documentation', icon: 'book-open' },
       { id: 'ai', label: 'AI Assistant', icon: 'cpu' },
       { id: 'users', label: 'Users', icon: 'users' },
       { id: 'settings', label: 'Settings', icon: 'settings' },
@@ -4236,6 +4560,7 @@
     function App() {
       const [creds, setCreds] = useState(null);
       const [page, setPage] = useState('console');
+      const [publicDocs, setPublicDocs] = useState(false);
       const [stats, setStats] = useState({ tables: 0, queries: 0, users: 0 });
       const [online, setOnline] = useState(true);
 
@@ -4275,7 +4600,16 @@
       }, [page, creds]);
 
       if (!creds) {
-        return React.createElement(LoginPage, { onLogin: handleLogin });
+        if (publicDocs) return React.createElement('div', { className: 'app-shell' },
+          React.createElement('div', { className: 'main-area' },
+            React.createElement('header', { className: 'topbar' },
+              React.createElement('div', { className: 'topbar-title' }, 'Documentation', React.createElement('span', null, '/ FlamingoDB')),
+              React.createElement('button', { className: 'btn btn-ghost btn-sm', onClick: function() { setPublicDocs(false); } }, React.createElement(Icon, { name: 'arrow-left', size: 15 }), 'Back to sign in')
+            ),
+            React.createElement('main', { className: 'page-content' }, React.createElement(EngineDocsPage))
+          )
+        );
+        return React.createElement(LoginPage, { onLogin: handleLogin, onOpenDocs: function() { setPublicDocs(true); } });
       }
 
       const currentPage = PAGES.find(function (p) { return p.id === page; }) || PAGES[0];
@@ -4339,6 +4673,7 @@
             React.createElement(AnimatePresence, { mode: 'wait' },
               page === 'console' ? React.createElement(SqlConsolePage, { key: 'console', creds: creds, stats: stats, setStats: setStats }) :
                 page === 'tables' ? React.createElement(TableBrowserPage, { key: 'tables', creds: creds }) :
+                  page === 'docs' ? React.createElement(EngineDocsPage, { key: 'docs' }) :
                   page === 'users' ? React.createElement(UsersPage, { key: 'users', creds: creds }) :
                     page === 'settings' ? React.createElement(SettingsPage, { key: 'settings', creds: creds }) :
                       page === 'profile' ? React.createElement(ProfilePage, { key: 'profile', creds: creds, setCreds: setCreds }) :

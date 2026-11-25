@@ -1,9 +1,9 @@
 package parser
 
 import (
+	"fmt"
 	"github.com/TaqsBlaze/FlamingoDB/internal/parser/ast"
 	"github.com/TaqsBlaze/FlamingoDB/internal/parser/lexer"
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -407,6 +407,7 @@ func (p *Parser) parseSelectStatement() *ast.SelectStatement {
 			return nil
 		}
 		// Parse ORDER BY expressions
+		p.nextToken() // Move past BY
 		for {
 			expr := p.parseExpression(LOWEST)
 			if expr == nil {
@@ -437,12 +438,14 @@ func (p *Parser) parseSelectStatement() *ast.SelectStatement {
 	// Parse LIMIT clause
 	if p.peekTokenIs(lexer.LIMIT) {
 		p.nextToken() // Move to LIMIT
+		p.nextToken() // Move to the limit expression
 		stmt.Limit = p.parseExpression(LOWEST)
 	}
 
 	// Parse OFFSET clause
 	if p.peekTokenIs(lexer.OFFSET) {
 		p.nextToken() // Move to OFFSET
+		p.nextToken() // Move to the offset expression
 		stmt.Offset = p.parseExpression(LOWEST)
 	}
 
@@ -604,12 +607,12 @@ func (p *Parser) parseUpdateStatement() *ast.UpdateStatement {
 		if !p.expectPeek(lexer.ASSIGN) {
 			return nil
 		}
-		
+
 		p.nextToken() // Move past =
-		
+
 		expr := p.parseExpression(LOWEST)
 		stmt.Set[col] = expr
-		
+
 		if p.peekTokenIs(lexer.COMMA) {
 			p.nextToken() // move to COMMA
 			p.nextToken() // move past COMMA
@@ -688,8 +691,8 @@ func (p *Parser) parseCreateTableStatement() *ast.CreateTableStatement {
 		// Parse column attributes (AUTO_INCREMENT, PRIMARY KEY, NOT NULL, etc.)
 		var attributes []string
 		for p.peekTokenIs(lexer.AUTO_INCREMENT) || p.peekTokenIs(lexer.PRIMARY) ||
-		      p.peekTokenIs(lexer.KEY) || p.peekTokenIs(lexer.NOT) ||
-		      p.peekTokenIs(lexer.NULL) {
+			p.peekTokenIs(lexer.KEY) || p.peekTokenIs(lexer.NOT) ||
+			p.peekTokenIs(lexer.NULL) {
 			if p.peekTokenIs(lexer.AUTO_INCREMENT) {
 				p.nextToken()
 				attributes = append(attributes, "AUTO_INCREMENT")
@@ -872,7 +875,6 @@ func (p *Parser) curPrecedence() int {
 	}
 	return LOWEST
 }
-
 
 func (p *Parser) parseImaginaryLiteral() ast.Expression {
 	lit := &ast.ImaginaryLiteral{Token: p.curToken}

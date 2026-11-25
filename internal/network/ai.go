@@ -39,7 +39,7 @@ type AIModelStore struct {
 // NewAIModelStore loads or initializes the AIModelStore.
 func NewAIModelStore(filePath string) (*AIModelStore, error) {
 	store := &AIModelStore{
-		models:    make(map[string]*AIModelConfig),
+		models:   make(map[string]*AIModelConfig),
 		filePath: filePath,
 	}
 
@@ -137,9 +137,13 @@ func CallModel(cfg *AIModelConfig, systemPrompt string, history []map[string]str
 			systemPrompt += "\n\nVisualization rules:"
 			systemPrompt += "\n- Whenever the user asks for a chart, graph, plot, or any visual representation of data (pie, bar, line, doughnut, radar, polarArea, scatter, bubble), you MUST call the `generate_chart` tool."
 			systemPrompt += "\n- If the user did not supply data, first call `execute_query` to fetch the relevant rows, then transform them into a Chart.js-shaped `data` object (labels + datasets) and pass that to `generate_chart`."
+			systemPrompt += "\n- Chart tool arguments must use JSON only. Never emit Python, tool_code, JavaScript functions, or stringified callbacks; include scatter points as {x,y} and bubble points as {x,y,r}."
 			systemPrompt += "\n- After receiving a `generate_chart` tool result, copy the returned markdown code block VERBATIM into your final reply so the UI can render it. Do not paraphrase the chart, do not describe it in prose, and do not wrap it in anything other than the exact ```chart ... ``` block the tool returned."
 		}
 	}
+
+	var generatedCharts []string
+	var retriedChartCall bool
 
 	for i := 0; i < 5; i++ {
 		resp, err := callModelOnce(cfg, systemPrompt, history)
@@ -172,6 +176,10 @@ func CallModel(cfg *AIModelConfig, systemPrompt string, history []map[string]str
 				result = "Error: MCP Client is not initialized"
 			}
 
+			if tc.ToolCall == "generate_chart" && strings.HasPrefix(result, "```chart\n") && strings.HasSuffix(result, "\n```") {
+				generatedCharts = append(generatedCharts, result)
+			}
+
 			// Append the tool result back into the last message or create a new user message
 			lastIdx := len(history) - 1
 			if lastIdx >= 0 {
@@ -184,15 +192,34 @@ func CallModel(cfg *AIModelConfig, systemPrompt string, history []map[string]str
 			continue
 		}
 
+		// Some models emit Python-like tool_code in prose rather than the JSON
+		// protocol. Ask once for a real tool call; never execute generated code.
+		if !retriedChartCall && strings.Contains(strings.ToLower(resp), "tool_code") && strings.Contains(strings.ToLower(resp), "generate_chart") {
+			retriedChartCall = true
+			history = append(history, map[string]string{"role": "user", "text": "Your last response contained tool_code instead of a tool call. Call generate_chart now using only the exact JSON format {\"tool_call\":\"generate_chart\",\"arguments\":{\"type\":...,\"data\":...}}. Use valid JSON and no executable code or callback functions."})
+			continue
+		}
+
 		// If we got a response without a tool call, we are done.
 		if tm != nil {
 			// Reload the catalog to pick up any changes made by the MCP subprocess (e.g., CREATE TABLE).
 			// This ensures the main server's metadata is up-to-date.
 			_ = tm.ReloadCatalog()
 		}
-		return resp, nil
+		return includeGeneratedCharts(resp, generatedCharts), nil
 	}
 	return "", fmt.Errorf("exceeded maximum tool call loops")
+}
+
+// includeGeneratedCharts preserves tool-produced visualizations even if a model
+// omits or reformats the chart block in its final response.
+func includeGeneratedCharts(reply string, charts []string) string {
+	for _, chart := range charts {
+		if !strings.Contains(reply, chart) {
+			reply += "\n\n" + chart
+		}
+	}
+	return reply
 }
 
 func callModelOnce(cfg *AIModelConfig, systemPrompt string, history []map[string]string) (string, error) {
@@ -211,7 +238,7 @@ func callModelOnce(cfg *AIModelConfig, systemPrompt string, history []map[string
 			messages = append(messages, map[string]string{"role": m["role"], "content": m["text"]})
 		}
 		payload := map[string]any{
-			"model": cfg.ModelName,
+			"model":    cfg.ModelName,
 			"messages": messages,
 		}
 		if cfg.ThinkingLevel != "" && cfg.ThinkingLevel != "none" && (strings.HasPrefix(cfg.ModelName, "o1") || strings.HasPrefix(cfg.ModelName, "o3")) {
@@ -252,19 +279,21 @@ func callModelOnce(cfg *AIModelConfig, systemPrompt string, history []map[string
 			model = "models/" + model
 		}
 		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/%s:generateContent?key=%s", model, cfg.APIKey)
-		
+
 		var contents []map[string]any
 		for _, m := range history {
-		    role := m["role"]
-		    if role == "assistant" { role = "model" }
+			role := m["role"]
+			if role == "assistant" {
+				role = "model"
+			}
 			contents = append(contents, map[string]any{
-			    "role": role,
+				"role": role,
 				"parts": []map[string]any{
 					{"text": m["text"]},
 				},
 			})
 		}
-		
+
 		payload := map[string]any{
 			"systemInstruction": map[string]any{
 				"parts": map[string]any{
@@ -304,7 +333,7 @@ func callModelOnce(cfg *AIModelConfig, systemPrompt string, history []map[string
 			messages = append(messages, map[string]string{"role": m["role"], "content": m["text"]})
 		}
 		payload := map[string]any{
-			"model": cfg.ModelName,
+			"model":    cfg.ModelName,
 			"messages": messages,
 		}
 		reqBody, _ = json.Marshal(payload)
