@@ -3,3 +3,5 @@
 !internal/network/mcp_calculations_test.go
 !internal/network/mysql_import_test.go
 /data/
+!scientific_query_test.go
+!internal/wal/wal_test.go

@@ -95,7 +95,7 @@ func (s *Server) handleMCPInitialize(id any) {
 		},
 		"serverInfo": map[string]any{
 			"name":    "flamingodb-mcp",
-			"version": "1.3.0",
+			"version": "1.3.1",
 		},
 	}
 	s.sendMCPResponse(id, result)
