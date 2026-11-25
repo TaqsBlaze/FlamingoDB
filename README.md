@@ -462,9 +462,16 @@ http://localhost:8080/ui
 ```
 *Note: The dashboard requires HTTP Basic Authentication matching the username and password flags specified when starting the daemon (default credentials: `admin` / `admin`).*
 
+#### Windows installer
+
+Run `FlamingoDB-Setup-1.3.0-x64.exe` on 64-bit Windows. The installer adds a desktop launcher and Start menu shortcuts. Open **FlamingoDB** to start the local server and open the dashboard; use **Stop FlamingoDB** in the Start menu to shut it down. The initial login is `admin` / `admin`; change the password in My Profile after signing in. The server listens on `127.0.0.1` and stores the database and settings in `%LOCALAPPDATA%\FlamingoDB\data`. Uninstalling keeps this data. Stop the server before upgrading or uninstalling.
+
+To build the installer from source, install Go and NSIS, then run `packaging/windows/build.ps1` in PowerShell (or `packaging/windows/build.sh` on a machine with a cross-compiling Go toolchain and NSIS). The installer is written to `build/`.
+
 #### Key Features
 - 🖥️ **SQL Console**: Execute custom SQL statements directly in the browser and view nicely-formatted result tables.
-- 📦 **Table Browser**: Inspect table structures, columns, types, and schemas stored in the catalog.
+- 📖 **Documentation**: Browse and search the built-in technical reference for the query engine, storage, transactions, interfaces, and operations.
+- 📦 **Table Browser**: Inspect table structures, columns, types, and schemas stored in the catalog. Select **Import Data** to create a table or append rows from a CSV (first row contains column names), TSV, JSON file containing flat objects, SQLite database, or MySQL table. SQLite is read in the browser and requires the SQLite reader to load over the internet. MySQL connections require an administrator; use a read-only source account and TLS. Database imports handle one nonempty table at a time, with no NULL or binary values, and do not copy indexes or constraints. Review the column mappings and inferred types before importing; each import supports up to 10,000 rows.
 - 👥 **User Management**: Add new database users, delete existing accounts, and update passwords.
 - 🛡️ **Named Policy Store**: Create, edit, and assign security policies (e.g. `Read-Only`, `Read-Write`, or custom DDL/DML permission matrices) to users.
 - 🔄 **Transaction Monitoring**: Real-time indication of current connections and active transaction status.

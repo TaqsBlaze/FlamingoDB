@@ -1,1 +1,5 @@
 *test.go
+/build/
+!internal/network/mcp_calculations_test.go
+!internal/network/mysql_import_test.go
+/data/

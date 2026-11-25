@@ -10,9 +10,12 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"math"
 	"net"
 	"net/http"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -53,12 +56,12 @@ type QueryResult struct {
 
 // Server implements the FlamingoDB network server supporting TCP and HTTP protocols.
 type Server struct {
-	tm        *catalog.TableManager
-	log       *logger.Logger
-	cfg       Config
-	maxConn   int
-	username  string
-	password  string
+	tm          *catalog.TableManager
+	log         *logger.Logger
+	cfg         Config
+	maxConn     int
+	username    string
+	password    string
 	userStore   *UserStore
 	policyStore *PolicyStore
 	aiStore     *AIModelStore
@@ -212,6 +215,7 @@ func (s *Server) Start() error {
 		mux.HandleFunc("/api/tables", s.handleHTTPListTables)
 		mux.HandleFunc("/api/describe", s.handleHTTPDescribeTable)
 		mux.HandleFunc("/api/import", s.handleHTTPImport)
+		mux.HandleFunc("/api/import/mysql", s.handleMySQLImport)
 		mux.HandleFunc("/api/users", s.handleHTTPUsers)
 		mux.HandleFunc("/api/users/", s.handleHTTPUsersPath) // handles /api/users/:name and /api/users/:name/policy
 		mux.HandleFunc("/api/policies", s.handleHTTPPolicies)
@@ -284,8 +288,8 @@ type TCPRequest struct {
 	Type     string `json:"type"`               // "auth", "query", "begin", "commit", "rollback", "close", "meta"
 	Username string `json:"username,omitempty"` // credentials for auth
 	Password string `json:"password,omitempty"`
-	Query    string `json:"query,omitempty"`    // SQL string
-	Command  string `json:"command,omitempty"`  // "list_tables", "describe_table"
+	Query    string `json:"query,omitempty"`   // SQL string
+	Command  string `json:"command,omitempty"` // "list_tables", "describe_table"
 }
 
 type TCPResponse struct {
@@ -638,10 +642,10 @@ func (s *Server) handleHTTPImport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Mode    string            `json:"mode"`     // "create" or "append"
-		Table   string            `json:"table"`    // target table name
-		Columns []ImportColumnDef `json:"columns"`  // ordered list of source->target mappings
-		Rows    [][]any           `json:"rows"`     // already parsed client-side
+		Mode    string            `json:"mode"`    // "create" or "append"
+		Table   string            `json:"table"`   // target table name
+		Columns []ImportColumnDef `json:"columns"` // ordered list of source->target mappings
+		Rows    [][]any           `json:"rows"`    // already parsed client-side
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -729,88 +733,121 @@ func (s *Server) handleHTTPImport(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Build the CREATE TABLE statement when in 'create' mode. The column
-	// types come from the user-chosen mapping; nullability is left default.
-	if mode == "create" {
-		var colDefs []string
-		for _, c := range cols {
-			colDefs = append(colDefs, fmt.Sprintf("%s %s", c.Target, c.Type))
-		}
-		createSQL := fmt.Sprintf("CREATE TABLE %s (%s);", req.Table, strings.Join(colDefs, ", "))
-		res, err := s.ProcessQuery(nil, createSQL)
-		if err != nil {
+	// Identifiers are kept compatible with the SQL console and table browser.
+	validName := regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+	validIdentifier := func(name string) bool {
+		return validName.MatchString(name) && lexer.LookupIdent(strings.ToUpper(name)) == lexer.IDENT
+	}
+	if !validIdentifier(req.Table) {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "table name must be a SQL identifier and not a reserved word"})
+		return
+	}
+	seen := make(map[string]bool)
+	for _, c := range cols {
+		key := strings.ToLower(c.Target)
+		if !validIdentifier(c.Target) || seen[key] {
 			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("create table failed: %v", err), "results": res})
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("invalid or duplicate column name %q", c.Target)})
 			return
 		}
-		for _, r := range res {
-			if r.Error != "" {
-				w.WriteHeader(http.StatusBadRequest)
-				_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": r.Error, "results": res})
-				return
+		seen[key] = true
+	}
+	var schema *record.Schema
+	if mode == "create" {
+		schema = &record.Schema{}
+		for _, c := range cols {
+			t := record.Varchar
+			if c.Type == "INT" {
+				t = record.Integer
+			} else if c.Type == "FLOAT" {
+				t = record.Float
 			}
+			schema.Columns = append(schema.Columns, record.Column{Name: c.Target, Type: t})
 		}
 	} else {
-		// Append mode: verify every target column actually exists in the
-		// destination table so we fail fast with a clear error rather than
-		// discovering the mismatch halfway through the import.
-		schema, err := s.tm.GetSchema(req.Table)
+		var err error
+		schema, err = s.tm.GetSchema(req.Table)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("table %q not found", req.Table)})
 			return
 		}
-		existing := make(map[string]bool, len(schema.Columns))
-		for _, sc := range schema.Columns {
-			existing[sc.Name] = true
+	}
+	indices := make([]int, len(cols))
+	for i, c := range cols {
+		indices[i] = -1
+		for j, sc := range schema.Columns {
+			if strings.EqualFold(sc.Name, c.Target) {
+				indices[i] = j
+				break
+			}
 		}
-		for _, c := range cols {
-			if !existing[c.Target] {
+		if indices[i] < 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("column %q does not exist", c.Target)})
+			return
+		}
+	}
+	// Validate all rows before making any changes, including numeric range and types.
+	records := make([]*record.Record, 0, len(req.Rows))
+	for ri, row := range req.Rows {
+		if len(row) <= maxSourceIndex(sourceIdx) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("row %d has too few columns", ri+1)})
+			return
+		}
+		rec := &record.Record{Values: make([]record.Value, len(schema.Columns))}
+		for i, c := range schema.Columns {
+			rec.Values[i].Type = c.Type
+		}
+		for i, si := range sourceIdx {
+			v := row[si]
+			var val string
+			if v != nil {
+				val = fmt.Sprint(v)
+			}
+			dest := &rec.Values[indices[i]]
+			var err error
+			switch dest.Type {
+			case record.Integer:
+				var n int64
+				n, err = strconv.ParseInt(strings.TrimSpace(val), 10, 32)
+				dest.Int = int32(n)
+			case record.Float:
+				dest.Flt, err = strconv.ParseFloat(strings.TrimSpace(val), 64)
+				if err == nil && (math.IsNaN(dest.Flt) || math.IsInf(dest.Flt, 0)) {
+					err = fmt.Errorf("non-finite number")
+				}
+			case record.Varchar:
+				switch v.(type) {
+				case nil, string, float64, bool:
+					dest.Str = val
+				default:
+					err = fmt.Errorf("expected a scalar value")
+				}
+			default:
+				err = fmt.Errorf("unsupported destination type")
+			}
+			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("column %q does not exist in table %q", c.Target, req.Table)})
+				_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("row %d, column %q: invalid value %q (%v)", ri+1, cols[i].Target, val, err)})
 				return
 			}
 		}
+		records = append(records, rec)
 	}
-
-	// Build a single multi-row INSERT and run it through ProcessQuery. The
-	// planner/executor already supports chained INSERT nodes so all rows go
-	// through one round-trip.
-	targetColNames := make([]string, len(cols))
-	for i, c := range cols {
-		targetColNames[i] = c.Target
-	}
-	var valuesSQL []string
-	for _, row := range req.Rows {
-		if len(row) <= maxSourceIndex(sourceIdx) {
+	if mode == "create" {
+		if err := s.tm.CreateTable(nil, req.Table, schema); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "row does not have enough columns to satisfy the mapping"})
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("create table failed: %v", err)})
 			return
 		}
-		var vals []string
-		for _, si := range sourceIdx {
-			v := row[si]
-			vals = append(vals, importSQLValue(v, targetTypeFor(cols, vals)))
-		}
-		valuesSQL = append(valuesSQL, "("+strings.Join(vals, ", ")+")")
 	}
-	insertSQL := fmt.Sprintf(
-		"INSERT INTO %s (%s) VALUES %s;",
-		req.Table,
-		strings.Join(targetColNames, ", "),
-		strings.Join(valuesSQL, ", "),
-	)
-	results, err := s.ProcessQuery(nil, insertSQL)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("insert failed: %v", err), "results": results})
-		return
-	}
-	// Surface any per-statement errors so the UI can show them.
-	for _, r := range results {
-		if r.Error != "" {
+	for i, rec := range records {
+		if err := s.tm.InsertRecord(nil, req.Table, rec); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": r.Error, "results": results})
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("import stopped after %d rows: %v", i, err), "rows_imported": i})
 			return
 		}
 	}
@@ -846,58 +883,6 @@ func maxSourceIndex(idxs []int) int {
 		}
 	}
 	return m
-}
-
-// targetTypeFor returns the SQL type for the column at the i-th position in
-// the active mapping. It walks the running list because callers iterate per
-// column, not per row.
-func targetTypeFor(cols []importColSpec, builtSoFar []string) string {
-	if len(builtSoFar) >= len(cols) {
-		return cols[len(cols)-1].Type
-	}
-	return cols[len(builtSoFar)].Type
-}
-
-// importSQLValue renders a cell value as a SQL literal that the parser will
-// accept, based on the destination column's type.
-func importSQLValue(v any, sqlType string) string {
-	switch sqlType {
-	case "INT":
-		// Integers serialize bare; non-numeric input becomes 0 rather than
-		// failing the entire import, matching the lenient behavior of the
-		// query endpoint.
-		if f, ok := toFloat(v); ok {
-			return fmt.Sprintf("%d", int64(f))
-		}
-		return "0"
-	case "FLOAT":
-		if f, ok := toFloat(v); ok {
-			return fmt.Sprintf("%v", f)
-		}
-		return "0"
-	default: // VARCHAR
-		s := fmt.Sprintf("%v", v)
-		return "'" + strings.ReplaceAll(s, "'", "''") + "'"
-	}
-}
-
-func toFloat(v any) (float64, bool) {
-	switch n := v.(type) {
-	case float64:
-		return n, true
-	case float32:
-		return float64(n), true
-	case int:
-		return float64(n), true
-	case int64:
-		return float64(n), true
-	case json.Number:
-		f, err := n.Float64()
-		if err == nil {
-			return f, true
-		}
-	}
-	return 0, false
 }
 
 func (s *Server) handleHTTPQuery(w http.ResponseWriter, r *http.Request) {
@@ -1266,8 +1251,9 @@ func (s *Server) handleHTTPUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleHTTPUsersPath handles sub-paths under /api/users/:
-//   DELETE /api/users/:username          → delete user
-//   PUT    /api/users/:username/policy   → update policy
+//
+//	DELETE /api/users/:username          → delete user
+//	PUT    /api/users/:username/policy   → update policy
 func (s *Server) handleHTTPUsersPath(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -1347,7 +1333,6 @@ func (s *Server) handleHTTPUsersPath(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "message": "user deleted: " + username})
 }
 
-
 // PUT /api/me/password – change own password
 func (s *Server) handleHTTPChangePassword(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -1394,7 +1379,6 @@ func (s *Server) handleHTTPMe(w http.ResponseWriter, r *http.Request) {
 	safe.Password = ""
 	_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "user": safe})
 }
-
 
 func (s *Server) Close() error {
 	s.once.Do(func() {
@@ -1484,6 +1468,12 @@ func inferColumnNames(node planner.PlanNode, tm *catalog.TableManager) []string 
 		return names
 	case *planner.FilterNode:
 		return inferColumnNames(n.Child, tm)
+	case *planner.LimitOffsetNode:
+		return inferColumnNames(n.Child, tm)
+	case *planner.SortNode:
+		return inferColumnNames(n.Child, tm)
+	case *planner.DistinctNode:
+		return inferColumnNames(n.Child, tm)
 	case *planner.ScanNode:
 		schema, err := tm.GetSchema(n.Table)
 		if err != nil {
@@ -1566,7 +1556,7 @@ func (s *Server) handleHTTPPoliciesPath(w http.ResponseWriter, r *http.Request) 
 func (s *Server) handleHTTPModels(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	
+
 	if r.Method == http.MethodOptions {
 		return
 	}
@@ -1607,7 +1597,7 @@ func (s *Server) handleHTTPModels(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHTTPModelsPath(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	
+
 	if r.Method == http.MethodOptions {
 		return
 	}
@@ -1640,7 +1630,7 @@ func (s *Server) handleHTTPModelsPath(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHTTPQueryAI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	
+
 	if r.Method == http.MethodOptions {
 		return
 	}
@@ -1690,7 +1680,7 @@ func (s *Server) handleHTTPQueryAI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	systemPrompt := GenerateSystemPrompt(s.tm)
-	
+
 	// Convert single message to history format if history is missing
 	history := req.History
 	if len(history) == 0 {

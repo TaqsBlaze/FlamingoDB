@@ -95,7 +95,7 @@ func (s *Server) handleMCPInitialize(id any) {
 		},
 		"serverInfo": map[string]any{
 			"name":    "flamingodb-mcp",
-			"version": "1.2.0",
+			"version": "1.3.0",
 		},
 	}
 	s.sendMCPResponse(id, result)
@@ -164,11 +164,24 @@ func (s *Server) handleMCPToolsList(id any) {
 		},
 	}
 
+	tools = append(tools, calculationTools()...)
 	s.sendMCPResponse(id, map[string]any{"tools": tools})
 }
 
 func (s *Server) handleMCPToolsCall(id any, name string, args json.RawMessage, policyName string) {
 	switch name {
+	case "calculate_vector", "calculate_distance":
+		result, err := calculateTool(name, args)
+		if err != nil {
+			s.sendMCPToolResult(id, "Error: "+err.Error(), true)
+			return
+		}
+		encoded, err := json.Marshal(result)
+		if err != nil {
+			s.sendMCPToolResult(id, "Error: calculation produced a non-finite result", true)
+			return
+		}
+		s.sendMCPToolResult(id, string(encoded), false)
 	case "list_tables":
 		tables := s.tm.ListTables()
 		var text string
@@ -253,8 +266,8 @@ func (s *Server) handleMCPToolsCall(id any, name string, args json.RawMessage, p
 
 	case "generate_chart":
 		var params struct {
-			Type   string         `json:"type"`
-			Data   map[string]any `json:"data"`
+			Type    string         `json:"type"`
+			Data    map[string]any `json:"data"`
 			Options map[string]any `json:"options"`
 		}
 		if err := json.Unmarshal(args, &params); err != nil {
